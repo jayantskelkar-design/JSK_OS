@@ -45,7 +45,7 @@
               Active Companies
             </span>
             <strong><?= dashboard.companies ?></strong>
-            <a href="?page=companies">Open Companies</a>
+            <a href="<?= webAppUrl ?>?page=companies">Open Companies</a>
           </article>
 
           <article class="summary-card">
@@ -53,7 +53,7 @@
               Active People
             </span>
             <strong><?= dashboard.people ?></strong>
-            <a href="?page=people">Open People</a>
+            <a href="<?= webAppUrl ?>?page=people">Open People</a>
           </article>
 
           <article class="summary-card">
@@ -88,7 +88,7 @@
           <div class="quick-grid">
             <a
               class="quick-action"
-              href="?page=companies"
+              href="<?= webAppUrl ?>?page=companies"
             >
               <strong>Company CRM</strong>
               <span>
@@ -98,7 +98,7 @@
 
             <a
               class="quick-action"
-              href="?page=people"
+              href="<?= webAppUrl ?>?page=people"
             >
               <strong>People CRM</strong>
               <span>

@@ -18,6 +18,7 @@ function renderPeopleUi() {
   template.applicationVersion = '1.2.0';
   template.currentUser =
     JSKOS.ConfigService.getCurrentUser();
+  template.webAppUrl = ScriptApp.getService().getUrl();
 
   return template
     .evaluate()
