@@ -86,3 +86,39 @@ function assertPeopleBackendTest_(
     );
   }
 }
+/**
+ * Tests people linked to an existing company.
+ *
+ * @return {Object}
+ */
+function testPeopleByCompanyLink() {
+  var companyId = 'COM-20260727120222-D22EBA';
+
+  var response = apiPeopleByCompany({
+    companyId: companyId,
+    includeArchived: false
+  });
+
+  if (!response || response.success !== true) {
+    throw new Error(
+      'Company-People link API test failed.'
+    );
+  }
+
+  var people = Array.isArray(response.data)
+    ? response.data
+    : [];
+
+  var result = {
+    success: true,
+    message: 'Company-People link API passed.',
+    companyId: companyId,
+    peopleCount: people.length,
+    people: people,
+    timestamp: new Date().toISOString()
+  };
+
+  console.info(JSON.stringify(result));
+
+  return result;
+}
