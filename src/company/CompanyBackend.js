@@ -69,7 +69,8 @@ class CompanyService {
 function apiCompanyCreate(payload) {
   return companyApiExecute_(function () {
     var request = companyNormalizeRequest_(payload);
-
+console.log("API GET REQUEST");
+console.log(JSON.stringify(request));
     return new CompanyService().create(
       request.data,
       request.actor

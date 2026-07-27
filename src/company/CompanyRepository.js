@@ -1103,6 +1103,23 @@ class CompanyRepository {
 
   _headerToCamelCase(header) {
     var specialNames = {
+      'Company ID': 'companyId',
+      'Company Name': 'companyName',
+      'Owner Person ID': 'ownerPersonId',
+      'Primary Contact ID': 'primaryContactId',
+      'Turnover Range': 'turnoverRange',
+      'Current Covers': 'currentCovers',
+      'Risk Category': 'riskCategory',
+      'Corporate Potential': 'corporatePotential',
+      'Last Review': 'lastReview',
+      'Next Review': 'nextReview',
+      'Google Maps Link': 'googleMapsLink',
+      'Created At': 'createdAt',
+      'Created By': 'createdBy',
+      'Updated At': 'updatedAt',
+      'Updated By': 'updatedBy',
+      'Record Version': 'recordVersion',
+      'Is Deleted': 'isDeleted',
       GSTIN: 'gstin',
       Website: 'website',
       Address: 'address',
@@ -1118,7 +1135,8 @@ class CompanyRepository {
       return specialNames[header];
     }
 
-    return header
+    return String(header || '')
+      .trim()
       .replace(/[^A-Za-z0-9]+(.)/g, function (_, character) {
         return character.toUpperCase();
       })
