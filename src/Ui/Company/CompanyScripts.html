@@ -1,0 +1,1066 @@
+<script>
+  (function () {
+    'use strict';
+
+    var state = {
+      page: 1,
+      pageSize: 25,
+      totalPages: 0,
+      totalItems: 0,
+      items: [],
+      loading: false,
+      searchTimer: null
+    };
+
+    var elements = {};
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      initializeCompanyUi
+    );
+
+    function initializeCompanyUi() {
+      cacheElements();
+      bindEvents();
+      loadCompanies();
+    }
+
+    function cacheElements() {
+      elements.sidebar =
+        document.getElementById('sidebar');
+
+      elements.mobileMenuButton =
+        document.getElementById('mobileMenuButton');
+
+      elements.addCompanyButton =
+        document.getElementById('addCompanyButton');
+
+      elements.refreshButton =
+        document.getElementById('refreshButton');
+
+      elements.searchInput =
+        document.getElementById('searchInput');
+
+      elements.statusFilter =
+        document.getElementById('statusFilter');
+
+      elements.riskFilter =
+        document.getElementById('riskFilter');
+
+      elements.includeArchivedCheckbox =
+        document.getElementById(
+          'includeArchivedCheckbox'
+        );
+
+      elements.companyTableBody =
+        document.getElementById('companyTableBody');
+
+      elements.loadingState =
+        document.getElementById('loadingState');
+
+      elements.emptyState =
+        document.getElementById('emptyState');
+
+      elements.previousPageButton =
+        document.getElementById('previousPageButton');
+
+      elements.nextPageButton =
+        document.getElementById('nextPageButton');
+
+      elements.pageIndicator =
+        document.getElementById('pageIndicator');
+
+      elements.paginationSummary =
+        document.getElementById('paginationSummary');
+
+      elements.totalCompanies =
+        document.getElementById('totalCompanies');
+
+      elements.currentPageCount =
+        document.getElementById('currentPageCount');
+
+      elements.highRiskCount =
+        document.getElementById('highRiskCount');
+
+      elements.prospectCount =
+        document.getElementById('prospectCount');
+
+      elements.companyModal =
+        document.getElementById('companyModal');
+
+      elements.modalTitle =
+        document.getElementById('modalTitle');
+
+      elements.modalSubtitle =
+        document.getElementById('modalSubtitle');
+
+      elements.closeModalButton =
+        document.getElementById('closeModalButton');
+
+      elements.cancelModalButton =
+        document.getElementById('cancelModalButton');
+
+      elements.companyForm =
+        document.getElementById('companyForm');
+
+      elements.saveCompanyButton =
+        document.getElementById('saveCompanyButton');
+
+      elements.formError =
+        document.getElementById('formError');
+
+      elements.toastContainer =
+        document.getElementById('toastContainer');
+    }
+
+    function bindEvents() {
+      elements.mobileMenuButton.addEventListener(
+        'click',
+        function () {
+          elements.sidebar.classList.toggle('open');
+        }
+      );
+
+      elements.addCompanyButton.addEventListener(
+        'click',
+        function () {
+          openCompanyModal();
+        }
+      );
+
+      elements.refreshButton.addEventListener(
+        'click',
+        function () {
+          loadCompanies();
+        }
+      );
+
+      elements.searchInput.addEventListener(
+        'input',
+        function () {
+          window.clearTimeout(state.searchTimer);
+
+          state.searchTimer = window.setTimeout(
+            function () {
+              state.page = 1;
+              loadCompanies();
+            },
+            350
+          );
+        }
+      );
+
+      elements.statusFilter.addEventListener(
+        'change',
+        resetAndLoad
+      );
+
+      elements.riskFilter.addEventListener(
+        'change',
+        resetAndLoad
+      );
+
+      elements.includeArchivedCheckbox.addEventListener(
+        'change',
+        resetAndLoad
+      );
+
+      elements.previousPageButton.addEventListener(
+        'click',
+        function () {
+          if (state.page > 1) {
+            state.page -= 1;
+            loadCompanies();
+          }
+        }
+      );
+
+      elements.nextPageButton.addEventListener(
+        'click',
+        function () {
+          if (state.page < state.totalPages) {
+            state.page += 1;
+            loadCompanies();
+          }
+        }
+      );
+
+      elements.closeModalButton.addEventListener(
+        'click',
+        closeCompanyModal
+      );
+
+      elements.cancelModalButton.addEventListener(
+        'click',
+        closeCompanyModal
+      );
+
+      elements.companyModal.addEventListener(
+        'click',
+        function (event) {
+          if (event.target === elements.companyModal) {
+            closeCompanyModal();
+          }
+        }
+      );
+
+      elements.companyForm.addEventListener(
+        'submit',
+        handleCompanySubmit
+      );
+
+      elements.companyTableBody.addEventListener(
+        'click',
+        handleTableAction
+      );
+
+      document.addEventListener(
+        'keydown',
+        function (event) {
+          if (
+            event.key === 'Escape' &&
+            !elements.companyModal.classList.contains('hidden')
+          ) {
+            closeCompanyModal();
+          }
+        }
+      );
+    }
+
+    function resetAndLoad() {
+      state.page = 1;
+      loadCompanies();
+    }
+
+    function loadCompanies() {
+      if (state.loading) {
+        return;
+      }
+
+      setLoading(true);
+
+      var payload = {
+        query: elements.searchInput.value.trim(),
+        status: elements.statusFilter.value,
+        riskCategory: elements.riskFilter.value,
+        includeDeleted:
+          elements.includeArchivedCheckbox.checked,
+        page: state.page,
+        pageSize: state.pageSize
+      };
+
+      callServer('apiCompanySearch', payload)
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          var result = response.data || {};
+          var pagination = result.pagination || {};
+
+          state.items = Array.isArray(result.items)
+            ? result.items
+            : [];
+
+          state.page = Number(pagination.page) || 1;
+          state.totalPages =
+            Number(pagination.totalPages) || 0;
+          state.totalItems =
+            Number(pagination.totalItems) || 0;
+
+          renderCompanies();
+          renderPagination();
+          renderSummary();
+        })
+        .catch(function (error) {
+          showToast(
+            getErrorMessage(error),
+            'error'
+          );
+
+          state.items = [];
+          state.totalItems = 0;
+          state.totalPages = 0;
+
+          renderCompanies();
+          renderPagination();
+          renderSummary();
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function renderCompanies() {
+      elements.companyTableBody.innerHTML = '';
+
+      if (state.items.length === 0) {
+        elements.emptyState.classList.remove('hidden');
+        return;
+      }
+
+      elements.emptyState.classList.add('hidden');
+
+      var fragment = document.createDocumentFragment();
+
+      state.items.forEach(function (company) {
+        var row = document.createElement('tr');
+
+        var archived = Boolean(company.isDeleted);
+
+        row.innerHTML =
+          '<td>' +
+            '<div class="company-name">' +
+              '<strong>' +
+                escapeHtml(company.companyName || 'Unnamed Company') +
+              '</strong>' +
+              '<span>' +
+                escapeHtml(company.companyId || '') +
+              '</span>' +
+            '</div>' +
+          '</td>' +
+
+          '<td>' +
+            escapeHtml(company.industry || '—') +
+          '</td>' +
+
+          '<td>' +
+            escapeHtml(company.area || '—') +
+          '</td>' +
+
+          '<td>' +
+            escapeHtml(
+              company.employees === null ||
+              company.employees === undefined
+                ? '—'
+                : company.employees
+            ) +
+          '</td>' +
+
+          '<td>' +
+            createBadge(
+              company.riskCategory || 'Not Assessed'
+            ) +
+          '</td>' +
+
+          '<td>' +
+            createBadge(
+              archived
+                ? 'Archived'
+                : company.status || 'Active'
+            ) +
+          '</td>' +
+
+          '<td>' +
+            escapeHtml(formatDate(company.updatedAt)) +
+          '</td>' +
+
+          '<td class="action-column">' +
+            '<div class="actions">' +
+              (
+                archived
+                  ? '<button class="action-button" ' +
+                    'data-action="restore" ' +
+                    'data-company-id="' +
+                    escapeAttribute(company.companyId) +
+                    '">Restore</button>'
+                  : '<button class="action-button" ' +
+                    'data-action="edit" ' +
+                    'data-company-id="' +
+                    escapeAttribute(company.companyId) +
+                    '">Edit</button>' +
+
+                    '<button class="action-button danger" ' +
+                    'data-action="archive" ' +
+                    'data-company-id="' +
+                    escapeAttribute(company.companyId) +
+                    '">Archive</button>'
+              ) +
+            '</div>' +
+          '</td>';
+
+        fragment.appendChild(row);
+      });
+
+      elements.companyTableBody.appendChild(fragment);
+    }
+
+    function renderPagination() {
+      var totalPages = Math.max(1, state.totalPages);
+
+      elements.pageIndicator.textContent =
+        'Page ' + state.page + ' of ' + totalPages;
+
+      elements.paginationSummary.textContent =
+        'Showing ' +
+        state.items.length +
+        ' of ' +
+        state.totalItems +
+        ' companies';
+
+      elements.previousPageButton.disabled =
+        state.page <= 1;
+
+      elements.nextPageButton.disabled =
+        state.totalPages === 0 ||
+        state.page >= state.totalPages;
+    }
+
+    function renderSummary() {
+      var highRisk = state.items.filter(
+        function (company) {
+          var risk = String(
+            company.riskCategory || ''
+          ).toLowerCase();
+
+          return risk === 'high' || risk === 'critical';
+        }
+      ).length;
+
+      var prospects = state.items.filter(
+        function (company) {
+          return String(company.status || '')
+            .toLowerCase() === 'prospect';
+        }
+      ).length;
+
+      elements.totalCompanies.textContent =
+        state.totalItems;
+
+      elements.currentPageCount.textContent =
+        state.items.length;
+
+      elements.highRiskCount.textContent =
+        highRisk;
+
+      elements.prospectCount.textContent =
+        prospects;
+    }
+
+    function handleTableAction(event) {
+      var button = event.target.closest(
+        '[data-action]'
+      );
+
+      if (!button) {
+        return;
+      }
+
+      var action = button.dataset.action;
+      var companyId = button.dataset.companyId;
+
+      if (action === 'edit') {
+        loadCompanyForEdit(companyId);
+      }
+
+      if (action === 'archive') {
+        archiveCompany(companyId);
+      }
+
+      if (action === 'restore') {
+        restoreCompany(companyId);
+      }
+    }
+
+    function loadCompanyForEdit(companyId) {
+      setLoading(true);
+
+      callServer('apiCompanyGet', {
+        companyId: companyId,
+        includeDeleted: false
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          openCompanyModal(response.data);
+        })
+        .catch(function (error) {
+          showToast(getErrorMessage(error), 'error');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function openCompanyModal(company) {
+      clearFormErrors();
+      elements.companyForm.reset();
+
+      var isEditing = Boolean(
+        company && company.companyId
+      );
+
+      elements.modalTitle.textContent =
+        isEditing ? 'Edit Company' : 'Add Company';
+
+      elements.modalSubtitle.textContent =
+        isEditing
+          ? 'Update company information and risk profile.'
+          : 'Create a new company record.';
+
+      setInputValue(
+        'companyId',
+        isEditing ? company.companyId : ''
+      );
+
+      setInputValue(
+        'recordVersion',
+        isEditing ? company.recordVersion : ''
+      );
+
+      setInputValue(
+        'companyName',
+        isEditing ? company.companyName : ''
+      );
+
+      setInputValue(
+        'industry',
+        isEditing ? company.industry : ''
+      );
+
+      setInputValue(
+        'gstin',
+        isEditing ? company.gstin : ''
+      );
+
+      setInputValue(
+        'website',
+        isEditing ? company.website : ''
+      );
+
+      setInputValue(
+        'employees',
+        isEditing && company.employees !== null
+          ? company.employees
+          : ''
+      );
+
+      setInputValue(
+        'address',
+        isEditing ? company.address : ''
+      );
+
+      setInputValue(
+        'area',
+        isEditing ? company.area : ''
+      );
+
+      setInputValue(
+        'zone',
+        isEditing ? company.zone : ''
+      );
+
+      setInputValue(
+        'turnoverRange',
+        isEditing ? company.turnoverRange : ''
+      );
+
+      setInputValue(
+        'status',
+        isEditing ? company.status : 'Prospect'
+      );
+
+      setInputValue(
+        'riskCategory',
+        isEditing ? company.riskCategory : ''
+      );
+
+      setInputValue(
+        'corporatePotential',
+        isEditing ? company.corporatePotential : ''
+      );
+
+      setInputValue(
+        'currentCovers',
+        isEditing ? company.currentCovers : ''
+      );
+
+      setInputValue(
+        'lastReview',
+        isEditing
+          ? formatDateForInput(company.lastReview)
+          : ''
+      );
+
+      setInputValue(
+        'nextReview',
+        isEditing
+          ? formatDateForInput(company.nextReview)
+          : ''
+      );
+
+      setInputValue(
+        'googleMapsLink',
+        isEditing ? company.googleMapsLink : ''
+      );
+
+      setInputValue(
+        'remarks',
+        isEditing ? company.remarks : ''
+      );
+
+      elements.companyModal.classList.remove('hidden');
+
+      window.setTimeout(function () {
+        document.getElementById('companyName').focus();
+      }, 50);
+    }
+
+    function closeCompanyModal() {
+      if (elements.saveCompanyButton.disabled) {
+        return;
+      }
+
+      elements.companyModal.classList.add('hidden');
+      elements.companyForm.reset();
+      clearFormErrors();
+    }
+
+    function handleCompanySubmit(event) {
+      event.preventDefault();
+      clearFormErrors();
+
+      var payload = collectFormData();
+
+      if (!payload.data.companyName) {
+        showFieldError(
+          'companyName',
+          'Company Name is required.'
+        );
+
+        return;
+      }
+
+      setSaveButtonLoading(true);
+
+      var isUpdate = Boolean(payload.companyId);
+      var methodName = isUpdate
+        ? 'apiCompanyUpdate'
+        : 'apiCompanyCreate';
+
+      callServer(methodName, payload)
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          closeCompanyModal();
+
+          showToast(
+            isUpdate
+              ? 'Company updated successfully.'
+              : 'Company created successfully.',
+            'success'
+          );
+
+          state.page = 1;
+          loadCompanies();
+        })
+        .catch(function (error) {
+          displayFormError(error);
+        })
+        .finally(function () {
+          setSaveButtonLoading(false);
+        });
+    }
+
+    function collectFormData() {
+      var companyId =
+        getInputValue('companyId');
+
+      var versionValue =
+        getInputValue('recordVersion');
+
+      return {
+        companyId: companyId || undefined,
+        expectedVersion:
+          versionValue === ''
+            ? undefined
+            : Number(versionValue),
+
+        actor: 'JSK OS UI',
+
+        data: {
+          companyName:
+            getInputValue('companyName'),
+
+          industry:
+            getInputValue('industry'),
+
+          gstin:
+            getInputValue('gstin'),
+
+          website:
+            getInputValue('website'),
+
+          employees:
+            getInputValue('employees') === ''
+              ? ''
+              : Number(getInputValue('employees')),
+
+          address:
+            getInputValue('address'),
+
+          area:
+            getInputValue('area'),
+
+          zone:
+            getInputValue('zone'),
+
+          turnoverRange:
+            getInputValue('turnoverRange'),
+
+          status:
+            getInputValue('status'),
+
+          riskCategory:
+            getInputValue('riskCategory'),
+
+          corporatePotential:
+            getInputValue('corporatePotential'),
+
+          currentCovers:
+            getInputValue('currentCovers'),
+
+          lastReview:
+            getInputValue('lastReview'),
+
+          nextReview:
+            getInputValue('nextReview'),
+
+          googleMapsLink:
+            getInputValue('googleMapsLink'),
+
+          remarks:
+            getInputValue('remarks')
+        }
+      };
+    }
+
+    function archiveCompany(companyId) {
+      var company = findCompanyInState(companyId);
+
+      if (!company) {
+        showToast('Company record not found.', 'error');
+        return;
+      }
+
+      var confirmed = window.confirm(
+        'Archive "' +
+        company.companyName +
+        '"?\n\nThe company can be restored later.'
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setLoading(true);
+
+      callServer('apiCompanyArchive', {
+        companyId: company.companyId,
+        expectedVersion: company.recordVersion,
+        actor: 'JSK OS UI'
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          showToast(
+            'Company archived successfully.',
+            'success'
+          );
+
+          loadCompanies();
+        })
+        .catch(function (error) {
+          showToast(getErrorMessage(error), 'error');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function restoreCompany(companyId) {
+      var company = findCompanyInState(companyId);
+
+      if (!company) {
+        showToast('Company record not found.', 'error');
+        return;
+      }
+
+      setLoading(true);
+
+      callServer('apiCompanyRestore', {
+        companyId: company.companyId,
+        actor: 'JSK OS UI'
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          showToast(
+            'Company restored successfully.',
+            'success'
+          );
+
+          loadCompanies();
+        })
+        .catch(function (error) {
+          showToast(getErrorMessage(error), 'error');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function callServer(functionName, payload) {
+      return new Promise(function (resolve, reject) {
+        if (
+          !window.google ||
+          !google.script ||
+          !google.script.run
+        ) {
+          reject(
+            new Error(
+              'Google Apps Script connection is unavailable.'
+            )
+          );
+          return;
+        }
+
+        var runner = google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(function (error) {
+            reject(
+              error instanceof Error
+                ? error
+                : new Error(
+                    error && error.message
+                      ? error.message
+                      : 'Server request failed.'
+                  )
+            );
+          });
+
+        runner[functionName](payload);
+      });
+    }
+
+    function assertSuccessfulResponse(response) {
+      if (!response) {
+        throw new Error(
+          'The server returned an empty response.'
+        );
+      }
+
+      if (response.success !== true) {
+        var error = new Error(
+          response.error && response.error.message
+            ? response.error.message
+            : 'The request could not be completed.'
+        );
+
+        error.details = response.error || {};
+
+        throw error;
+      }
+    }
+
+    function displayFormError(error) {
+      var details = error && error.details
+        ? error.details
+        : {};
+
+      var fields = Array.isArray(details.fields)
+        ? details.fields
+        : [];
+
+      if (fields.length > 0) {
+        fields.forEach(function (fieldError) {
+          showFieldError(
+            fieldError.field,
+            fieldError.message
+          );
+        });
+      }
+
+      elements.formError.textContent =
+        getErrorMessage(error);
+
+      elements.formError.classList.remove('hidden');
+    }
+
+    function clearFormErrors() {
+      elements.formError.textContent = '';
+      elements.formError.classList.add('hidden');
+
+      document
+        .querySelectorAll('.field-error')
+        .forEach(function (element) {
+          element.textContent = '';
+        });
+    }
+
+    function showFieldError(field, message) {
+      var errorElement = document.querySelector(
+        '[data-error-for="' +
+        CSS.escape(String(field)) +
+        '"]'
+      );
+
+      if (errorElement) {
+        errorElement.textContent = message || '';
+      }
+    }
+
+    function setLoading(loading) {
+      state.loading = loading;
+
+      elements.loadingState.classList.toggle(
+        'hidden',
+        !loading
+      );
+
+      elements.refreshButton.disabled = loading;
+      elements.addCompanyButton.disabled = loading;
+    }
+
+    function setSaveButtonLoading(loading) {
+      elements.saveCompanyButton.disabled = loading;
+      elements.cancelModalButton.disabled = loading;
+      elements.closeModalButton.disabled = loading;
+
+      elements.saveCompanyButton.textContent =
+        loading ? 'Saving...' : 'Save Company';
+    }
+
+    function findCompanyInState(companyId) {
+      return state.items.find(function (company) {
+        return company.companyId === companyId;
+      });
+    }
+
+    function setInputValue(id, value) {
+      var element = document.getElementById(id);
+
+      if (element) {
+        element.value =
+          value === null || value === undefined
+            ? ''
+            : value;
+      }
+    }
+
+    function getInputValue(id) {
+      var element = document.getElementById(id);
+
+      return element
+        ? String(element.value || '').trim()
+        : '';
+    }
+
+    function createBadge(value) {
+      var text = String(value || 'Not Assessed');
+      var className = text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-');
+
+      var supported = [
+        'active',
+        'customer',
+        'prospect',
+        'archived',
+        'low',
+        'medium',
+        'high',
+        'critical'
+      ];
+
+      if (supported.indexOf(className) === -1) {
+        className = 'neutral';
+      }
+
+      return (
+        '<span class="badge badge-' +
+        className +
+        '">' +
+        escapeHtml(text) +
+        '</span>'
+      );
+    }
+
+    function formatDate(value) {
+      if (!value) {
+        return '—';
+      }
+
+      var date = new Date(value);
+
+      if (isNaN(date.getTime())) {
+        return '—';
+      }
+
+      return new Intl.DateTimeFormat(
+        'en-IN',
+        {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }
+      ).format(date);
+    }
+
+    function formatDateForInput(value) {
+      if (!value) {
+        return '';
+      }
+
+      var date = new Date(value);
+
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+
+      return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0')
+      ].join('-');
+    }
+
+    function getErrorMessage(error) {
+      if (!error) {
+        return 'An unexpected error occurred.';
+      }
+
+      if (error.message) {
+        return error.message;
+      }
+
+      return String(error);
+    }
+
+    function showToast(message, type) {
+      var toast = document.createElement('div');
+
+      toast.className =
+        'toast ' + (type || 'info');
+
+      toast.textContent = message;
+
+      elements.toastContainer.appendChild(toast);
+
+      window.setTimeout(function () {
+        toast.remove();
+      }, 4500);
+    }
+
+    function escapeHtml(value) {
+      return String(value === null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value);
+    }
+  })();
+</script>

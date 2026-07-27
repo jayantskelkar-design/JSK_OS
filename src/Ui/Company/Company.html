@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <?!= include('Ui/Company/CompanyStyles'); ?>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">JSK</div>
+
+        <div>
+          <div class="brand-name">
+            <?= applicationName ?>
+          </div>
+
+          <div class="brand-version">
+            Version <?= applicationVersion ?>
+          </div>
+        </div>
+      </div>
+
+      <nav class="navigation">
+        <a class="nav-item" href="#">
+          <span class="nav-icon">⌂</span>
+          <span>Dashboard</span>
+        </a>
+
+        <a class="nav-item active" href="?page=companies">
+          <span class="nav-icon">▦</span>
+          <span>Companies</span>
+        </a>
+
+        <a class="nav-item disabled" href="#">
+          <span class="nav-icon">♟</span>
+          <span>People</span>
+        </a>
+
+        <a class="nav-item disabled" href="#">
+          <span class="nav-icon">✓</span>
+          <span>Tasks</span>
+        </a>
+
+        <a class="nav-item disabled" href="#">
+          <span class="nav-icon">◷</span>
+          <span>Meetings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-title">
+          First Assurance...
+        </div>
+        <div class="sidebar-footer-subtitle">
+          Then Insurance.
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+
+      <header class="topbar">
+        <button
+          type="button"
+          class="mobile-menu-button"
+          id="mobileMenuButton"
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+
+        <div>
+          <h1>JSK Company CRM</h1>
+          <p>
+            Manage business intelligence, risk and relationship data.
+          </p>
+        </div>
+
+        <div class="user-panel">
+          <div class="user-avatar">
+            <?= String(currentUser || 'S').charAt(0).toUpperCase() ?>
+          </div>
+
+          <div class="user-details">
+            <strong><?= currentUser ?></strong>
+            <span>Administrator</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="content">
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span class="summary-label">Total Companies</span>
+            <strong id="totalCompanies">0</strong>
+            <span class="summary-note">All active records</span>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">Current Page</span>
+            <strong id="currentPageCount">0</strong>
+            <span class="summary-note">Companies displayed</span>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">High Risk</span>
+            <strong id="highRiskCount">0</strong>
+            <span class="summary-note">Current page</span>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">Prospects</span>
+            <strong id="prospectCount">0</strong>
+            <span class="summary-note">Current page</span>
+          </article>
+        </div>
+
+        <section class="panel">
+          <div class="panel-header">
+
+            <div>
+              <h2>Companies</h2>
+              <p>
+                Search, create and manage company records.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              class="button button-primary"
+              id="addCompanyButton"
+            >
+              <span>＋</span>
+              Add Company
+            </button>
+          </div>
+
+          <div class="toolbar">
+
+            <div class="search-box">
+              <span class="search-icon">⌕</span>
+
+              <input
+                type="search"
+                id="searchInput"
+                placeholder="Search company, GSTIN, industry or area"
+                autocomplete="off"
+              >
+            </div>
+
+            <select id="statusFilter" class="filter-select">
+              <option value="">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Prospect">Prospect</option>
+              <option value="Customer">Customer</option>
+              <option value="Dormant">Dormant</option>
+              <option value="Archived">Archived</option>
+            </select>
+
+            <select id="riskFilter" class="filter-select">
+              <option value="">All Risk Categories</option>
+              <option value="Low">Low Risk</option>
+              <option value="Medium">Medium Risk</option>
+              <option value="High">High Risk</option>
+              <option value="Critical">Critical Risk</option>
+            </select>
+
+            <label class="archive-toggle">
+              <input
+                type="checkbox"
+                id="includeArchivedCheckbox"
+              >
+              <span>Include archived</span>
+            </label>
+
+            <button
+              type="button"
+              class="button button-secondary"
+              id="refreshButton"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div class="table-container">
+            <table class="company-table">
+              <thead>
+                <tr>
+                  <th>Company</th>
+                  <th>Industry</th>
+                  <th>Area</th>
+                  <th>Employees</th>
+                  <th>Risk</th>
+                  <th>Status</th>
+                  <th>Updated</th>
+                  <th class="action-column">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody id="companyTableBody"></tbody>
+            </table>
+
+            <div class="loading-state" id="loadingState">
+              <div class="spinner"></div>
+              <p>Loading companies...</p>
+            </div>
+
+            <div
+              class="empty-state hidden"
+              id="emptyState"
+            >
+              <div class="empty-icon">▦</div>
+              <h3>No companies found</h3>
+              <p>
+                Add your first company or change the search filters.
+              </p>
+            </div>
+          </div>
+
+          <div class="pagination">
+            <div id="paginationSummary">
+              Showing 0 companies
+            </div>
+
+            <div class="pagination-controls">
+              <button
+                type="button"
+                class="page-button"
+                id="previousPageButton"
+              >
+                Previous
+              </button>
+
+              <span id="pageIndicator">
+                Page 1 of 1
+              </span>
+
+              <button
+                type="button"
+                class="page-button"
+                id="nextPageButton"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div
+    class="modal-overlay hidden"
+    id="companyModal"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 id="modalTitle">Add Company</h2>
+          <p id="modalSubtitle">
+            Enter company information.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="icon-button"
+          id="closeModalButton"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+
+      <form id="companyForm" novalidate>
+        <input type="hidden" id="companyId">
+        <input type="hidden" id="recordVersion">
+
+        <div
+          class="form-error hidden"
+          id="formError"
+        ></div>
+
+        <div class="form-grid">
+
+          <div class="form-group form-group-wide">
+            <label for="companyName">
+              Company Name
+              <span class="required">*</span>
+            </label>
+
+            <input
+              type="text"
+              id="companyName"
+              maxlength="150"
+              required
+            >
+
+            <span
+              class="field-error"
+              data-error-for="companyName"
+            ></span>
+          </div>
+
+          <div class="form-group">
+            <label for="industry">Industry</label>
+            <input
+              type="text"
+              id="industry"
+              maxlength="100"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="gstin">GSTIN</label>
+            <input
+              type="text"
+              id="gstin"
+              maxlength="15"
+            >
+
+            <span
+              class="field-error"
+              data-error-for="gstin"
+            ></span>
+          </div>
+
+          <div class="form-group">
+            <label for="website">Website</label>
+            <input
+              type="text"
+              id="website"
+              placeholder="example.com"
+              maxlength="250"
+            >
+
+            <span
+              class="field-error"
+              data-error-for="website"
+            ></span>
+          </div>
+
+          <div class="form-group">
+            <label for="employees">Employees</label>
+            <input
+              type="number"
+              id="employees"
+              min="0"
+              step="1"
+            >
+
+            <span
+              class="field-error"
+              data-error-for="employees"
+            ></span>
+          </div>
+
+          <div class="form-group form-group-wide">
+            <label for="address">Address</label>
+            <textarea
+              id="address"
+              rows="2"
+              maxlength="500"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="area">Area</label>
+            <input
+              type="text"
+              id="area"
+              maxlength="100"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="zone">Zone</label>
+            <input
+              type="text"
+              id="zone"
+              maxlength="100"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="turnoverRange">
+              Turnover Range
+            </label>
+
+            <select id="turnoverRange">
+              <option value="">Select range</option>
+              <option value="Below ₹1 Crore">
+                Below ₹1 Crore
+              </option>
+              <option value="₹1–5 Crore">
+                ₹1–5 Crore
+              </option>
+              <option value="₹5–25 Crore">
+                ₹5–25 Crore
+              </option>
+              <option value="₹25–100 Crore">
+                ₹25–100 Crore
+              </option>
+              <option value="Above ₹100 Crore">
+                Above ₹100 Crore
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="status">Status</label>
+
+            <select id="status">
+              <option value="Prospect">Prospect</option>
+              <option value="Active">Active</option>
+              <option value="Customer">Customer</option>
+              <option value="Dormant">Dormant</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="riskCategory">
+              Risk Category
+            </label>
+
+            <select id="riskCategory">
+              <option value="">Not Assessed</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="corporatePotential">
+              Corporate Potential
+            </label>
+
+            <select id="corporatePotential">
+              <option value="">Not Assessed</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Strategic">Strategic</option>
+            </select>
+          </div>
+
+          <div class="form-group form-group-wide">
+            <label for="currentCovers">
+              Current Insurance Covers
+            </label>
+
+            <textarea
+              id="currentCovers"
+              rows="2"
+              maxlength="1000"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="lastReview">Last Review</label>
+            <input type="date" id="lastReview">
+          </div>
+
+          <div class="form-group">
+            <label for="nextReview">Next Review</label>
+            <input type="date" id="nextReview">
+          </div>
+
+          <div class="form-group form-group-wide">
+            <label for="googleMapsLink">
+              Google Maps Link
+            </label>
+
+            <input
+              type="text"
+              id="googleMapsLink"
+              maxlength="500"
+            >
+
+            <span
+              class="field-error"
+              data-error-for="googleMapsLink"
+            ></span>
+          </div>
+
+          <div class="form-group form-group-wide">
+            <label for="remarks">Remarks</label>
+
+            <textarea
+              id="remarks"
+              rows="3"
+              maxlength="1500"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="button button-secondary"
+            id="cancelModalButton"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="button button-primary"
+            id="saveCompanyButton"
+          >
+            Save Company
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <?!= include('Ui/Company/CompanyScripts'); ?>
+</body>
+</html>
