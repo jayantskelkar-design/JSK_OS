@@ -17,6 +17,7 @@ function renderCompanyUi() {
   template.applicationName = JSKOS.Config.APP.NAME;
   template.applicationVersion = '0.8.0';
   template.currentUser = JSKOS.ConfigService.getCurrentUser();
+  template.routeUrls = JSKOS.Router.getRouteUrls();
 
   return template
     .evaluate()

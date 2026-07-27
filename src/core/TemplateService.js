@@ -80,7 +80,9 @@ JSKOS.TemplateService = Object.freeze({
       currentUser: currentUser,
       activeRoute: route,
       navigation:
-        JSKOS.Router.getNavigation(route)
+        JSKOS.Router.getNavigation(route),
+      routeUrls:
+        JSKOS.Router.getRouteUrls()
     };
   },
 

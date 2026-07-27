@@ -1,5 +1,6 @@
 /**
- * JSK OS Clean Router v1.0.1
+ * JSK OS Stable Router
+ * Version: 1.0.2
  */
 var JSKOS = JSKOS || {};
 
@@ -14,6 +15,12 @@ JSKOS.RouteConfig = Object.freeze({
   })
 });
 
+/**
+ * Single Web App entry point.
+ *
+ * @param {Object=} event Google Apps Script web event.
+ * @return {GoogleAppsScript.HTML.HtmlOutput}
+ */
 function doGet(event) {
   var route = JSKOS.Router.resolve(event);
   return JSKOS.Router.render(route);
@@ -27,9 +34,11 @@ JSKOS.Router = Object.freeze({
     ).trim().toLowerCase();
 
     var route = JSKOS.RouteConfig.ROUTES[requestedRoute];
+
     if (!route || route.enabled !== true) {
       return JSKOS.RouteConfig.DEFAULT_ROUTE;
     }
+
     return route.key;
   },
 
@@ -38,8 +47,10 @@ JSKOS.Router = Object.freeze({
       switch (route) {
         case 'companies':
           return JSKOS.Router.renderCompanies();
+
         case 'people':
           return JSKOS.Router.renderPeople();
+
         case 'dashboard':
         default:
           return JSKOS.Router.renderDashboard();
@@ -53,6 +64,7 @@ JSKOS.Router = Object.freeze({
     if (typeof renderEnterpriseDashboardUi !== 'function') {
       throw new Error('renderEnterpriseDashboardUi() is unavailable.');
     }
+
     return renderEnterpriseDashboardUi();
   },
 
@@ -60,6 +72,7 @@ JSKOS.Router = Object.freeze({
     if (typeof renderCompanyUi !== 'function') {
       throw new Error('renderCompanyUi() is unavailable.');
     }
+
     return renderCompanyUi();
   },
 
@@ -67,12 +80,50 @@ JSKOS.Router = Object.freeze({
     if (typeof renderPeopleUi !== 'function') {
       throw new Error('renderPeopleUi() is unavailable.');
     }
+
     return renderPeopleUi();
+  },
+
+  /**
+   * Returns the deployed Web App URL when available.
+   * Editor tests may return an empty string; that is expected.
+   *
+   * @return {string}
+   */
+  getWebAppUrl: function () {
+    try {
+      return String(ScriptApp.getService().getUrl() || '').trim();
+    } catch (error) {
+      console.warn('Web App URL is unavailable during editor testing.');
+      return '';
+    }
+  },
+
+  /**
+   * Builds a route URL. It is absolute in the deployed Web App and
+   * relative only during Apps Script editor tests.
+   *
+   * @param {string} routeKey Route key.
+   * @return {string}
+   */
+  buildRouteUrl: function (routeKey) {
+    var baseUrl = JSKOS.Router.getWebAppUrl();
+    var query = '?page=' + encodeURIComponent(routeKey);
+    return baseUrl ? baseUrl + query : query;
+  },
+
+  getRouteUrls: function () {
+    return {
+      dashboard: JSKOS.Router.buildRouteUrl('dashboard'),
+      companies: JSKOS.Router.buildRouteUrl('companies'),
+      people: JSKOS.Router.buildRouteUrl('people')
+    };
   },
 
   getNavigation: function (activeRoute) {
     return Object.keys(JSKOS.RouteConfig.ROUTES).map(function (key) {
       var route = JSKOS.RouteConfig.ROUTES[key];
+
       return {
         key: route.key,
         title: route.title,
@@ -80,44 +131,24 @@ JSKOS.Router = Object.freeze({
         enabled: route.enabled,
         active: route.key === activeRoute,
         href: route.enabled
-  ? (
-      JSKOS.Router.getWebAppUrl()
-        ? JSKOS.Router.getWebAppUrl() +
-          '?page=' +
-          encodeURIComponent(route.key)
-        : '?page=' +
-          encodeURIComponent(route.key)
-    )
-  : '#'
+          ? JSKOS.Router.buildRouteUrl(route.key)
+          : '#'
+      };
     });
-  },
-
-  getWebAppUrl: function () {
-  try {
-    return String(
-      ScriptApp.getService().getUrl() || ''
-    ).trim();
-  } catch (error) {
-    console.warn(
-      'Web App URL is unavailable during editor testing.'
-    );
-
-    return '';
-  }
-},
   },
 
   renderError: function (route, error) {
     var message = error && error.stack ? error.stack : String(error);
     console.error('JSK OS route error | route=' + route + ' | ' + message);
 
+    var dashboardUrl = JSKOS.Router.buildRouteUrl('dashboard');
     var html = '<!DOCTYPE html><html><head><base target="_top">' +
       '<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
       '<style>body{font-family:Arial,sans-serif;background:#f4f6f9;padding:32px;color:#142033}.card{max-width:900px;margin:40px auto;background:#fff;border:1px solid #dfe4eb;border-radius:16px;padding:28px}h1{color:#b42318}pre{white-space:pre-wrap;background:#fff4f2;padding:16px;border-radius:10px}a{display:inline-block;margin-top:16px;padding:10px 14px;background:#0b1f3a;color:#fff;text-decoration:none;border-radius:8px}</style>' +
       '</head><body><div class="card"><h1>JSK OS Route Error</h1>' +
       '<p><strong>Route:</strong> ' + escapeRouterHtml_(route) + '</p>' +
       '<pre>' + escapeRouterHtml_(message) + '</pre>' +
-      '<a href="?page=dashboard">Return to Dashboard</a></div></body></html>';
+      '<a href="' + escapeRouterHtml_(dashboardUrl) + '">Return to Dashboard</a></div></body></html>';
 
     return HtmlService.createHtmlOutput(html)
       .setTitle('JSK OS Route Error')
@@ -153,16 +184,11 @@ function testRouterRepair() {
     routes: checks,
     timestamp: new Date().toISOString()
   };
+
   console.info(JSON.stringify(result));
   return result;
 }
 
-
-/**
- * Tests server-side rendering for all live routes.
- *
- * @return {Object}
- */
 function testAllWebRoutes() {
   var tests = [
     { route: 'dashboard', marker: 'JSK OS Enterprise' },
@@ -171,19 +197,12 @@ function testAllWebRoutes() {
   ];
 
   var results = tests.map(function (test) {
-    var output = doGet({
-      parameter: { page: test.route }
-    });
-
+    var output = doGet({ parameter: { page: test.route } });
     var content = output.getContent();
-    var passed =
-      Boolean(content) &&
-      content.indexOf(test.marker) !== -1;
+    var passed = Boolean(content) && content.indexOf(test.marker) !== -1;
 
     if (!passed) {
-      throw new Error(
-        'Route rendering failed: ' + test.route
-      );
+      throw new Error('Route rendering failed: ' + test.route);
     }
 
     return {
