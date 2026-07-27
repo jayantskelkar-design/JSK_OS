@@ -1,4 +1,4 @@
-function myFunction() {
+
   /**
  * JSK OS v0.7.3
  * CompanyBackend.js
@@ -273,5 +273,4 @@ function companyFormatError_(error) {
         ? null
         : error.currentVersion
   };
-}
 }
