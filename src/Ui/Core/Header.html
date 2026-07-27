@@ -1,0 +1,30 @@
+<header class="topbar">
+  <button
+    type="button"
+    class="mobile-menu-button"
+    id="mobileMenuButton"
+    aria-label="Open navigation"
+  >
+    ☰
+  </button>
+
+  <div>
+    <h1>JSK OS Enterprise</h1>
+    <p>
+      Corporate Risk Intelligence Platform
+    </p>
+  </div>
+
+  <div class="user-panel">
+    <div class="user-avatar">
+      <?= String(currentUser || 'S')
+        .charAt(0)
+        .toUpperCase() ?>
+    </div>
+
+    <div class="user-details">
+      <strong><?= currentUser ?></strong>
+      <span>Administrator</span>
+    </div>
+  </div>
+</header>

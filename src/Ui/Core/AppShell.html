@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <?!= include('Ui/Core/Theme'); ?>
+</head>
+
+<body>
+  <div class="app-shell">
+    <?!= include('Ui/Core/Sidebar'); ?>
+
+    <main class="main-content">
+      <?!= include('Ui/Core/Header'); ?>
+
+      <section class="content">
+        <div class="hero">
+          <div>
+            <span class="eyebrow">
+              Corporate Risk Intelligence Platform
+            </span>
+
+            <h2>Good Morning, <?= currentUser ?></h2>
+
+            <p>
+              Your companies, relationships and follow-ups
+              in one operating system.
+            </p>
+          </div>
+
+          <div class="hero-badge">
+            JSK OS Enterprise
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span class="summary-label">
+              Active Companies
+            </span>
+            <strong><?= dashboard.companies ?></strong>
+            <a href="?page=companies">Open Companies</a>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">
+              Active People
+            </span>
+            <strong><?= dashboard.people ?></strong>
+            <a href="?page=people">Open People</a>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">
+              Follow-ups Due
+            </span>
+            <strong><?= dashboard.followups ?></strong>
+            <span>Due on or before today</span>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">
+              High-Risk Companies
+            </span>
+            <strong>
+              <?= dashboard.highRiskCompanies ?>
+            </strong>
+            <span>Immediate review opportunity</span>
+          </article>
+        </div>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Quick Actions</h3>
+              <p>
+                Continue your highest-value business workflows.
+              </p>
+            </div>
+          </div>
+
+          <div class="quick-grid">
+            <a
+              class="quick-action"
+              href="?page=companies"
+            >
+              <strong>Company CRM</strong>
+              <span>
+                Create, review and manage companies.
+              </span>
+            </a>
+
+            <a
+              class="quick-action"
+              href="?page=people"
+            >
+              <strong>People CRM</strong>
+              <span>
+                Manage decision makers and follow-ups.
+              </span>
+            </a>
+
+            <div class="quick-action disabled">
+              <strong>Meetings</strong>
+              <span>Next enterprise module.</span>
+            </div>
+
+            <div class="quick-action disabled">
+              <strong>GARUDA AI</strong>
+              <span>Corporate intelligence engine.</span>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <?!= include('Ui/Core/Footer'); ?>
+    </main>
+  </div>
+
+  <?!= include('Ui/Core/AppScripts'); ?>
+</body>
+</html>

@@ -1,0 +1,1077 @@
+<script>
+  (function () {
+    'use strict';
+
+    var state = {
+      page: 1,
+      pageSize: 25,
+      totalPages: 0,
+      totalItems: 0,
+      items: [],
+      loading: false,
+      searchTimer: null,
+      companyTimer: null
+    };
+
+    var elements = {};
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      initializePeopleUi
+    );
+
+    function initializePeopleUi() {
+      cacheElements();
+      bindEvents();
+      loadPeople();
+    }
+
+    function cacheElements() {
+      elements.sidebar =
+        document.getElementById('sidebar');
+
+      elements.mobileMenuButton =
+        document.getElementById('mobileMenuButton');
+
+      elements.addPersonButton =
+        document.getElementById('addPersonButton');
+
+      elements.refreshButton =
+        document.getElementById('refreshButton');
+
+      elements.searchInput =
+        document.getElementById('searchInput');
+
+      elements.statusFilter =
+        document.getElementById('statusFilter');
+
+      elements.priorityFilter =
+        document.getElementById('priorityFilter');
+
+      elements.includeArchivedCheckbox =
+        document.getElementById(
+          'includeArchivedCheckbox'
+        );
+
+      elements.peopleTableBody =
+        document.getElementById('peopleTableBody');
+
+      elements.loadingState =
+        document.getElementById('loadingState');
+
+      elements.emptyState =
+        document.getElementById('emptyState');
+
+      elements.previousPageButton =
+        document.getElementById('previousPageButton');
+
+      elements.nextPageButton =
+        document.getElementById('nextPageButton');
+
+      elements.pageIndicator =
+        document.getElementById('pageIndicator');
+
+      elements.paginationSummary =
+        document.getElementById('paginationSummary');
+
+      elements.totalPeople =
+        document.getElementById('totalPeople');
+
+      elements.currentPageCount =
+        document.getElementById('currentPageCount');
+
+      elements.highPriorityCount =
+        document.getElementById('highPriorityCount');
+
+      elements.followupsDueCount =
+        document.getElementById('followupsDueCount');
+
+      elements.personModal =
+        document.getElementById('personModal');
+
+      elements.modalTitle =
+        document.getElementById('modalTitle');
+
+      elements.modalSubtitle =
+        document.getElementById('modalSubtitle');
+
+      elements.closeModalButton =
+        document.getElementById('closeModalButton');
+
+      elements.cancelModalButton =
+        document.getElementById('cancelModalButton');
+
+      elements.personForm =
+        document.getElementById('personForm');
+
+      elements.savePersonButton =
+        document.getElementById('savePersonButton');
+
+      elements.formError =
+        document.getElementById('formError');
+
+      elements.toastContainer =
+        document.getElementById('toastContainer');
+
+      elements.companyId =
+        document.getElementById('companyId');
+
+      elements.companySuggestions =
+        document.getElementById('companySuggestions');
+    }
+
+    function bindEvents() {
+      elements.mobileMenuButton.addEventListener(
+        'click',
+        function () {
+          elements.sidebar.classList.toggle('open');
+        }
+      );
+
+      elements.addPersonButton.addEventListener(
+        'click',
+        function () {
+          openPersonModal();
+        }
+      );
+
+      elements.refreshButton.addEventListener(
+        'click',
+        loadPeople
+      );
+
+      elements.searchInput.addEventListener(
+        'input',
+        function () {
+          window.clearTimeout(state.searchTimer);
+
+          state.searchTimer = window.setTimeout(
+            function () {
+              state.page = 1;
+              loadPeople();
+            },
+            350
+          );
+        }
+      );
+
+      elements.statusFilter.addEventListener(
+        'change',
+        resetAndLoad
+      );
+
+      elements.priorityFilter.addEventListener(
+        'change',
+        resetAndLoad
+      );
+
+      elements.includeArchivedCheckbox.addEventListener(
+        'change',
+        resetAndLoad
+      );
+
+      elements.previousPageButton.addEventListener(
+        'click',
+        function () {
+          if (state.page > 1) {
+            state.page -= 1;
+            loadPeople();
+          }
+        }
+      );
+
+      elements.nextPageButton.addEventListener(
+        'click',
+        function () {
+          if (state.page < state.totalPages) {
+            state.page += 1;
+            loadPeople();
+          }
+        }
+      );
+
+      elements.closeModalButton.addEventListener(
+        'click',
+        closePersonModal
+      );
+
+      elements.cancelModalButton.addEventListener(
+        'click',
+        closePersonModal
+      );
+
+      elements.personModal.addEventListener(
+        'click',
+        function (event) {
+          if (event.target === elements.personModal) {
+            closePersonModal();
+          }
+        }
+      );
+
+      elements.personForm.addEventListener(
+        'submit',
+        handlePersonSubmit
+      );
+
+      elements.peopleTableBody.addEventListener(
+        'click',
+        handleTableAction
+      );
+
+      elements.companyId.addEventListener(
+        'input',
+        function () {
+          window.clearTimeout(state.companyTimer);
+
+          state.companyTimer = window.setTimeout(
+            loadCompanySuggestions,
+            300
+          );
+        }
+      );
+
+      document.addEventListener(
+        'keydown',
+        function (event) {
+          if (
+            event.key === 'Escape' &&
+            !elements.personModal.classList.contains('hidden')
+          ) {
+            closePersonModal();
+          }
+        }
+      );
+    }
+
+    function resetAndLoad() {
+      state.page = 1;
+      loadPeople();
+    }
+
+    function loadPeople() {
+      if (state.loading) {
+        return;
+      }
+
+      setLoading(true);
+
+      callServer('apiPeopleSearch', {
+        query: elements.searchInput.value.trim(),
+        status: elements.statusFilter.value,
+        priority: elements.priorityFilter.value,
+        includeArchived:
+          elements.includeArchivedCheckbox.checked,
+        page: state.page,
+        pageSize: state.pageSize
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          var result = response.data || {};
+          var pagination = result.pagination || {};
+
+          state.items = Array.isArray(result.items)
+            ? result.items
+            : [];
+
+          state.page = Number(pagination.page) || 1;
+          state.totalPages =
+            Number(pagination.totalPages) || 0;
+          state.totalItems =
+            Number(pagination.totalItems) || 0;
+
+          renderPeople();
+          renderPagination();
+          renderSummary();
+        })
+        .catch(function (error) {
+          showToast(
+            getErrorMessage(error),
+            'error'
+          );
+
+          state.items = [];
+          state.totalItems = 0;
+          state.totalPages = 0;
+
+          renderPeople();
+          renderPagination();
+          renderSummary();
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function renderPeople() {
+      elements.peopleTableBody.innerHTML = '';
+
+      if (state.items.length === 0) {
+        elements.emptyState.classList.remove('hidden');
+        return;
+      }
+
+      elements.emptyState.classList.add('hidden');
+
+      var fragment = document.createDocumentFragment();
+
+      state.items.forEach(function (person) {
+        var row = document.createElement('tr');
+        var archived =
+          String(person.status || '').toLowerCase() ===
+          'archived';
+
+        row.innerHTML =
+          '<td>' +
+            '<div class="person-name">' +
+              '<strong>' +
+                escapeHtml(person.fullName || 'Unnamed Person') +
+              '</strong>' +
+              '<span>' +
+                escapeHtml(person.personId || '') +
+              '</span>' +
+              createContactLinks(person) +
+            '</div>' +
+          '</td>' +
+
+          '<td>' +
+            escapeHtml(person.mobile || '—') +
+          '</td>' +
+
+          '<td>' +
+            escapeHtml(person.companyId || '—') +
+          '</td>' +
+
+          '<td>' +
+            escapeHtml(person.designation || '—') +
+          '</td>' +
+
+          '<td>' +
+            createBadge(person.priority || 'Not Set') +
+          '</td>' +
+
+          '<td>' +
+            createBadge(
+              archived
+                ? 'Archived'
+                : person.status || 'Prospect'
+            ) +
+          '</td>' +
+
+          '<td>' +
+            escapeHtml(formatDate(person.nextFollowup)) +
+          '</td>' +
+
+          '<td class="action-column">' +
+            '<div class="actions">' +
+              (
+                archived
+                  ? '<button class="action-button" ' +
+                    'data-action="restore" ' +
+                    'data-person-id="' +
+                    escapeAttribute(person.personId) +
+                    '">Restore</button>'
+                  : '<button class="action-button compact" ' +
+                    'data-action="edit" ' +
+                    'data-person-id="' +
+                    escapeAttribute(person.personId) +
+                    '">Edit</button>' +
+
+                    '<button class="action-button danger compact" ' +
+                    'data-action="archive" ' +
+                    'data-person-id="' +
+                    escapeAttribute(person.personId) +
+                    '">Archive</button>'
+              ) +
+            '</div>' +
+          '</td>';
+
+        fragment.appendChild(row);
+      });
+
+      elements.peopleTableBody.appendChild(fragment);
+    }
+
+    function createContactLinks(person) {
+      var links = [];
+
+      if (person.mobile) {
+        links.push(
+          '<a class="contact-link" href="tel:' +
+          escapeAttribute(person.mobile) +
+          '">Call</a>'
+        );
+      }
+
+      if (person.whatsApp) {
+        links.push(
+          '<a class="contact-link" target="_blank" href="https://wa.me/91' +
+          escapeAttribute(person.whatsApp) +
+          '">WhatsApp</a>'
+        );
+      }
+
+      if (person.email) {
+        links.push(
+          '<a class="contact-link" href="mailto:' +
+          escapeAttribute(person.email) +
+          '">Email</a>'
+        );
+      }
+
+      return links.length
+        ? '<div class="contact-actions">' +
+          links.join('') +
+          '</div>'
+        : '';
+    }
+
+    function renderPagination() {
+      var totalPages = Math.max(1, state.totalPages);
+
+      elements.pageIndicator.textContent =
+        'Page ' + state.page + ' of ' + totalPages;
+
+      elements.paginationSummary.textContent =
+        'Showing ' +
+        state.items.length +
+        ' of ' +
+        state.totalItems +
+        ' people';
+
+      elements.previousPageButton.disabled =
+        state.page <= 1;
+
+      elements.nextPageButton.disabled =
+        state.totalPages === 0 ||
+        state.page >= state.totalPages;
+    }
+
+    function renderSummary() {
+      var today = new Date();
+      today.setHours(23, 59, 59, 999);
+
+      var highPriority = state.items.filter(
+        function (person) {
+          return String(person.priority || '')
+            .toLowerCase() === 'high';
+        }
+      ).length;
+
+      var followupsDue = state.items.filter(
+        function (person) {
+          if (!person.nextFollowup) {
+            return false;
+          }
+
+          var date = new Date(person.nextFollowup);
+
+          return (
+            !isNaN(date.getTime()) &&
+            date.getTime() <= today.getTime()
+          );
+        }
+      ).length;
+
+      elements.totalPeople.textContent =
+        state.totalItems;
+
+      elements.currentPageCount.textContent =
+        state.items.length;
+
+      elements.highPriorityCount.textContent =
+        highPriority;
+
+      elements.followupsDueCount.textContent =
+        followupsDue;
+    }
+
+    function handleTableAction(event) {
+      var button = event.target.closest(
+        '[data-action]'
+      );
+
+      if (!button) {
+        return;
+      }
+
+      var action = button.dataset.action;
+      var personId = button.dataset.personId;
+
+      if (action === 'edit') {
+        loadPersonForEdit(personId);
+      }
+
+      if (action === 'archive') {
+        archivePerson(personId);
+      }
+
+      if (action === 'restore') {
+        restorePerson(personId);
+      }
+    }
+
+    function loadPersonForEdit(personId) {
+      setLoading(true);
+
+      callServer('apiPeopleGet', {
+        personId: personId
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+          openPersonModal(response.data);
+        })
+        .catch(function (error) {
+          showToast(getErrorMessage(error), 'error');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function openPersonModal(person) {
+      clearFormErrors();
+      elements.personForm.reset();
+
+      var isEditing = Boolean(
+        person && person.personId
+      );
+
+      elements.modalTitle.textContent =
+        isEditing ? 'Edit Person' : 'Add Person';
+
+      elements.modalSubtitle.textContent =
+        isEditing
+          ? 'Update contact and follow-up information.'
+          : 'Create a new relationship record.';
+
+      setInputValue(
+        'personId',
+        isEditing ? person.personId : ''
+      );
+
+      [
+        'fullName',
+        'mobile',
+        'whatsApp',
+        'email',
+        'occupation',
+        'designation',
+        'companyId',
+        'familyId',
+        'area',
+        'zone',
+        'leadSource',
+        'status',
+        'priority',
+        'notes'
+      ].forEach(function (field) {
+        setInputValue(
+          field,
+          isEditing ? person[field] : ''
+        );
+      });
+
+      setInputValue(
+        'status',
+        isEditing ? person.status : 'Prospect'
+      );
+
+      setInputValue(
+        'dob',
+        isEditing
+          ? formatDateForInput(person.dob)
+          : ''
+      );
+
+      setInputValue(
+        'lastContact',
+        isEditing
+          ? formatDateForInput(person.lastContact)
+          : ''
+      );
+
+      setInputValue(
+        'nextFollowup',
+        isEditing
+          ? formatDateForInput(person.nextFollowup)
+          : ''
+      );
+
+      elements.personModal.classList.remove('hidden');
+
+      window.setTimeout(function () {
+        document.getElementById('fullName').focus();
+      }, 50);
+    }
+
+    function closePersonModal() {
+      if (elements.savePersonButton.disabled) {
+        return;
+      }
+
+      elements.personModal.classList.add('hidden');
+      elements.personForm.reset();
+      clearFormErrors();
+    }
+
+    function handlePersonSubmit(event) {
+      event.preventDefault();
+      clearFormErrors();
+
+      var payload = collectFormData();
+
+      if (!payload.data.fullName) {
+        showFieldError(
+          'fullName',
+          'Full Name is required.'
+        );
+        return;
+      }
+
+      if (!payload.data.mobile) {
+        showFieldError(
+          'mobile',
+          'Mobile is required.'
+        );
+        return;
+      }
+
+      setSaveButtonLoading(true);
+
+      var isUpdate = Boolean(payload.personId);
+      var methodName = isUpdate
+        ? 'apiPeopleUpdate'
+        : 'apiPeopleCreate';
+
+      callServer(methodName, payload)
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          setSaveButtonLoading(false);
+          closePersonModal();
+
+          showToast(
+            isUpdate
+              ? 'Person updated successfully.'
+              : 'Person created successfully.',
+            'success'
+          );
+
+          state.page = 1;
+          loadPeople();
+        })
+        .catch(function (error) {
+          displayFormError(error);
+        })
+        .finally(function () {
+          setSaveButtonLoading(false);
+        });
+    }
+
+    function collectFormData() {
+      var personId = getInputValue('personId');
+
+      return {
+        personId: personId || undefined,
+        actor: 'JSK OS UI',
+        data: {
+          fullName: getInputValue('fullName'),
+          mobile: getInputValue('mobile'),
+          whatsApp: getInputValue('whatsApp'),
+          email: getInputValue('email'),
+          dob: getInputValue('dob'),
+          occupation: getInputValue('occupation'),
+          designation: getInputValue('designation'),
+          companyId: normalizeCompanyId(
+            getInputValue('companyId')
+          ),
+          familyId: getInputValue('familyId'),
+          area: getInputValue('area'),
+          zone: getInputValue('zone'),
+          leadSource: getInputValue('leadSource'),
+          status: getInputValue('status'),
+          priority: getInputValue('priority'),
+          lastContact: getInputValue('lastContact'),
+          nextFollowup: getInputValue('nextFollowup'),
+          notes: getInputValue('notes')
+        }
+      };
+    }
+
+    function normalizeCompanyId(value) {
+      var text = String(value || '').trim();
+      var match = text.match(/\[([^\]]+)\]\s*$/);
+
+      return match ? match[1] : text;
+    }
+
+    function archivePerson(personId) {
+      var person = findPersonInState(personId);
+
+      if (!person) {
+        showToast('Person record not found.', 'error');
+        return;
+      }
+
+      var confirmed = window.confirm(
+        'Archive "' +
+        person.fullName +
+        '"?\n\nThe person can be restored later.'
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setLoading(true);
+
+      callServer('apiPeopleArchive', {
+        personId: person.personId,
+        actor: 'JSK OS UI'
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          showToast(
+            'Person archived successfully.',
+            'success'
+          );
+
+          loadPeople();
+        })
+        .catch(function (error) {
+          showToast(getErrorMessage(error), 'error');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function restorePerson(personId) {
+      var person = findPersonInState(personId);
+
+      if (!person) {
+        showToast('Person record not found.', 'error');
+        return;
+      }
+
+      setLoading(true);
+
+      callServer('apiPeopleRestore', {
+        personId: person.personId,
+        actor: 'JSK OS UI'
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          showToast(
+            'Person restored successfully.',
+            'success'
+          );
+
+          loadPeople();
+        })
+        .catch(function (error) {
+          showToast(getErrorMessage(error), 'error');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function loadCompanySuggestions() {
+      var query = getInputValue('companyId');
+
+      if (query.length < 2) {
+        elements.companySuggestions.innerHTML = '';
+        return;
+      }
+
+      callServer('searchCompanySuggestions', {
+        query: query,
+        limit: 10
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          var items = Array.isArray(response.data)
+            ? response.data
+            : [];
+
+          elements.companySuggestions.innerHTML =
+            items.map(function (company) {
+              return (
+                '<option value="' +
+                escapeAttribute(
+                  company.companyName +
+                  ' [' +
+                  company.companyId +
+                  ']'
+                ) +
+                '"></option>'
+              );
+            }).join('');
+        })
+        .catch(function () {
+          elements.companySuggestions.innerHTML = '';
+        });
+    }
+
+    function callServer(functionName, payload) {
+      return new Promise(function (resolve, reject) {
+        if (
+          !window.google ||
+          !google.script ||
+          !google.script.run
+        ) {
+          reject(
+            new Error(
+              'Google Apps Script connection is unavailable.'
+            )
+          );
+          return;
+        }
+
+        var runner = google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(function (error) {
+            reject(
+              error instanceof Error
+                ? error
+                : new Error(
+                    error && error.message
+                      ? error.message
+                      : 'Server request failed.'
+                  )
+            );
+          });
+
+        runner[functionName](payload);
+      });
+    }
+
+    function assertSuccessfulResponse(response) {
+      if (!response) {
+        throw new Error(
+          'The server returned an empty response.'
+        );
+      }
+
+      if (response.success !== true) {
+        var error = new Error(
+          response.error && response.error.message
+            ? response.error.message
+            : 'The request could not be completed.'
+        );
+
+        error.details = response.error || {};
+        throw error;
+      }
+    }
+
+    function displayFormError(error) {
+      var details = error && error.details
+        ? error.details
+        : {};
+
+      var fields = Array.isArray(details.fields)
+        ? details.fields
+        : [];
+
+      fields.forEach(function (fieldError) {
+        showFieldError(
+          fieldError.field,
+          fieldError.message
+        );
+      });
+
+      elements.formError.textContent =
+        getErrorMessage(error);
+
+      elements.formError.classList.remove('hidden');
+    }
+
+    function clearFormErrors() {
+      elements.formError.textContent = '';
+      elements.formError.classList.add('hidden');
+
+      document
+        .querySelectorAll('.field-error')
+        .forEach(function (element) {
+          element.textContent = '';
+        });
+    }
+
+    function showFieldError(field, message) {
+      var errorElement = document.querySelector(
+        '[data-error-for="' +
+        CSS.escape(String(field)) +
+        '"]'
+      );
+
+      if (errorElement) {
+        errorElement.textContent = message || '';
+      }
+    }
+
+    function setLoading(loading) {
+      state.loading = loading;
+
+      elements.loadingState.classList.toggle(
+        'hidden',
+        !loading
+      );
+
+      elements.refreshButton.disabled = loading;
+      elements.addPersonButton.disabled = loading;
+    }
+
+    function setSaveButtonLoading(loading) {
+      elements.savePersonButton.disabled = loading;
+      elements.cancelModalButton.disabled = loading;
+      elements.closeModalButton.disabled = loading;
+
+      elements.savePersonButton.textContent =
+        loading ? 'Saving...' : 'Save Person';
+    }
+
+    function findPersonInState(personId) {
+      return state.items.find(function (person) {
+        return person.personId === personId;
+      });
+    }
+
+    function setInputValue(id, value) {
+      var element = document.getElementById(id);
+
+      if (element) {
+        element.value =
+          value === null || value === undefined
+            ? ''
+            : value;
+      }
+    }
+
+    function getInputValue(id) {
+      var element = document.getElementById(id);
+
+      return element
+        ? String(element.value || '').trim()
+        : '';
+    }
+
+    function createBadge(value) {
+      var text = String(value || 'Not Set');
+      var className = text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-');
+
+      var supported = [
+        'active',
+        'customer',
+        'prospect',
+        'inactive',
+        'dormant',
+        'archived',
+        'low',
+        'medium',
+        'high'
+      ];
+
+      if (supported.indexOf(className) === -1) {
+        className = 'neutral';
+      }
+
+      return (
+        '<span class="badge badge-' +
+        className +
+        '">' +
+        escapeHtml(text) +
+        '</span>'
+      );
+    }
+
+    function formatDate(value) {
+      if (!value) {
+        return '—';
+      }
+
+      var date = new Date(value);
+
+      if (isNaN(date.getTime())) {
+        return '—';
+      }
+
+      return new Intl.DateTimeFormat(
+        'en-IN',
+        {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }
+      ).format(date);
+    }
+
+    function formatDateForInput(value) {
+      if (!value) {
+        return '';
+      }
+
+      var date = new Date(value);
+
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+
+      return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0')
+      ].join('-');
+    }
+
+    function getErrorMessage(error) {
+      if (!error) {
+        return 'An unexpected error occurred.';
+      }
+
+      return error.message
+        ? error.message
+        : String(error);
+    }
+
+    function showToast(message, type) {
+      var toast = document.createElement('div');
+
+      toast.className =
+        'toast ' + (type || 'info');
+
+      toast.textContent = message;
+
+      elements.toastContainer.appendChild(toast);
+
+      window.setTimeout(function () {
+        toast.remove();
+      }, 4500);
+    }
+
+    function escapeHtml(value) {
+      return String(
+        value === null || value === undefined
+          ? ''
+          : value
+      )
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value);
+    }
+  })();
+</script>

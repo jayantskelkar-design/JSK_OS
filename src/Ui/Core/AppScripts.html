@@ -1,0 +1,35 @@
+<script>
+  (function () {
+    'use strict';
+
+    var menuButton =
+      document.getElementById('mobileMenuButton');
+
+    var sidebar =
+      document.getElementById('sidebar');
+
+    if (menuButton && sidebar) {
+      menuButton.addEventListener(
+        'click',
+        function () {
+          sidebar.classList.toggle('open');
+        }
+      );
+    }
+
+    document.addEventListener(
+      'click',
+      function (event) {
+        if (
+          window.innerWidth <= 760 &&
+          sidebar &&
+          sidebar.classList.contains('open') &&
+          !sidebar.contains(event.target) &&
+          event.target !== menuButton
+        ) {
+          sidebar.classList.remove('open');
+        }
+      }
+    );
+  })();
+</script>

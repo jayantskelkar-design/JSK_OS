@@ -1,0 +1,44 @@
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="brand-mark">JSK</div>
+
+    <div>
+      <div class="brand-name">
+        <?= applicationName ?>
+      </div>
+
+      <div class="brand-version">
+        Version <?= applicationVersion ?>
+      </div>
+    </div>
+  </div>
+
+  <nav class="navigation">
+    <? for (var index = 0; index < navigation.length; index++) {
+      var item = navigation[index]; ?>
+
+      <a
+        class="nav-item
+          <?= item.active ? 'active' : '' ?>
+          <?= item.enabled ? '' : 'disabled' ?>"
+        href="<?= item.href ?>"
+        <?= item.enabled ? '' : 'aria-disabled="true"' ?>
+      >
+        <span class="nav-icon">
+          <?= item.icon ?>
+        </span>
+
+        <span><?= item.title ?></span>
+      </a>
+    <? } ?>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-footer-title">
+      First Assurance...
+    </div>
+    <div class="sidebar-footer-subtitle">
+      Then Insurance.
+    </div>
+  </div>
+</aside>

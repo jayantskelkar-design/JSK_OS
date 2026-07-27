@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <?!= include('Ui/People/PeopleStyles'); ?>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">JSK</div>
+
+        <div>
+          <div class="brand-name">
+            <?= applicationName ?>
+          </div>
+
+          <div class="brand-version">
+            Version <?= applicationVersion ?>
+          </div>
+        </div>
+      </div>
+
+      <nav class="navigation">
+        <a class="nav-item" href="?page=dashboard">
+          <span class="nav-icon">⌂</span>
+          <span>Dashboard</span>
+        </a>
+
+        <a class="nav-item" href="?page=companies">
+          <span class="nav-icon">▦</span>
+          <span>Companies</span>
+        </a>
+
+        <a class="nav-item active" href="?page=people">
+          <span class="nav-icon">♟</span>
+          <span>People</span>
+        </a>
+
+        <a class="nav-item disabled" href="#">
+          <span class="nav-icon">✓</span>
+          <span>Tasks</span>
+        </a>
+
+        <a class="nav-item disabled" href="#">
+          <span class="nav-icon">◷</span>
+          <span>Meetings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-title">
+          First Assurance...
+        </div>
+        <div class="sidebar-footer-subtitle">
+          Then Insurance.
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+
+      <header class="topbar">
+        <button
+          type="button"
+          class="mobile-menu-button"
+          id="mobileMenuButton"
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+
+        <div>
+          <h1>JSK People CRM</h1>
+          <p>
+            Manage contacts, decision makers and follow-ups.
+          </p>
+        </div>
+
+        <div class="user-panel">
+          <div class="user-avatar">
+            <?= String(currentUser || 'S').charAt(0).toUpperCase() ?>
+          </div>
+
+          <div class="user-details">
+            <strong><?= currentUser ?></strong>
+            <span>Administrator</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="content">
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span class="summary-label">Total People</span>
+            <strong id="totalPeople">0</strong>
+            <span class="summary-note">All active records</span>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">Current Page</span>
+            <strong id="currentPageCount">0</strong>
+            <span class="summary-note">People displayed</span>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">High Priority</span>
+            <strong id="highPriorityCount">0</strong>
+            <span class="summary-note">Current page</span>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">Follow-ups Due</span>
+            <strong id="followupsDueCount">0</strong>
+            <span class="summary-note">Current page</span>
+          </article>
+        </div>
+
+        <section class="panel">
+          <div class="panel-header">
+
+            <div>
+              <h2>People</h2>
+              <p>
+                Search, create and manage relationship records.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              class="button button-primary"
+              id="addPersonButton"
+            >
+              <span>＋</span>
+              Add Person
+            </button>
+          </div>
+
+          <div class="toolbar">
+
+            <div class="search-box">
+              <span class="search-icon">⌕</span>
+
+              <input
+                type="search"
+                id="searchInput"
+                placeholder="Search name, mobile, email, company or designation"
+                autocomplete="off"
+              >
+            </div>
+
+            <select id="statusFilter" class="filter-select">
+              <option value="">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Prospect">Prospect</option>
+              <option value="Customer">Customer</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Dormant">Dormant</option>
+              <option value="Archived">Archived</option>
+            </select>
+
+            <select id="priorityFilter" class="filter-select">
+              <option value="">All Priorities</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+
+            <label class="archive-toggle">
+              <input
+                type="checkbox"
+                id="includeArchivedCheckbox"
+              >
+              <span>Include archived</span>
+            </label>
+
+            <button
+              type="button"
+              class="button button-secondary"
+              id="refreshButton"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div class="table-container">
+            <table class="people-table">
+              <thead>
+                <tr>
+                  <th>Person</th>
+                  <th>Mobile</th>
+                  <th>Company</th>
+                  <th>Designation</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Next Follow-up</th>
+                  <th class="action-column">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody id="peopleTableBody"></tbody>
+            </table>
+
+            <div class="loading-state hidden" id="loadingState">
+              <div class="spinner"></div>
+              <p>Loading people...</p>
+            </div>
+
+            <div
+              class="empty-state hidden"
+              id="emptyState"
+            >
+              <div class="empty-icon">♟</div>
+              <h3>No people found</h3>
+              <p>
+                Add your first person or change the search filters.
+              </p>
+            </div>
+          </div>
+
+          <div class="pagination">
+            <div id="paginationSummary">
+              Showing 0 people
+            </div>
+
+            <div class="pagination-controls">
+              <button
+                type="button"
+                class="page-button"
+                id="previousPageButton"
+              >
+                Previous
+              </button>
+
+              <span id="pageIndicator">
+                Page 1 of 1
+              </span>
+
+              <button
+                type="button"
+                class="page-button"
+                id="nextPageButton"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div
+    class="modal-overlay hidden"
+    id="personModal"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 id="modalTitle">Add Person</h2>
+          <p id="modalSubtitle">
+            Enter relationship information.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="icon-button"
+          id="closeModalButton"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+
+      <form id="personForm" novalidate>
+        <input type="hidden" id="personId">
+
+        <div
+          class="form-error hidden"
+          id="formError"
+        ></div>
+
+        <div class="form-grid">
+
+          <div class="form-group form-group-wide">
+            <label for="fullName">
+              Full Name
+              <span class="required">*</span>
+            </label>
+
+            <input
+              type="text"
+              id="fullName"
+              maxlength="150"
+              required
+            >
+
+            <span
+              class="field-error"
+              data-error-for="fullName"
+            ></span>
+          </div>
+
+          <div class="form-group">
+            <label for="mobile">
+              Mobile
+              <span class="required">*</span>
+            </label>
+
+            <input
+              type="tel"
+              id="mobile"
+              maxlength="15"
+              required
+            >
+
+            <span
+              class="field-error"
+              data-error-for="mobile"
+            ></span>
+          </div>
+
+          <div class="form-group">
+            <label for="whatsApp">WhatsApp</label>
+            <input
+              type="tel"
+              id="whatsApp"
+              maxlength="15"
+            >
+
+            <span
+              class="field-error"
+              data-error-for="whatsApp"
+            ></span>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              maxlength="200"
+            >
+
+            <span
+              class="field-error"
+              data-error-for="email"
+            ></span>
+          </div>
+
+          <div class="form-group">
+            <label for="dob">Date of Birth</label>
+            <input type="date" id="dob">
+          </div>
+
+          <div class="form-group">
+            <label for="occupation">Occupation</label>
+            <input
+              type="text"
+              id="occupation"
+              maxlength="120"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="designation">Designation</label>
+            <input
+              type="text"
+              id="designation"
+              maxlength="120"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="companyId">Company</label>
+            <input
+              type="text"
+              id="companyId"
+              list="companySuggestions"
+              placeholder="Search or enter Company ID"
+              maxlength="100"
+            >
+            <datalist id="companySuggestions"></datalist>
+          </div>
+
+          <div class="form-group">
+            <label for="familyId">Family ID</label>
+            <input
+              type="text"
+              id="familyId"
+              maxlength="100"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="area">Area</label>
+            <input
+              type="text"
+              id="area"
+              maxlength="100"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="zone">Zone</label>
+            <input
+              type="text"
+              id="zone"
+              maxlength="100"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="leadSource">Lead Source</label>
+            <input
+              type="text"
+              id="leadSource"
+              maxlength="100"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="status">Status</label>
+
+            <select id="status">
+              <option value="Prospect">Prospect</option>
+              <option value="Active">Active</option>
+              <option value="Customer">Customer</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Dormant">Dormant</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="priority">Priority</label>
+
+            <select id="priority">
+              <option value="">Not Set</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="lastContact">Last Contact</label>
+            <input type="date" id="lastContact">
+          </div>
+
+          <div class="form-group">
+            <label for="nextFollowup">Next Follow-up</label>
+            <input type="date" id="nextFollowup">
+          </div>
+
+          <div class="form-group form-group-wide">
+            <label for="notes">Notes</label>
+
+            <textarea
+              id="notes"
+              rows="4"
+              maxlength="2000"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="button button-secondary"
+            id="cancelModalButton"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="button button-primary"
+            id="savePersonButton"
+          >
+            Save Person
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <?!= include('Ui/People/PeopleScripts'); ?>
+</body>
+</html>
