@@ -1,4 +1,4 @@
-function myFunction() {
+
   /**
  * JSK OS v0.7.3
  * CompanyRepository.js
@@ -1340,4 +1340,4 @@ class CompanyConflictError extends Error {
     this.currentVersion = currentVersion;
   }
 }
-}
+
