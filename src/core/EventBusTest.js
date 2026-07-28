@@ -1,16 +1,17 @@
 /**
- * Executes the JSK OS EventBus tests.
+ * Executes JSK OS EventBus tests.
  *
- * Run this function manually from the Apps Script editor.
+ * Run manually from the Apps Script editor.
  *
  * @return {void}
  */
 function testEventBus() {
   testEventBusSubscribeAndPublish_();
-  testEventBusDuplicateSubscription_();
-  testEventBusUnsubscribe_();
+  testEventBusDuplicateProtection_();
   testEventBusOnce_();
-  testEventBusListenerIsolation_();
+  testEventBusUnsubscribe_();
+  testEventBusWildcards_();
+  testEventBusErrorIsolation_();
   testEventBusClear_();
   testEventBusValidation_();
 
@@ -23,125 +24,175 @@ function testEventBus() {
   );
 }
 
-/** @private @return {void} */
+/** @private */
 function testEventBusSubscribeAndPublish_() {
-  const bus = new JSKEventBus();
-  const received = [];
+  var bus = new JSKEventBus();
+  var received = null;
 
-  bus.subscribe('company.created', function (event) {
-    received.push(event);
+  bus.subscribe('company.created', function (payload, envelope) {
+    received = {
+      payload: payload,
+      envelope: envelope
+    };
   });
 
-  const summary = bus.publish(
+  var result = bus.publish(
     'company.created',
     { companyId: 'COM-001' },
-    { source: 'CompanyService', actor: 'system-test' }
+    { actor: 'test' }
   );
 
-  assertEventBusTest_(received.length === 1, 'Listener must run once.');
   assertEventBusTest_(
-    received[0].payload.companyId === 'COM-001',
-    'Payload must be preserved.'
+    received.payload.companyId === 'COM-001',
+    'Subscriber must receive the event payload.'
   );
   assertEventBusTest_(
-    received[0].metadata.source === 'CompanyService',
-    'Metadata must be preserved.'
+    received.envelope.name === 'company.created',
+    'Envelope must preserve the normalized event name.'
   );
   assertEventBusTest_(
-    summary.deliveredCount === 1 && summary.failedCount === 0,
-    'Publication summary must report successful delivery.'
+    received.envelope.metadata.actor === 'test',
+    'Envelope must preserve metadata.'
+  );
+  assertEventBusTest_(
+    result.executed === 1 && result.failed === 0,
+    'Publish result must report successful execution.'
   );
 }
 
-/** @private @return {void} */
-function testEventBusDuplicateSubscription_() {
-  const bus = new JSKEventBus();
-  const handler = function () {};
-  const firstToken = bus.subscribe('people.updated', handler);
-  const secondToken = bus.subscribe('people.updated', handler);
+/** @private */
+function testEventBusDuplicateProtection_() {
+  var bus = new JSKEventBus();
+  var count = 0;
+
+  function handler() {
+    count += 1;
+  }
+
+  var firstToken = bus.subscribe('people.updated', handler);
+  var duplicateToken = bus.subscribe('people.updated', handler);
+
+  bus.publish('people.updated');
 
   assertEventBusTest_(
-    firstToken.id === secondToken.id,
-    'Duplicate handler subscription must reuse its token.'
+    firstToken.id === duplicateToken.id,
+    'Duplicate subscriptions must reuse the existing token.'
   );
   assertEventBusTest_(
-    bus.listenerCount('people.updated') === 1,
-    'Duplicate handler subscription must not add a listener.'
+    count === 1,
+    'Duplicate subscriptions must not execute twice.'
   );
 }
 
-/** @private @return {void} */
-function testEventBusUnsubscribe_() {
-  const bus = new JSKEventBus();
-  let calls = 0;
-  const handler = function () {
-    calls += 1;
-  };
+/** @private */
+function testEventBusOnce_() {
+  var bus = new JSKEventBus();
+  var count = 0;
 
-  const token = bus.subscribe('task.completed', handler);
-
-  assertEventBusTest_(
-    bus.unsubscribe('task.completed', token) === true,
-    'Token unsubscribe must remove the listener.'
-  );
+  bus.once('task.completed', function () {
+    count += 1;
+  });
 
   bus.publish('task.completed');
+  bus.publish('task.completed');
 
-  assertEventBusTest_(calls === 0, 'Removed listener must not execute.');
   assertEventBusTest_(
-    bus.unsubscribe('task.completed', token) === false,
-    'Removing an unknown subscription must be safe.'
+    count === 1,
+    'A once subscription must execute exactly once.'
+  );
+  assertEventBusTest_(
+    bus.listenerCount('task.completed') === 0,
+    'A once subscription must remove itself.'
   );
 }
 
-/** @private @return {void} */
-function testEventBusOnce_() {
-  const bus = new JSKEventBus();
-  let calls = 0;
+/** @private */
+function testEventBusUnsubscribe_() {
+  var bus = new JSKEventBus();
+  var count = 0;
 
-  bus.once('notification.read', function () {
-    calls += 1;
-  });
+  function handler() {
+    count += 1;
+  }
 
-  bus.publish('notification.read');
-  bus.publish('notification.read');
-
-  assertEventBusTest_(calls === 1, 'Once listener must run exactly once.');
-}
-
-/** @private @return {void} */
-function testEventBusListenerIsolation_() {
-  const logger = new JSKEventBusTestLogger_();
-  const bus = new JSKEventBus({ logger: logger });
-  let successfulCalls = 0;
-
-  bus.subscribe('renewal.due', function () {
-    throw new Error('Expected test failure');
-  });
-
-  bus.subscribe('renewal.due', function () {
-    successfulCalls += 1;
-  });
-
-  const summary = bus.publish('renewal.due');
+  var token = bus.subscribe('notification.read', handler);
 
   assertEventBusTest_(
-    successfulCalls === 1,
+    bus.unsubscribe(token) === true,
+    'Unsubscribe by token must remove a subscription.'
+  );
+
+  bus.publish('notification.read');
+
+  assertEventBusTest_(
+    count === 0,
+    'An unsubscribed handler must not execute.'
+  );
+  assertEventBusTest_(
+    bus.unsubscribe(token) === false,
+    'Unsubscribing an unknown token must be safe.'
+  );
+}
+
+/** @private */
+function testEventBusWildcards_() {
+  var bus = new JSKEventBus();
+  var order = [];
+
+  bus.subscribe('company.*', function () {
+    order.push('namespace');
+  });
+  bus.subscribe('*', function () {
+    order.push('global');
+  });
+  bus.subscribe('company.updated', function () {
+    order.push('exact');
+  });
+
+  var result = bus.publish('company.updated');
+
+  assertEventBusTest_(
+    order.join(',') === 'namespace,global,exact',
+    'Matching listeners must execute in subscription order.'
+  );
+  assertEventBusTest_(
+    result.matched === 3,
+    'Exact and wildcard listeners must all match.'
+  );
+}
+
+/** @private */
+function testEventBusErrorIsolation_() {
+  var logger = new JSKEventBusTestLogger_();
+  var bus = new JSKEventBus({ logger: logger });
+  var successfulListenerExecuted = false;
+
+  bus.subscribe('system.test', function () {
+    throw new Error('Expected test failure.');
+  });
+  bus.subscribe('system.test', function () {
+    successfulListenerExecuted = true;
+  });
+
+  var result = bus.publish('system.test');
+
+  assertEventBusTest_(
+    successfulListenerExecuted === true,
     'One listener failure must not stop remaining listeners.'
   );
   assertEventBusTest_(
-    summary.failedCount === 1 && summary.deliveredCount === 1,
-    'Publication summary must report listener failures.'
+    result.failed === 1 && result.executed === 1,
+    'Publish result must report listener failures.'
   );
   assertEventBusTest_(
-    logger.exceptions.length === 1,
-    'Listener failure must be logged.'
+    logger.errors.length === 1,
+    'Listener failures must be logged when a logger is supplied.'
   );
 }
 
-/** @private @return {void} */
+/** @private */
 function testEventBusClear_() {
-  const bus = new JSKEventBus();
+  var bus = new JSKEventBus();
 
   bus.subscribe('company.created', function () {});
   bus.subscribe('company.created', function () {});
@@ -149,65 +200,62 @@ function testEventBusClear_() {
 
   assertEventBusTest_(
     bus.clear('company.created') === 2,
-    'clear() must return the number of removed listeners.'
+    'Clear must return the number of removed listeners.'
   );
   assertEventBusTest_(
-    bus.listenerCount('people.created') === 1,
-    'clear() must not remove other events.'
+    bus.listenerCount() === 1,
+    'Clear must only remove listeners for the requested event.'
   );
   assertEventBusTest_(
-    bus.clearAll() === 1 && bus.eventNames().length === 0,
-    'clearAll() must remove every remaining listener.'
+    bus.clearAll() === 1 && bus.listenerCount() === 0,
+    'ClearAll must remove every remaining listener.'
   );
 }
 
-/** @private @return {void} */
+/** @private */
 function testEventBusValidation_() {
-  const bus = new JSKEventBus();
-  let invalidNameRejected = false;
-  let invalidHandlerRejected = false;
+  var bus = new JSKEventBus();
+  var invalidEventRejected = false;
+  var wildcardPublishRejected = false;
 
   try {
-    bus.publish('invalid event name');
+    bus.subscribe('Invalid Event', function () {});
   } catch (error) {
-    invalidNameRejected = error instanceof TypeError;
+    invalidEventRejected = true;
   }
 
   try {
-    bus.subscribe('company.created', null);
+    bus.publish('company.*');
   } catch (error) {
-    invalidHandlerRejected = error instanceof TypeError;
+    wildcardPublishRejected = true;
   }
 
   assertEventBusTest_(
-    invalidNameRejected,
+    invalidEventRejected,
     'Invalid event names must be rejected.'
   );
   assertEventBusTest_(
-    invalidHandlerRejected,
-    'Non-function handlers must be rejected.'
+    wildcardPublishRejected,
+    'Wildcard event names must not be publishable.'
   );
 }
 
 /**
- * Test logger for listener failure assertions.
+ * Test logger that captures EventBus listener errors.
  *
  * @constructor
+ * @private
  */
 function JSKEventBusTestLogger_() {
-  /** @type {Object[]} */
-  this.exceptions = [];
+  this.errors = [];
 }
 
-/**
- * Captures a logged exception.
- *
- * @param {*} error Error value.
- * @param {Object} context Error context.
- * @return {void}
- */
+/** @private */
 JSKEventBusTestLogger_.prototype.exception = function (error, context) {
-  this.exceptions.push({ error: error, context: context });
+  this.errors.push({
+    error: error,
+    context: context
+  });
 };
 
 /**
