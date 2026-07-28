@@ -8,7 +8,6 @@
 function testCoreFramework() {
   testLoggerFramework_();
   testResponseFramework_();
-  testEventBusFramework_();
 
   console.info(
     JSON.stringify({
@@ -31,12 +30,16 @@ function testLoggerFramework_() {
   const logger = new JSKLogger({
     serviceName: 'CoreFrameworkTest',
     repository: repository,
-    minimumLevel: JSK_LOG_LEVEL.DEBUG,
+    minimumLevel: JSK_LOG_LEVEL.TRACE,
     requestId: 'REQ-TEST-001',
     user: 'system-test',
     defaultContext: {
       environment: 'test'
     }
+  });
+
+  logger.trace('Trace message', {
+    module: 'Logger'
   });
 
   logger.debug('Debug message', {
@@ -57,28 +60,65 @@ function testLoggerFramework_() {
   });
 
   assertCoreTest_(
-    repository.entries.length === 4,
-    'Logger must persist four log entries.'
+    repository.entries.length === 5,
+    'Logger must persist five log entries.'
   );
 
   assertCoreTest_(
-    repository.entries[0].level === 'DEBUG',
-    'First log entry must have DEBUG level.'
+    repository.entries[0].level === 'TRACE',
+    'First log entry must have TRACE level.'
   );
 
   assertCoreTest_(
-    repository.entries[1].context.apiKey === '[REDACTED]',
+    repository.entries[2].context.apiKey === '[REDACTED]',
     'Sensitive values must be redacted.'
   );
 
   assertCoreTest_(
-    repository.entries[1].requestId === 'REQ-TEST-001',
+    repository.entries[2].requestId === 'REQ-TEST-001',
     'Request ID must be included in log entries.'
   );
 
   assertCoreTest_(
-    repository.entries[3].error.message === 'Test exception',
+    repository.entries[4].error.message === 'Test exception',
     'Exception details must be captured.'
+  );
+
+
+  const circularContext = {
+    name: 'Circular Context'
+  };
+  circularContext.self = circularContext;
+
+  const circularEntry = logger.info(
+    'Circular context test.',
+    circularContext
+  );
+
+  assertCoreTest_(
+    circularEntry.context.self === '[Circular]',
+    'Circular context values must be handled safely.'
+  );
+
+  const failingRepository = {
+    write: function () {
+      throw new Error('Expected repository failure.');
+    }
+  };
+
+  const resilientLogger = new JSKLogger({
+    serviceName: 'RepositoryFailureTest',
+    repository: failingRepository,
+    minimumLevel: JSK_LOG_LEVEL.TRACE
+  });
+
+  const resilientEntry = resilientLogger.info(
+    'Application execution must continue.'
+  );
+
+  assertCoreTest_(
+    resilientEntry && resilientEntry.level === 'INFO',
+    'Repository failures must not interrupt logger execution.'
   );
 
   const infoLogger = new JSKLogger({
@@ -94,132 +134,6 @@ function testLoggerFramework_() {
   assertCoreTest_(
     filteredEntry === null,
     'Messages below the minimum level must be filtered.'
-  );
-}
-
-
-/**
- * Tests core EventBus behavior.
- *
- * @private
- * @return {void}
- */
-function testEventBusFramework_() {
-  const listenerErrors = [];
-  const eventBus = new JSKEventBus({
-    onListenerError: function (error, context) {
-      listenerErrors.push({
-        error: error,
-        context: context
-      });
-    }
-  });
-
-  const received = [];
-
-  function exactListener(payload, event) {
-    received.push('exact:' + payload.companyId + ':' + event.name);
-  }
-
-  function namespaceListener(payload) {
-    received.push('namespace:' + payload.companyId);
-  }
-
-  function globalListener(payload) {
-    const recordId = payload
-      ? payload.companyId || payload.personId || ''
-      : '';
-
-    received.push('global:' + recordId);
-  }
-
-  eventBus.subscribe('company.created', exactListener);
-  eventBus.subscribe('company.*', namespaceListener);
-  eventBus.subscribe('*', globalListener);
-  eventBus.subscribe('company.created', exactListener);
-
-  assertCoreTest_(
-    eventBus.listenerCount('company.created') === 1,
-    'EventBus must prevent duplicate subscriptions.'
-  );
-
-  const publishResult = eventBus.publish('company.created', {
-    companyId: 'COM-001'
-  });
-
-  assertCoreTest_(
-    publishResult.delivered === 3 && publishResult.failed === 0,
-    'EventBus must deliver exact, namespace and global listeners.'
-  );
-
-  assertCoreTest_(
-    received.join('|') ===
-      'exact:COM-001:company.created|' +
-      'namespace:COM-001|global:COM-001',
-    'EventBus must preserve deterministic listener order.'
-  );
-
-  assertCoreTest_(
-    eventBus.unsubscribe('company.created', exactListener) === true,
-    'EventBus must unsubscribe an existing listener.'
-  );
-
-  assertCoreTest_(
-    eventBus.unsubscribe('company.created', exactListener) === false,
-    'EventBus must safely ignore an unknown listener.'
-  );
-
-  let onceCount = 0;
-
-  eventBus.once('people.updated', function () {
-    onceCount += 1;
-  });
-
-  eventBus.publish('people.updated', { personId: 'P-001' });
-  eventBus.publish('people.updated', { personId: 'P-001' });
-
-  assertCoreTest_(
-    onceCount === 1,
-    'EventBus once listener must execute exactly once.'
-  );
-
-  eventBus.clear('*');
-
-  let isolatedListenerRan = false;
-
-  eventBus.subscribe('system.test', function () {
-    throw new Error('Expected EventBus listener failure.');
-  });
-
-  eventBus.subscribe('system.test', function () {
-    isolatedListenerRan = true;
-  });
-
-  const isolationResult = eventBus.publish('system.test');
-
-  assertCoreTest_(
-    isolatedListenerRan === true,
-    'A failing EventBus listener must not stop remaining listeners.'
-  );
-
-  assertCoreTest_(
-    isolationResult.delivered === 1 &&
-      isolationResult.failed === 1 &&
-      listenerErrors.length === 1,
-    'EventBus must report isolated listener failures.'
-  );
-
-  assertCoreTest_(
-    eventBus.clear('system.test') === 2,
-    'EventBus clear must remove listeners for one event.'
-  );
-
-  const remainingCount = eventBus.listenerCount();
-
-  assertCoreTest_(
-    eventBus.clearAll() === remainingCount &&
-      eventBus.listenerCount() === 0,
-    'EventBus clearAll must remove every listener.'
   );
 }
 

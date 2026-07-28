@@ -101,7 +101,24 @@ class JSKConsoleLogRepository extends JSKLogRepository {
    * @return {void}
    */
   write(logEntry) {
-    const serializedEntry = JSON.stringify(logEntry);
+    let serializedEntry;
+
+    try {
+      serializedEntry = JSON.stringify(logEntry);
+    } catch (error) {
+      serializedEntry = JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'ERROR',
+        service: 'JSKConsoleLogRepository',
+        message: 'Log entry could not be serialized.',
+        error: {
+          name: error && error.name ? error.name : 'Error',
+          message: error && error.message
+            ? error.message
+            : String(error)
+        }
+      });
+    }
 
     switch (logEntry.level) {
       case 'ERROR':
@@ -441,45 +458,43 @@ class JSKLogger {
       logEntry.error = this.sanitizeError_(this.normalizeError_(error));
     }
 
-    try {
-      this.repository_.write(logEntry);
-    } catch (repositoryError) {
-      this.reportRepositoryFailure_(repositoryError, logEntry);
-    }
+    this.writeSafely_(logEntry);
 
     return logEntry;
   }
 
   /**
-   * Reports repository failures without allowing logging to break application
-   * execution. This method deliberately avoids using the configured repository.
+   * Writes a log entry without allowing repository failures to interrupt
+   * application execution.
    *
    * @private
-   * @param {*} repositoryError Repository failure.
-   * @param {Object} originalEntry Log entry that could not be persisted.
+   * @param {Object} logEntry Structured log entry.
    * @return {void}
    */
-  reportRepositoryFailure_(repositoryError, originalEntry) {
+  writeSafely_(logEntry) {
     try {
-      const normalizedError = this.normalizeError_(repositoryError);
-      const fallbackEntry = {
-        timestamp: new Date().toISOString(),
-        level: 'ERROR',
-        service: 'JSKLogger',
-        message: 'Log repository write failed.',
-        context: {
-          originalService: originalEntry.service || '',
-          originalLevel: originalEntry.level || '',
-          originalMessage: originalEntry.message || ''
-        },
-        error: this.sanitizeError_(normalizedError)
-      };
+      this.repository_.write(logEntry);
+    } catch (repositoryError) {
+      try {
+        const fallbackEntry = {
+          timestamp: new Date().toISOString(),
+          level: 'ERROR',
+          service: 'JSKLogger',
+          message: 'Log repository write failed.',
+          context: {
+            originalService: this.serviceName_,
+            originalLevel: logEntry.level,
+            originalMessage: logEntry.message
+          },
+          error: this.sanitizeError_(
+            this.normalizeError_(repositoryError)
+          )
+        };
 
-      if (typeof console !== 'undefined' && console.error) {
-        console.error(JSON.stringify(fallbackEntry));
+        new JSKConsoleLogRepository().write(fallbackEntry);
+      } catch (fallbackError) {
+        // Logging must never interrupt application execution.
       }
-    } catch (fallbackError) {
-      // Logging must never interrupt business execution.
     }
   }
 
@@ -653,17 +668,43 @@ class JSKLogger {
    * @param {*} value Value to clone.
    * @return {*} Cloned value.
    */
-  cloneValue_(value) {
-    if (value === null || value === undefined) {
-      return value;
-    }
+  cloneValue_(value, visited) {
+  const seen = visited || new WeakSet();
 
-    try {
-      return JSON.parse(JSON.stringify(value));
-    } catch (error) {
-      return value;
-    }
+  if (value === null || value === undefined) {
+    return value;
   }
+
+  if (typeof value !== 'object') {
+    return value;
+  }
+
+  if (value instanceof Date) {
+    return new Date(value.getTime());
+  }
+
+  if (value instanceof Error) {
+    return value;
+  }
+
+  if (seen.has(value)) {
+    return '[Circular]';
+  }
+
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.map(item => this.cloneValue_(item, seen));
+  }
+
+  const clone = {};
+
+  Object.keys(value).forEach(key => {
+    clone[key] = this.cloneValue_(value[key], seen);
+  });
+
+  return clone;
+}
 }
 
 /**
