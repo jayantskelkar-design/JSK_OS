@@ -8,6 +8,7 @@
 function testCoreFramework() {
   testLoggerFramework_();
   testResponseFramework_();
+  testEventBusFramework_();
 
   console.info(
     JSON.stringify({
@@ -183,6 +184,125 @@ function testResponseFramework_() {
   assertCoreTest_(
     parsedOutput.data.companyName === 'JSK Investment',
     'JSON output must contain the response payload.'
+  );
+}
+
+
+/**
+ * Tests EventBus behavior.
+ *
+ * @private
+ * @return {void}
+ */
+function testEventBusFramework_() {
+  var eventBus = new JSKEventBus();
+  var calls = [];
+
+  function firstListener(payload) {
+    calls.push('first:' + payload.companyId);
+  }
+
+  function secondListener(payload) {
+    calls.push('second:' + payload.companyId);
+  }
+
+  eventBus.subscribe('company.created', firstListener);
+  eventBus.subscribe('company.created', secondListener);
+  eventBus.subscribe('company.created', firstListener);
+
+  assertCoreTest_(
+    eventBus.listenerCount('company.created') === 2,
+    'Duplicate EventBus subscriptions must be ignored.'
+  );
+
+  var firstPublish = eventBus.publish('company.created', {
+    companyId: 'COM-001'
+  });
+
+  assertCoreTest_(
+    firstPublish.delivered === 2 && firstPublish.failed === 0,
+    'EventBus must deliver an event to every registered listener.'
+  );
+
+  assertCoreTest_(
+    calls.join('|') === 'first:COM-001|second:COM-001',
+    'EventBus must preserve listener execution order.'
+  );
+
+  eventBus.unsubscribe('company.created', firstListener);
+  eventBus.publish('company.created', {
+    companyId: 'COM-002'
+  });
+
+  assertCoreTest_(
+    calls[calls.length - 1] === 'second:COM-002',
+    'EventBus unsubscribe must remove only the selected listener.'
+  );
+
+  var onceCount = 0;
+  eventBus.once('people.updated', function () {
+    onceCount += 1;
+  });
+
+  eventBus.publish('people.updated');
+  eventBus.publish('people.updated');
+
+  assertCoreTest_(
+    onceCount === 1,
+    'EventBus once listener must execute exactly once.'
+  );
+
+  var wildcardCalls = [];
+  eventBus.subscribe('company.*', function (payload, event) {
+    wildcardCalls.push('namespace:' + event.name);
+  });
+  eventBus.subscribe('*', function (payload, event) {
+    wildcardCalls.push('global:' + event.name);
+  });
+
+  eventBus.publish('company.updated', {
+    companyId: 'COM-003'
+  });
+
+  assertCoreTest_(
+    wildcardCalls.join('|') ===
+      'namespace:company.updated|global:company.updated',
+    'EventBus wildcard listeners must execute in namespace then global order.'
+  );
+
+  var isolationCount = 0;
+  var quietLogger = {
+    exception: function () {}
+  };
+  var isolatedEventBus = new JSKEventBus({
+    logger: quietLogger
+  });
+
+  isolatedEventBus.subscribe('test.isolation', function () {
+    throw new Error('Expected listener failure for isolation test.');
+  });
+  isolatedEventBus.subscribe('test.isolation', function () {
+    isolationCount += 1;
+  });
+
+  var isolationResult = isolatedEventBus.publish('test.isolation');
+
+  assertCoreTest_(
+    isolationResult.failed === 1 && isolationCount === 1,
+    'A failing EventBus listener must not stop remaining listeners.'
+  );
+
+  assertCoreTest_(
+    eventBus.clear('company.created') === 1,
+    'EventBus clear must report the number of removed listeners.'
+  );
+
+  eventBus.clearAll();
+
+  assertCoreTest_(
+    eventBus.listenerCount('company.*') === 0 &&
+      eventBus.listenerCount('*') === 0,
+    'EventBus clearAll must remove every listener.'
   );
 }
 
