@@ -1,4 +1,4 @@
-function myFunction() {
+
   /**
  * JSK OS v0.7.3
  * CompanySearchApi.js
@@ -226,4 +226,4 @@ function companyUniqueSorted_(values) {
       return left.localeCompare(right);
     });
 }
-}
+
