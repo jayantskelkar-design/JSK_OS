@@ -8,11 +8,117 @@
     ☰
   </button>
 
-  <div>
+  <div class="topbar-title">
     <h1>JSK OS Enterprise</h1>
+
     <p>
       Corporate Risk Intelligence Platform
     </p>
+  </div>
+
+  <div
+    class="universal-search"
+    id="universalSearch"
+    data-web-app-url="<?= webAppUrl ?>"
+  >
+    <div class="universal-search-box">
+      <span
+        class="universal-search-icon"
+        aria-hidden="true"
+      >
+        ⌕
+      </span>
+
+      <input
+        type="search"
+        id="universalSearchInput"
+        class="universal-search-input"
+        placeholder="Search company, person, mobile or email..."
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Universal search"
+        aria-controls="universalSearchResults"
+        aria-expanded="false"
+      >
+
+      <button
+        type="button"
+        id="universalSearchClear"
+        class="universal-search-clear hidden"
+        aria-label="Clear search"
+      >
+        ×
+      </button>
+    </div>
+
+    <div
+      id="universalSearchResults"
+      class="universal-search-results hidden"
+      role="region"
+      aria-live="polite"
+    >
+      <div
+        id="universalSearchLoading"
+        class="universal-search-state hidden"
+      >
+        Searching...
+      </div>
+
+      <div
+        id="universalSearchEmpty"
+        class="universal-search-state hidden"
+      >
+        No matching companies or people found.
+      </div>
+
+      <div
+        id="universalSearchError"
+        class="universal-search-state universal-search-error hidden"
+      >
+        Search could not be completed.
+      </div>
+
+      <div
+        id="universalSearchContent"
+        class="universal-search-content hidden"
+      >
+        <section
+          id="universalCompanySection"
+          class="universal-search-section hidden"
+        >
+          <div class="universal-search-heading">
+            <strong>Companies</strong>
+
+            <span id="universalCompanyCount">
+              0
+            </span>
+          </div>
+
+          <div
+            id="universalCompanyResults"
+            class="universal-search-list"
+          ></div>
+        </section>
+
+        <section
+          id="universalPeopleSection"
+          class="universal-search-section hidden"
+        >
+          <div class="universal-search-heading">
+            <strong>People</strong>
+
+            <span id="universalPeopleCount">
+              0
+            </span>
+          </div>
+
+          <div
+            id="universalPeopleResults"
+            class="universal-search-list"
+          ></div>
+        </section>
+      </div>
+    </div>
   </div>
 
   <div class="user-panel">
@@ -23,8 +129,13 @@
     </div>
 
     <div class="user-details">
-      <strong><?= currentUser ?></strong>
-      <span>Administrator</span>
+      <strong>
+        <?= currentUser ?>
+      </strong>
+
+      <span>
+        Administrator
+      </span>
     </div>
   </div>
 </header>
