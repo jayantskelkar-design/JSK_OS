@@ -19,6 +19,7 @@
  * @enum {number}
  */
 const JSK_LOG_LEVEL = Object.freeze({
+  TRACE: 5,
   DEBUG: 10,
   INFO: 20,
   WARN: 30,
@@ -33,6 +34,7 @@ const JSK_LOG_LEVEL = Object.freeze({
  * @enum {string}
  */
 const JSK_LOG_LEVEL_NAME = Object.freeze({
+  5: 'TRACE',
   10: 'DEBUG',
   20: 'INFO',
   30: 'WARN',
@@ -111,6 +113,7 @@ class JSKConsoleLogRepository extends JSKLogRepository {
         console.warn(serializedEntry);
         break;
 
+      case 'TRACE':
       case 'DEBUG':
         console.log(serializedEntry);
         break;
@@ -311,6 +314,17 @@ class JSKLogger {
   }
 
   /**
+   * Logs a TRACE message.
+   *
+   * @param {string} message Log message.
+   * @param {Object=} context Additional context.
+   * @return {Object|null} Created log entry or null when filtered.
+   */
+  trace(message, context) {
+    return this.log(JSK_LOG_LEVEL.TRACE, message, context);
+  }
+
+  /**
    * Logs a DEBUG message.
    *
    * @param {string} message Log message.
@@ -427,9 +441,46 @@ class JSKLogger {
       logEntry.error = this.sanitizeError_(this.normalizeError_(error));
     }
 
-    this.repository_.write(logEntry);
+    try {
+      this.repository_.write(logEntry);
+    } catch (repositoryError) {
+      this.reportRepositoryFailure_(repositoryError, logEntry);
+    }
 
     return logEntry;
+  }
+
+  /**
+   * Reports repository failures without allowing logging to break application
+   * execution. This method deliberately avoids using the configured repository.
+   *
+   * @private
+   * @param {*} repositoryError Repository failure.
+   * @param {Object} originalEntry Log entry that could not be persisted.
+   * @return {void}
+   */
+  reportRepositoryFailure_(repositoryError, originalEntry) {
+    try {
+      const normalizedError = this.normalizeError_(repositoryError);
+      const fallbackEntry = {
+        timestamp: new Date().toISOString(),
+        level: 'ERROR',
+        service: 'JSKLogger',
+        message: 'Log repository write failed.',
+        context: {
+          originalService: originalEntry.service || '',
+          originalLevel: originalEntry.level || '',
+          originalMessage: originalEntry.message || ''
+        },
+        error: this.sanitizeError_(normalizedError)
+      };
+
+      if (typeof console !== 'undefined' && console.error) {
+        console.error(JSON.stringify(fallbackEntry));
+      }
+    } catch (fallbackError) {
+      // Logging must never interrupt business execution.
+    }
   }
 
   /**
