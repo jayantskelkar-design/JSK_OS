@@ -97,6 +97,132 @@ function testLoggerFramework_() {
   );
 }
 
+
+/**
+ * Tests core EventBus behavior.
+ *
+ * @private
+ * @return {void}
+ */
+function testEventBusFramework_() {
+  const listenerErrors = [];
+  const eventBus = new JSKEventBus({
+    onListenerError: function (error, context) {
+      listenerErrors.push({
+        error: error,
+        context: context
+      });
+    }
+  });
+
+  const received = [];
+
+  function exactListener(payload, event) {
+    received.push('exact:' + payload.companyId + ':' + event.name);
+  }
+
+  function namespaceListener(payload) {
+    received.push('namespace:' + payload.companyId);
+  }
+
+  function globalListener(payload) {
+    const recordId = payload
+      ? payload.companyId || payload.personId || ''
+      : '';
+
+    received.push('global:' + recordId);
+  }
+
+  eventBus.subscribe('company.created', exactListener);
+  eventBus.subscribe('company.*', namespaceListener);
+  eventBus.subscribe('*', globalListener);
+  eventBus.subscribe('company.created', exactListener);
+
+  assertCoreTest_(
+    eventBus.listenerCount('company.created') === 1,
+    'EventBus must prevent duplicate subscriptions.'
+  );
+
+  const publishResult = eventBus.publish('company.created', {
+    companyId: 'COM-001'
+  });
+
+  assertCoreTest_(
+    publishResult.delivered === 3 && publishResult.failed === 0,
+    'EventBus must deliver exact, namespace and global listeners.'
+  );
+
+  assertCoreTest_(
+    received.join('|') ===
+      'exact:COM-001:company.created|' +
+      'namespace:COM-001|global:COM-001',
+    'EventBus must preserve deterministic listener order.'
+  );
+
+  assertCoreTest_(
+    eventBus.unsubscribe('company.created', exactListener) === true,
+    'EventBus must unsubscribe an existing listener.'
+  );
+
+  assertCoreTest_(
+    eventBus.unsubscribe('company.created', exactListener) === false,
+    'EventBus must safely ignore an unknown listener.'
+  );
+
+  let onceCount = 0;
+
+  eventBus.once('people.updated', function () {
+    onceCount += 1;
+  });
+
+  eventBus.publish('people.updated', { personId: 'P-001' });
+  eventBus.publish('people.updated', { personId: 'P-001' });
+
+  assertCoreTest_(
+    onceCount === 1,
+    'EventBus once listener must execute exactly once.'
+  );
+
+  eventBus.clear('*');
+
+  let isolatedListenerRan = false;
+
+  eventBus.subscribe('system.test', function () {
+    throw new Error('Expected EventBus listener failure.');
+  });
+
+  eventBus.subscribe('system.test', function () {
+    isolatedListenerRan = true;
+  });
+
+  const isolationResult = eventBus.publish('system.test');
+
+  assertCoreTest_(
+    isolatedListenerRan === true,
+    'A failing EventBus listener must not stop remaining listeners.'
+  );
+
+  assertCoreTest_(
+    isolationResult.delivered === 1 &&
+      isolationResult.failed === 1 &&
+      listenerErrors.length === 1,
+    'EventBus must report isolated listener failures.'
+  );
+
+  assertCoreTest_(
+    eventBus.clear('system.test') === 2,
+    'EventBus clear must remove listeners for one event.'
+  );
+
+  const remainingCount = eventBus.listenerCount();
+
+  assertCoreTest_(
+    eventBus.clearAll() === remainingCount &&
+      eventBus.listenerCount() === 0,
+    'EventBus clearAll must remove every listener.'
+  );
+}
+
 /**
  * Tests standard response behavior.
  *
@@ -184,121 +310,6 @@ function testResponseFramework_() {
   assertCoreTest_(
     parsedOutput.data.companyName === 'JSK Investment',
     'JSON output must contain the response payload.'
-  );
-}
-
-
-/**
- * Tests core EventBus behavior.
- *
- * @private
- * @return {void}
- */
-function testEventBusFramework_() {
-  var repository = new JSKInMemoryLogRepositoryForTest_();
-  var logger = new JSKLogger({
-    serviceName: 'EventBusTest',
-    repository: repository,
-    minimumLevel: JSK_LOG_LEVEL.DEBUG
-  });
-  var eventBus = new JSKEventBus({ logger: logger });
-  var calls = [];
-
-  function exactHandler(event) {
-    calls.push('exact:' + event.payload.companyId);
-  }
-
-  function namespaceHandler(event) {
-    calls.push('namespace:' + event.eventName);
-  }
-
-  function globalHandler(event) {
-    calls.push('global:' + event.eventName);
-  }
-
-  var unsubscribeExact = eventBus.subscribe(
-    'company.created',
-    exactHandler
-  );
-
-  eventBus.subscribe('company.*', namespaceHandler);
-  eventBus.subscribe('*', globalHandler);
-
-  var firstSummary = eventBus.publish('company.created', {
-    companyId: 'COM-001'
-  });
-
-  assertCoreTest_(
-    firstSummary.delivered === 3 && firstSummary.failed === 0,
-    'EventBus must deliver exact, namespace, and global listeners.'
-  );
-
-  assertCoreTest_(
-    calls.join('|') ===
-      'exact:COM-001|namespace:company.created|global:company.created',
-    'EventBus must preserve listener registration order.'
-  );
-
-  assertCoreTest_(
-    unsubscribeExact() === true,
-    'EventBus unsubscribe function must remove the listener.'
-  );
-
-  calls = [];
-  eventBus.publish('company.created', { companyId: 'COM-002' });
-
-  assertCoreTest_(
-    calls.join('|') ===
-      'namespace:company.created|global:company.created',
-    'Unsubscribed listeners must not receive future events.'
-  );
-
-  var onceCount = 0;
-  eventBus.once('people.updated', function () {
-    onceCount += 1;
-  });
-  eventBus.publish('people.updated');
-  eventBus.publish('people.updated');
-
-  assertCoreTest_(
-    onceCount === 1,
-    'EventBus once listeners must execute exactly once.'
-  );
-
-  var survivorCount = 0;
-  eventBus.subscribe('task.completed', function () {
-    throw new Error('Expected listener failure for isolation test.');
-  });
-  eventBus.subscribe('task.completed', function () {
-    survivorCount += 1;
-  });
-
-  var isolationSummary = eventBus.publish('task.completed');
-
-  assertCoreTest_(
-    survivorCount === 1,
-    'One listener failure must not stop remaining listeners.'
-  );
-
-  assertCoreTest_(
-    isolationSummary.delivered === 2 && isolationSummary.failed === 1,
-    'EventBus must report successful and failed listener counts.'
-  );
-
-  assertCoreTest_(
-    repository.entries.length === 1 &&
-      repository.entries[0].message === 'EventBus listener failed.',
-    'Listener failures must be written through the existing logger.'
-  );
-
-  assertCoreTest_(
-    eventBus.clear('company.*') === 1,
-    'EventBus clear must remove listeners for one event pattern.'
-  );
-
-  assertCoreTest_(
-    eventBus.clearAll() >= 1 && eventBus.listenerCount() === 0,
-    'EventBus clearAll must remove every remaining listener.'
   );
 }
 
