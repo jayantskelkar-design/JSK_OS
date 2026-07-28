@@ -553,6 +553,98 @@
     letter-spacing: .06em;
   }
 
+
+  /* JSK Toast Service */
+  .jsk-toast-container {
+    position: fixed;
+    top: 96px;
+    right: 24px;
+    width: min(380px, calc(100vw - 32px));
+    display: grid;
+    gap: 10px;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .jsk-toast {
+    --toast-accent: var(--navy);
+    min-height: 58px;
+    padding: 12px 12px 12px 14px;
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 30px;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--toast-accent);
+    border-radius: 13px;
+    background: var(--surface);
+    box-shadow: 0 18px 42px rgba(11, 31, 58, .18);
+    opacity: 0;
+    transform: translateX(18px);
+    transition: opacity .18s ease, transform .18s ease;
+    pointer-events: auto;
+  }
+
+  .jsk-toast-visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .jsk-toast-leaving {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+
+  .jsk-toast-success { --toast-accent: #15803d; }
+  .jsk-toast-info { --toast-accent: #2563eb; }
+  .jsk-toast-warning { --toast-accent: #b45309; }
+  .jsk-toast-error { --toast-accent: #b42318; }
+
+  .jsk-toast-icon {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--toast-accent) 12%, white);
+    color: var(--toast-accent);
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .jsk-toast-body {
+    min-width: 0;
+  }
+
+  .jsk-toast-message {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .jsk-toast-close {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .jsk-toast-close:hover,
+  .jsk-toast-close:focus-visible {
+    background: #edf1f5;
+    color: var(--navy);
+    outline: none;
+  }
+
   .hidden {
     display: none !important;
   }
@@ -643,6 +735,27 @@
 
     .footer {
       flex-direction: column;
+    }
+
+
+    .jsk-toast-container {
+      top: auto;
+      right: 12px;
+      bottom: 14px;
+      left: 12px;
+      width: auto;
+    }
+
+    .jsk-toast {
+      transform: translateY(16px);
+    }
+
+    .jsk-toast-visible {
+      transform: translateY(0);
+    }
+
+    .jsk-toast-leaving {
+      transform: translateY(16px);
     }
   }
 </style>

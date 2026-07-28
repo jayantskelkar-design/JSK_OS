@@ -23,7 +23,144 @@
       }
     });
 
+    initializeToast();
     initializeUniversalSearch();
+
+    function initializeToast() {
+      var MAX_TOASTS = 5;
+      var DEFAULT_DURATION_MS = 4000;
+      var container = document.getElementById('jskToastContainer');
+
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'jskToastContainer';
+        container.className = 'jsk-toast-container';
+        container.setAttribute('aria-live', 'polite');
+        container.setAttribute('aria-atomic', 'false');
+        document.body.appendChild(container);
+      }
+
+      function normalizeMessage(message) {
+        var text = String(message === undefined || message === null ? '' : message).trim();
+        return text || 'Something went wrong.';
+      }
+
+      function normalizeType(type) {
+        var allowed = ['success', 'info', 'warning', 'error'];
+        var normalized = String(type || 'info').toLowerCase();
+        return allowed.indexOf(normalized) >= 0 ? normalized : 'info';
+      }
+
+      function getIcon(type) {
+        return {
+          success: '✓',
+          info: 'i',
+          warning: '!',
+          error: '×'
+        }[type] || 'i';
+      }
+
+      function removeToast(toast) {
+        if (!toast || toast.getAttribute('data-removing') === 'true') {
+          return;
+        }
+
+        toast.setAttribute('data-removing', 'true');
+        toast.classList.add('jsk-toast-leaving');
+
+        window.setTimeout(function () {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 180);
+      }
+
+      function enforceLimit() {
+        var toasts = container.querySelectorAll('.jsk-toast');
+        while (toasts.length > MAX_TOASTS) {
+          removeToast(toasts[0]);
+          toasts = container.querySelectorAll('.jsk-toast:not([data-removing="true"])');
+        }
+      }
+
+      function show(message, options) {
+        var settings = options || {};
+        var type = normalizeType(settings.type);
+        var duration = settings.duration === undefined
+          ? (type === 'error' ? 0 : DEFAULT_DURATION_MS)
+          : Math.max(0, Number(settings.duration) || 0);
+
+        var toast = document.createElement('div');
+        var icon = document.createElement('span');
+        var body = document.createElement('div');
+        var text = document.createElement('div');
+        var close = document.createElement('button');
+
+        toast.className = 'jsk-toast jsk-toast-' + type;
+        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+        icon.className = 'jsk-toast-icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = getIcon(type);
+
+        body.className = 'jsk-toast-body';
+        text.className = 'jsk-toast-message';
+        text.textContent = normalizeMessage(message);
+        body.appendChild(text);
+
+        close.type = 'button';
+        close.className = 'jsk-toast-close';
+        close.setAttribute('aria-label', 'Dismiss notification');
+        close.textContent = '×';
+        close.addEventListener('click', function () {
+          removeToast(toast);
+        });
+
+        toast.appendChild(icon);
+        toast.appendChild(body);
+        toast.appendChild(close);
+        container.appendChild(toast);
+        enforceLimit();
+
+        window.requestAnimationFrame(function () {
+          toast.classList.add('jsk-toast-visible');
+        });
+
+        if (duration > 0) {
+          window.setTimeout(function () {
+            removeToast(toast);
+          }, duration);
+        }
+
+        return {
+          close: function () { removeToast(toast); },
+          element: toast
+        };
+      }
+
+      window.JSKToast = Object.freeze({
+        show: show,
+        success: function (message, options) {
+          return show(message, Object.assign({}, options || {}, { type: 'success' }));
+        },
+        info: function (message, options) {
+          return show(message, Object.assign({}, options || {}, { type: 'info' }));
+        },
+        warning: function (message, options) {
+          return show(message, Object.assign({}, options || {}, { type: 'warning' }));
+        },
+        error: function (message, options) {
+          return show(message, Object.assign({}, options || {}, { type: 'error' }));
+        },
+        clear: function () {
+          var toast = container.querySelector('.jsk-toast');
+          if (toast) { removeToast(toast); }
+        },
+        clearAll: function () {
+          Array.prototype.slice.call(container.querySelectorAll('.jsk-toast')).forEach(removeToast);
+        }
+      });
+    }
 
     function initializeUniversalSearch() {
       var root = document.getElementById('universalSearch');
