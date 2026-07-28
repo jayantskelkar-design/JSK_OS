@@ -3,400 +3,348 @@
  * Module: Core Event Bus
  * Version: 1.0.0
  *
- * In-process publish/subscribe infrastructure for loosely coupled modules.
- * Google Apps Script V8 compatible.
- *
- * Notes:
- * - Listeners exist only for the current Apps Script execution.
- * - Event names use lower-case dot notation, for example: company.created.
- * - Wildcards are supported as "company.*" and "*".
+ * Provides synchronous, in-process event publishing for loosely coupled
+ * JSK OS modules. Google Apps Script V8 compatible.
  */
 
 var JSKOS = JSKOS || {};
 
 /**
- * Error raised when EventBus input is invalid.
+ * Creates an isolated event bus instance.
+ *
+ * @constructor
  */
-class JSKEventBusError extends Error {
-  /**
-   * @param {string} message Error message.
-   * @param {string=} code Stable error code.
-   */
-  constructor(message, code) {
-    super(message);
-    this.name = 'JSKEventBusError';
-    this.code = code || 'EVENT_BUS_ERROR';
-  }
+function JSKEventBus() {
+  /** @private @type {Object<string, Array<Object>>} */
+  this.listeners_ = Object.create(null);
+
+  /** @private @type {number} */
+  this.nextSubscriptionId_ = 1;
 }
 
 /**
- * Synchronous, execution-scoped event bus.
+ * Subscribes a handler to an event.
+ *
+ * Supported event names:
+ * - Exact: company.created
+ * - Namespace wildcard: company.*
+ * - Global wildcard: *
+ *
+ * Duplicate registrations of the same handler for the same event are ignored.
+ *
+ * @param {string} eventName Event name.
+ * @param {Function} handler Listener function.
+ * @param {Object=} options Subscription options.
+ * @return {Object} Immutable subscription token.
  */
-class JSKEventBus {
-  /**
-   * @param {Object=} options EventBus options.
-   * @param {Object=} options.logger Logger exposing warn/error methods.
-   */
-  constructor(options) {
-    var normalizedOptions = options || {};
+JSKEventBus.prototype.subscribe = function (eventName, handler, options) {
+  var normalizedEventName = this.normalizeEventName_(eventName);
 
-    this.listeners_ = new Map();
-    this.nextSubscriptionId_ = 1;
-    this.logger_ = normalizedOptions.logger || null;
+  if (typeof handler !== 'function') {
+    throw new TypeError('Event handler must be a function.');
   }
 
-  /**
-   * Subscribes a handler to an event.
-   *
-   * Duplicate subscriptions using the same event and handler are ignored and
-   * return the existing unsubscribe function.
-   *
-   * @param {string} eventName Exact event, namespace wildcard, or "*".
-   * @param {Function} handler Listener function.
-   * @return {Function} Unsubscribe function.
-   */
-  subscribe(eventName, handler) {
-    var normalizedName = this.normalizeEventName_(eventName);
-    this.assertHandler_(handler);
+  var listeners = this.listeners_[normalizedEventName] || [];
+  var existing = listeners.some(function (listener) {
+    return listener.handler === handler;
+  });
 
-    var subscriptions = this.listeners_.get(normalizedName) || [];
-    var existing = subscriptions.find(function (subscription) {
-      return subscription.handler === handler;
-    });
-
-    if (existing) {
-      return existing.unsubscribe;
-    }
-
-    var subscription = this.createSubscription_(
-      normalizedName,
-      handler,
-      false
-    );
-
-    subscriptions.push(subscription);
-    this.listeners_.set(normalizedName, subscriptions);
-
-    return subscription.unsubscribe;
-  }
-
-  /**
-   * Subscribes a handler that is removed before its first execution.
-   *
-   * @param {string} eventName Event name.
-   * @param {Function} handler Listener function.
-   * @return {Function} Unsubscribe function.
-   */
-  once(eventName, handler) {
-    var normalizedName = this.normalizeEventName_(eventName);
-    this.assertHandler_(handler);
-
-    var subscriptions = this.listeners_.get(normalizedName) || [];
-    var subscription = this.createSubscription_(
-      normalizedName,
-      handler,
-      true
-    );
-
-    subscriptions.push(subscription);
-    this.listeners_.set(normalizedName, subscriptions);
-
-    return subscription.unsubscribe;
-  }
-
-  /**
-   * Removes matching subscriptions.
-   *
-   * @param {string} eventName Event name.
-   * @param {Function=} handler Specific handler. Omit to clear the event.
-   * @return {number} Number of subscriptions removed.
-   */
-  unsubscribe(eventName, handler) {
-    var normalizedName = this.normalizeEventName_(eventName);
-
-    if (handler === undefined) {
-      return this.clear(normalizedName);
-    }
-
-    this.assertHandler_(handler);
-
-    var subscriptions = this.listeners_.get(normalizedName) || [];
-    var remaining = subscriptions.filter(function (subscription) {
-      return subscription.handler !== handler;
-    });
-    var removedCount = subscriptions.length - remaining.length;
-
-    if (remaining.length > 0) {
-      this.listeners_.set(normalizedName, remaining);
-    } else {
-      this.listeners_.delete(normalizedName);
-    }
-
-    return removedCount;
-  }
-
-  /**
-   * Publishes an event synchronously.
-   *
-   * Listener failures are isolated. Remaining listeners continue to execute.
-   *
-   * @param {string} eventName Exact event name. Wildcards cannot be published.
-   * @param {*=} payload Event payload.
-   * @param {Object=} metadata Optional event metadata.
-   * @return {Object} Immutable delivery summary.
-   */
-  publish(eventName, payload, metadata) {
-    var normalizedName = this.normalizePublishedEventName_(eventName);
-    var event = Object.freeze({
-      name: normalizedName,
-      payload: payload === undefined ? null : payload,
-      metadata: Object.freeze(
-        Object.assign({}, metadata || {})
-      ),
-      publishedAt: new Date().toISOString()
-    });
-
-    var subscriptions = this.collectSubscriptions_(normalizedName);
-    var delivered = 0;
-    var failed = 0;
-
-    subscriptions.forEach(
-      function (subscription) {
-        if (!this.isSubscriptionActive_(subscription)) {
-          return;
-        }
-
-        if (subscription.once) {
-          subscription.unsubscribe();
-        }
-
-        try {
-          subscription.handler(event);
-          delivered += 1;
-        } catch (error) {
-          failed += 1;
-          this.logListenerFailure_(normalizedName, subscription, error);
-        }
-      }.bind(this)
-    );
-
+  if (existing) {
     return Object.freeze({
-      eventName: normalizedName,
-      matched: subscriptions.length,
-      delivered: delivered,
-      failed: failed
+      eventName: normalizedEventName,
+      id: null,
+      duplicate: true
     });
   }
 
-  /**
-   * Removes every listener for one event or wildcard.
-   *
-   * @param {string} eventName Event name.
-   * @return {number} Number of listeners removed.
-   */
-  clear(eventName) {
-    var normalizedName = this.normalizeEventName_(eventName);
-    var subscriptions = this.listeners_.get(normalizedName) || [];
+  var subscription = {
+    id: this.nextSubscriptionId_++,
+    eventName: normalizedEventName,
+    handler: handler,
+    once: Boolean(options && options.once)
+  };
 
-    this.listeners_.delete(normalizedName);
-    return subscriptions.length;
+  listeners.push(subscription);
+  this.listeners_[normalizedEventName] = listeners;
+
+  return Object.freeze({
+    eventName: normalizedEventName,
+    id: subscription.id,
+    duplicate: false
+  });
+};
+
+/**
+ * Subscribes a handler that is removed after its first invocation.
+ *
+ * @param {string} eventName Event name.
+ * @param {Function} handler Listener function.
+ * @return {Object} Immutable subscription token.
+ */
+JSKEventBus.prototype.once = function (eventName, handler) {
+  return this.subscribe(eventName, handler, { once: true });
+};
+
+/**
+ * Removes a subscription.
+ *
+ * The second argument may be a handler function or a subscription token.
+ *
+ * @param {string} eventName Event name.
+ * @param {Function|Object} handlerOrToken Handler or token.
+ * @return {boolean} True when at least one listener was removed.
+ */
+JSKEventBus.prototype.unsubscribe = function (eventName, handlerOrToken) {
+  var normalizedEventName = this.normalizeEventName_(eventName);
+  var listeners = this.listeners_[normalizedEventName];
+
+  if (!listeners || listeners.length === 0) {
+    return false;
   }
 
-  /**
-   * Removes every subscription from the bus.
-   *
-   * @return {number} Number of listeners removed.
-   */
-  clearAll() {
-    var removedCount = 0;
+  var originalLength = listeners.length;
+  var tokenId =
+    handlerOrToken && typeof handlerOrToken === 'object'
+      ? handlerOrToken.id
+      : null;
 
-    this.listeners_.forEach(function (subscriptions) {
-      removedCount += subscriptions.length;
-    });
-
-    this.listeners_.clear();
-    return removedCount;
-  }
-
-  /**
-   * Returns listener count for one event, or all events when omitted.
-   *
-   * @param {string=} eventName Optional event name.
-   * @return {number} Listener count.
-   */
-  listenerCount(eventName) {
-    if (eventName === undefined) {
-      var total = 0;
-
-      this.listeners_.forEach(function (subscriptions) {
-        total += subscriptions.length;
-      });
-
-      return total;
+  this.listeners_[normalizedEventName] = listeners.filter(function (listener) {
+    if (typeof handlerOrToken === 'function') {
+      return listener.handler !== handlerOrToken;
     }
 
-    var normalizedName = this.normalizeEventName_(eventName);
-    return (this.listeners_.get(normalizedName) || []).length;
-  }
-
-  /**
-   * Creates an internal subscription.
-   *
-   * @private
-   */
-  createSubscription_(eventName, handler, once) {
-    var bus = this;
-    var subscription = {
-      id: this.nextSubscriptionId_++,
-      eventName: eventName,
-      handler: handler,
-      once: once,
-      active: true,
-      unsubscribe: null
-    };
-
-    subscription.unsubscribe = function () {
-      if (!subscription.active) {
-        return false;
-      }
-
-      subscription.active = false;
-      bus.removeSubscriptionById_(eventName, subscription.id);
-      return true;
-    };
-
-    return subscription;
-  }
-
-  /** @private */
-  removeSubscriptionById_(eventName, subscriptionId) {
-    var subscriptions = this.listeners_.get(eventName) || [];
-    var remaining = subscriptions.filter(function (subscription) {
-      return subscription.id !== subscriptionId;
-    });
-
-    if (remaining.length > 0) {
-      this.listeners_.set(eventName, remaining);
-    } else {
-      this.listeners_.delete(eventName);
+    if (tokenId !== null && tokenId !== undefined) {
+      return listener.id !== tokenId;
     }
+
+    return true;
+  });
+
+  if (this.listeners_[normalizedEventName].length === 0) {
+    delete this.listeners_[normalizedEventName];
   }
 
-  /** @private */
-  collectSubscriptions_(eventName) {
-    var namespace = eventName.split('.')[0];
-    var keys = [eventName, namespace + '.*', '*'];
-    var collected = [];
-    var seenIds = new Set();
+  return originalLength !== (this.listeners_[normalizedEventName] || []).length;
+};
 
-    keys.forEach(
-      function (key) {
-        (this.listeners_.get(key) || []).forEach(function (subscription) {
-          if (!seenIds.has(subscription.id)) {
-            seenIds.add(subscription.id);
-            collected.push(subscription);
-          }
+/**
+ * Publishes an event synchronously.
+ *
+ * Listener failures are isolated. Remaining listeners continue to run.
+ *
+ * @param {string} eventName Event name.
+ * @param {*=} payload Event payload.
+ * @param {Object=} metadata Optional event metadata.
+ * @return {Object} Immutable publish summary.
+ */
+JSKEventBus.prototype.publish = function (eventName, payload, metadata) {
+  var normalizedEventName = this.normalizeEventName_(eventName);
+  var envelope = Object.freeze({
+    name: normalizedEventName,
+    payload: payload === undefined ? null : payload,
+    metadata: Object.freeze(this.copyObject_(metadata)),
+    timestamp: new Date().toISOString()
+  });
+
+  var subscriptions = this.collectSubscriptions_(normalizedEventName);
+  var delivered = 0;
+  var failed = 0;
+  var eventBus = this;
+
+  subscriptions.forEach(function (subscription) {
+    try {
+      subscription.handler(envelope);
+      delivered += 1;
+    } catch (error) {
+      failed += 1;
+      eventBus.logListenerError_(normalizedEventName, subscription, error);
+    } finally {
+      if (subscription.once) {
+        eventBus.unsubscribe(subscription.eventName, {
+          id: subscription.id
         });
-      }.bind(this)
-    );
+      }
+    }
+  });
 
-    return collected;
+  return Object.freeze({
+    eventName: normalizedEventName,
+    matched: subscriptions.length,
+    delivered: delivered,
+    failed: failed
+  });
+};
+
+/**
+ * Removes listeners for one event.
+ *
+ * @param {string} eventName Event name.
+ * @return {number} Number of listeners removed.
+ */
+JSKEventBus.prototype.clear = function (eventName) {
+  var normalizedEventName = this.normalizeEventName_(eventName);
+  var count = this.listenerCount(normalizedEventName);
+
+  delete this.listeners_[normalizedEventName];
+
+  return count;
+};
+
+/**
+ * Removes all listeners.
+ *
+ * @return {number} Number of listeners removed.
+ */
+JSKEventBus.prototype.clearAll = function () {
+  var eventBus = this;
+  var count = Object.keys(this.listeners_).reduce(function (total, eventName) {
+    return total + eventBus.listeners_[eventName].length;
+  }, 0);
+
+  this.listeners_ = Object.create(null);
+
+  return count;
+};
+
+/**
+ * Returns the number of listeners registered for one event.
+ *
+ * @param {string} eventName Event name.
+ * @return {number} Listener count.
+ */
+JSKEventBus.prototype.listenerCount = function (eventName) {
+  var normalizedEventName = this.normalizeEventName_(eventName);
+  var listeners = this.listeners_[normalizedEventName];
+
+  return listeners ? listeners.length : 0;
+};
+
+/**
+ * Returns all matching subscriptions in deterministic order.
+ * Exact listeners run first, namespace wildcard listeners second,
+ * and global wildcard listeners last.
+ *
+ * @private
+ * @param {string} eventName Event name.
+ * @return {Array<Object>} Matching subscriptions.
+ */
+JSKEventBus.prototype.collectSubscriptions_ = function (eventName) {
+  var matches = [];
+  var exact = this.listeners_[eventName] || [];
+  var namespace = this.getNamespacePattern_(eventName);
+  var namespaceListeners = namespace
+    ? this.listeners_[namespace] || []
+    : [];
+  var globalListeners = this.listeners_['*'] || [];
+
+  return matches.concat(exact, namespaceListeners, globalListeners).slice();
+};
+
+/**
+ * Returns the namespace wildcard pattern for an event.
+ *
+ * @private
+ * @param {string} eventName Event name.
+ * @return {string|null} Namespace wildcard pattern.
+ */
+JSKEventBus.prototype.getNamespacePattern_ = function (eventName) {
+  var separatorIndex = eventName.indexOf('.');
+
+  if (separatorIndex <= 0) {
+    return null;
   }
 
-  /** @private */
-  isSubscriptionActive_(subscription) {
-    return Boolean(subscription && subscription.active);
+  return eventName.substring(0, separatorIndex) + '.*';
+};
+
+/**
+ * Validates and normalizes an event name.
+ *
+ * @private
+ * @param {*} eventName Event name.
+ * @return {string} Normalized event name.
+ */
+JSKEventBus.prototype.normalizeEventName_ = function (eventName) {
+  var normalized = String(eventName || '').trim().toLowerCase();
+
+  if (!normalized) {
+    throw new TypeError('Event name is required.');
   }
 
-  /** @private */
-  normalizeEventName_(eventName) {
-    var normalizedName = String(eventName || '').trim().toLowerCase();
-
-    if (!normalizedName) {
-      throw new JSKEventBusError(
-        'Event name is required.',
-        'EVENT_NAME_REQUIRED'
-      );
-    }
-
-    if (normalizedName === '*') {
-      return normalizedName;
-    }
-
-    if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*(?:\.\*)?$/.test(normalizedName)) {
-      throw new JSKEventBusError(
-        'Invalid event name: ' + normalizedName,
-        'INVALID_EVENT_NAME'
-      );
-    }
-
-    return normalizedName;
+  if (normalized === '*') {
+    return normalized;
   }
 
-  /** @private */
-  normalizePublishedEventName_(eventName) {
-    var normalizedName = this.normalizeEventName_(eventName);
-
-    if (normalizedName === '*' || /\.\*$/.test(normalizedName)) {
-      throw new JSKEventBusError(
-        'Wildcard event names cannot be published.',
-        'WILDCARD_PUBLISH_NOT_ALLOWED'
-      );
-    }
-
-    return normalizedName;
+  if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*(?:\.\*)?$/.test(normalized)) {
+    throw new TypeError('Invalid event name: ' + normalized);
   }
 
-  /** @private */
-  assertHandler_(handler) {
-    if (typeof handler !== 'function') {
-      throw new JSKEventBusError(
-        'Event handler must be a function.',
-        'INVALID_EVENT_HANDLER'
-      );
-    }
+  return normalized;
+};
+
+/**
+ * Creates a shallow copy suitable for event metadata.
+ *
+ * @private
+ * @param {Object=} value Source object.
+ * @return {Object} Copied object.
+ */
+JSKEventBus.prototype.copyObject_ = function (value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
   }
 
-  /** @private */
-  logListenerFailure_(eventName, subscription, error) {
-    var context = {
-      eventName: eventName,
-      subscriptionId: subscription.id,
-      errorName: error && error.name ? error.name : 'Error',
-      errorMessage:
-        error && error.message
-          ? error.message
-          : String(error || 'Unknown listener error')
-    };
+  return Object.assign({}, value);
+};
 
-    if (this.logger_ && typeof this.logger_.exception === 'function') {
-      this.logger_.exception(error, context);
+/**
+ * Logs a listener failure without interrupting event delivery.
+ *
+ * @private
+ * @param {string} eventName Event name.
+ * @param {Object} subscription Subscription record.
+ * @param {*} error Listener error.
+ * @return {void}
+ */
+JSKEventBus.prototype.logListenerError_ = function (
+  eventName,
+  subscription,
+  error
+) {
+  var normalizedError =
+    error instanceof Error ? error : new Error(String(error));
+
+  try {
+    if (typeof JSKLogger === 'function') {
+      new JSKLogger({ serviceName: 'EventBus' }).exception(normalizedError, {
+        eventName: eventName,
+        subscriptionId: subscription.id,
+        subscriptionEventName: subscription.eventName
+      });
       return;
     }
+  } catch (loggingError) {
+    // Fall through to console logging.
+  }
 
-    if (this.logger_ && typeof this.logger_.error === 'function') {
-      this.logger_.error('Event listener failed.', context);
-      return;
-    }
-
+  if (typeof console !== 'undefined' && console.error) {
     console.error(
       JSON.stringify({
-        level: 'ERROR',
         service: 'EventBus',
         message: 'Event listener failed.',
-        context: context,
-        timestamp: new Date().toISOString()
+        eventName: eventName,
+        subscriptionId: subscription.id,
+        error: {
+          name: normalizedError.name,
+          message: normalizedError.message,
+          stack: normalizedError.stack || ''
+        }
       })
     );
   }
-}
+};
 
 /**
- * Shared EventBus singleton for the current Apps Script execution.
+ * Shared JSK OS event bus singleton.
  */
-JSKOS.EventBus = JSKOS.EventBus || new JSKEventBus({
-  logger:
-    typeof JSKLoggerFactory !== 'undefined'
-      ? JSKLoggerFactory.createConsoleLogger('EventBus')
-      : null
-});
+JSKOS.EventBus = JSKOS.EventBus || new JSKEventBus();
