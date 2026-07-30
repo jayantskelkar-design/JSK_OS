@@ -1,0 +1,118 @@
+<script>
+  (function () {
+    'use strict';
+
+    function initializeJSKModal() {
+      var overlay = document.getElementById('jskModalOverlay');
+      var dialog = document.getElementById('jskModalDialog');
+      var closeButton = document.getElementById('jskModalClose');
+      var title = document.getElementById('jskModalTitle');
+      var subtitle = document.getElementById('jskModalSubtitle');
+      var body = document.getElementById('jskModalBody');
+      var footer = document.getElementById('jskModalFooter');
+      var previouslyFocused = null;
+
+      if (!overlay || !dialog || !title || !body || !footer) {
+        console.error('JSKModal: Required modal elements are missing.');
+        return;
+      }
+
+      function setContent(element, value, allowHtml) {
+        if (allowHtml) {
+          element.innerHTML = String(value || '');
+        } else {
+          element.textContent = String(value || '');
+        }
+      }
+
+      function setSize(size) {
+        var allowed = ['small', 'medium', 'large'];
+        var normalized = allowed.indexOf(size) >= 0 ? size : 'medium';
+        dialog.classList.remove(
+          'jsk-modal-small',
+          'jsk-modal-medium',
+          'jsk-modal-large'
+        );
+        dialog.classList.add('jsk-modal-' + normalized);
+      }
+
+      function open(options) {
+        var settings = options || {};
+        previouslyFocused = document.activeElement;
+
+        setContent(title, settings.title || 'JSK OS', false);
+        setContent(body, settings.body || '', settings.allowHtml === true);
+        setContent(footer, settings.footer || '', settings.allowHtml === true);
+        setSize(settings.size || 'medium');
+
+        if (settings.subtitle) {
+          setContent(subtitle, settings.subtitle, false);
+          subtitle.classList.remove('hidden');
+        } else {
+          subtitle.textContent = '';
+          subtitle.classList.add('hidden');
+        }
+
+        overlay.classList.add('active');
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('jsk-modal-open');
+
+        window.setTimeout(function () {
+          dialog.focus();
+        }, 0);
+      }
+
+      function close() {
+        overlay.classList.remove('active');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('jsk-modal-open');
+
+        if (
+          previouslyFocused &&
+          typeof previouslyFocused.focus === 'function'
+        ) {
+          previouslyFocused.focus();
+        }
+      }
+
+      if (closeButton) {
+        closeButton.addEventListener('click', close);
+      }
+
+      overlay.addEventListener('click', function (event) {
+        if (event.target === overlay) {
+          close();
+        }
+      });
+
+      document.addEventListener('keydown', function (event) {
+        if (
+          event.key === 'Escape' &&
+          overlay.classList.contains('active')
+        ) {
+          close();
+        }
+      });
+
+      window.JSKModal = Object.freeze({
+        open: open,
+        close: close,
+        isOpen: function () {
+          return overlay.classList.contains('active');
+        }
+      });
+
+      console.info('JSK Modal Engine Ready');
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener(
+        'DOMContentLoaded',
+        initializeJSKModal,
+        { once: true }
+      );
+    } else {
+      initializeJSKModal();
+    }
+  })();
+</script>

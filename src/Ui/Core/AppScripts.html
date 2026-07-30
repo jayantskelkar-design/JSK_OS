@@ -160,12 +160,6 @@
           Array.prototype.slice.call(container.querySelectorAll('.jsk-toast')).forEach(removeToast);
         }
       });
-      window.setTimeout(function () {
-  if (window.JSKToast) {
-    window.JSKToast.success('Toast service loaded successfully.');
-    { duration: 0 }
-  }
-}, 800);
     }
 
     function initializeUniversalSearch() {
