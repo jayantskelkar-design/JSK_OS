@@ -704,7 +704,7 @@ class JSKLogger {
   });
 
   return clone;
-}
+  }
 }
 
 /**
