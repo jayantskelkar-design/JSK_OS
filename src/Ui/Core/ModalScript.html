@@ -3,6 +3,10 @@
     'use strict';
 
     function initializeJSKModal() {
+      if (window.JSKModal && typeof window.JSKModal.open === 'function') {
+        return;
+      }
+
       var overlay = document.getElementById('jskModalOverlay');
       var dialog = document.getElementById('jskModalDialog');
       var closeButton = document.getElementById('jskModalClose');
@@ -45,12 +49,14 @@
         setContent(footer, settings.footer || '', settings.allowHtml === true);
         setSize(settings.size || 'medium');
 
-        if (settings.subtitle) {
-          setContent(subtitle, settings.subtitle, false);
-          subtitle.classList.remove('hidden');
-        } else {
-          subtitle.textContent = '';
-          subtitle.classList.add('hidden');
+        if (subtitle) {
+          if (settings.subtitle) {
+            setContent(subtitle, settings.subtitle, false);
+            subtitle.classList.remove('hidden');
+          } else {
+            subtitle.textContent = '';
+            subtitle.classList.add('hidden');
+          }
         }
 
         overlay.classList.add('active');
@@ -73,6 +79,8 @@
         ) {
           previouslyFocused.focus();
         }
+
+        previouslyFocused = null;
       }
 
       if (closeButton) {
