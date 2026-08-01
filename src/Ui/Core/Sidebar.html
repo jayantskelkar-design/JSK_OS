@@ -1,6 +1,6 @@
-<aside class="sidebar" id="sidebar">
+<aside class="sidebar" id="sidebar" aria-label="Primary navigation">
   <div class="brand">
-    <div class="brand-mark">JSK</div>
+    <div class="brand-mark" aria-hidden="true">JSK</div>
 
     <div>
       <div class="brand-name">
@@ -13,7 +13,7 @@
     </div>
   </div>
 
-  <nav class="navigation">
+  <nav class="navigation" aria-label="JSK OS modules">
     <? for (var index = 0; index < navigation.length; index++) {
       var item = navigation[index]; ?>
 
@@ -21,10 +21,13 @@
         class="nav-item
           <?= item.active ? 'active' : '' ?>
           <?= item.enabled ? '' : 'disabled' ?>"
-        href="<?= item.href ?>"
-        <?= item.enabled ? '' : 'aria-disabled="true"' ?>
+        href="<?= item.enabled ? item.href : '#' ?>"
+        <?= item.active ? 'aria-current="page"' : '' ?>
+        <?= item.enabled
+          ? ''
+          : 'aria-disabled="true" tabindex="-1"' ?>
       >
-        <span class="nav-icon">
+        <span class="nav-icon" aria-hidden="true">
           <?= item.icon ?>
         </span>
 
