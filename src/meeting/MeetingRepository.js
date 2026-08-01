@@ -20,7 +20,8 @@ class MeetingRepository {
       'Meeting ID': 'MTG-' + Utilities.formatDate(now, 'Asia/Kolkata', 'yyyyMMddHHmmss') + '-' + Utilities.getUuid().replace(/-/g, '').substring(0, 6).toUpperCase(),
       'Status': meeting['Status'] || 'Scheduled',
       'Meeting Type': meeting['Meeting Type'] || 'Client Meeting',
-      'Reminder Minutes': meeting['Reminder Minutes'] === '' ? 30 : meeting['Reminder Minutes'],
+      'Reminder Minutes': meeting['Reminder Minutes'] === '' || meeting['Reminder Minutes'] === undefined
+        ? 30 : meeting['Reminder Minutes'],
       'Created At': now, 'Created By': this._actor(actor), 'Updated At': now,
       'Updated By': this._actor(actor), 'Record Version': 1, 'Is Deleted': false
     });
@@ -64,6 +65,7 @@ class MeetingRepository {
     criteria = criteria || {};
     var query = String(criteria.query || '').trim().toLowerCase();
     var status = String(criteria.status || '').trim().toLowerCase();
+    var meetingType = String(criteria.meetingType || '').trim().toLowerCase();
     var owner = String(criteria.owner || '').trim().toLowerCase();
     var from = this._date(criteria.from), to = this._date(criteria.to);
     var linkField = criteria.companyId ? 'Company ID' : criteria.personId ? 'Person ID' : criteria.policyId ? 'Policy ID' : criteria.taskId ? 'Task ID' : '';
@@ -72,6 +74,7 @@ class MeetingRepository {
       var record = entry.record;
       if (!record['Meeting ID'] || this._bool(record['Is Deleted'])) return false;
       if (status && String(record['Status']).toLowerCase() !== status) return false;
+      if (meetingType && String(record['Meeting Type']).toLowerCase() !== meetingType) return false;
       if (owner && String(record['Owner']).toLowerCase() !== owner) return false;
       if (linkField && String(record[linkField]).toUpperCase() !== String(linkValue).trim().toUpperCase()) return false;
       var start = this._date(record['Start At']);
@@ -124,6 +127,7 @@ class MeetingRepository {
     if (meeting['Status'] && JSK_MEETING_SCHEMA.STATUS_VALUES.indexOf(meeting['Status']) === -1) throw new Error('Select a valid Meeting Status.');
     if (meeting['Meeting Type'] && JSK_MEETING_SCHEMA.TYPE_VALUES.indexOf(meeting['Meeting Type']) === -1) throw new Error('Select a valid Meeting Type.');
     if (meeting['Reminder Minutes'] !== '' && (isNaN(Number(meeting['Reminder Minutes'])) || Number(meeting['Reminder Minutes']) < 0)) throw new Error('Reminder Minutes is invalid.');
+    if (meeting['Meeting Link'] && !/^https?:\/\//i.test(String(meeting['Meeting Link']))) throw new Error('Meeting Link must use http:// or https://.');
   }
 
   _format(record) {
