@@ -148,6 +148,36 @@
           </div>
         </section>
 
+        <section class="panel garuda-panel">
+          <div class="panel-header garuda-header">
+            <div>
+              <span class="eyebrow">Build 1002 · Phase 4</span>
+              <h3>GARUDA AI Renewal Advisor</h3>
+              <p>Explainable priority, success prediction and next-best action.</p>
+            </div>
+            <span class="garuda-badge">GARUDA</span>
+          </div>
+
+          <? if (dashboard.garudaInsights.length === 0) { ?>
+            <div class="garuda-empty">No actionable renewal intelligence available.</div>
+          <? } else { ?>
+            <div class="garuda-list">
+              <? dashboard.garudaInsights.forEach(function (insight) { ?>
+                <article class="garuda-insight">
+                  <div class="garuda-score"><strong><?= insight.priorityScore ?></strong><span>Priority</span></div>
+                  <div class="garuda-client">
+                    <strong><?= insight.insuredName ?></strong>
+                    <span><?= insight.policyNumber ?> · <?= insight.renewalStage ?></span>
+                  </div>
+                  <div><span class="garuda-label">Success</span><strong><?= insight.successProbability ?>% · <?= insight.successPrediction ?></strong></div>
+                  <div><span class="garuda-label">Suggested Follow-up</span><strong><?= insight.suggestedFollowUp ?></strong></div>
+                  <div class="garuda-alert"><span class="garuda-label">Risk Alert</span><strong><?= insight.riskAlert ?></strong></div>
+                </article>
+              <? }); ?>
+            </div>
+          <? } ?>
+        </section>
+
         <section class="panel">
           <div class="panel-header">
             <div>

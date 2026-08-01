@@ -22,8 +22,22 @@ JSKOS.DashboardService = (function () {
     return {
       summary: getSummary(),
       renewals: getRenewalSummary(),
-      renewalPipeline: getRenewalPipeline()
+      renewalPipeline: getRenewalPipeline(),
+      garudaInsights: getGarudaInsights()
     };
+  }
+
+  function getGarudaInsights(referenceDate) {
+    try {
+      return JSKOS.GarudaRenewalIntelligence.analyzePolicies(
+        collectPolicies_(new PolicyRepository()),
+        referenceDate || new Date(),
+        5
+      );
+    } catch (error) {
+      console.warn('GARUDA renewal intelligence unavailable: ' + getErrorMessage_(error));
+      return [];
+    }
   }
 
   /**
@@ -357,6 +371,7 @@ JSKOS.DashboardService = (function () {
     getRenewalSummary: getRenewalSummary,
     summarizeRenewals: summarizeRenewals_,
     getRenewalPipeline: getRenewalPipeline,
-    summarizeRenewalPipeline: summarizeRenewalPipeline_
+    summarizeRenewalPipeline: summarizeRenewalPipeline_,
+    getGarudaInsights: getGarudaInsights
   };
 })();

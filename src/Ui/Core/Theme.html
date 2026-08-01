@@ -403,6 +403,19 @@
   .pipeline-grid .pipeline-won { border-left-color: #2f9b61; }
   .pipeline-grid .pipeline-lost { border-left-color: #d14343; }
 
+  .garuda-panel { background: linear-gradient(145deg, #ffffff, #f7f4e8); }
+  .garuda-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+  .garuda-badge { padding: 9px 14px; border-radius: 999px; background: var(--navy); color: var(--gold); font-size: 12px; font-weight: 800; letter-spacing: .08em; }
+  .garuda-list { margin-top: 18px; display: grid; gap: 10px; }
+  .garuda-insight { padding: 14px; display: grid; grid-template-columns: 76px 1.1fr .8fr 1.5fr 1fr; align-items: center; gap: 14px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,.86); }
+  .garuda-insight > div { min-width: 0; display: grid; gap: 4px; }
+  .garuda-insight strong { font-size: 13px; overflow-wrap: anywhere; }
+  .garuda-score { text-align: center; }
+  .garuda-score strong { color: var(--navy); font-size: 25px; }
+  .garuda-score span, .garuda-label, .garuda-client span { color: var(--muted); font-size: 11px; }
+  .garuda-alert strong { color: #b42318; }
+  .garuda-empty { margin-top: 18px; padding: 22px; border: 1px dashed var(--border); border-radius: 12px; color: var(--muted); text-align: center; }
+
   .panel-header p {
     margin-top: 5px;
     color: var(--muted);
@@ -747,6 +760,7 @@
   }
 
   @media (max-width: 1050px) {
+    .garuda-insight { grid-template-columns: 70px 1fr 1fr; }
     .topbar-title p {
       display: none;
     }
@@ -764,6 +778,8 @@
   }
 
   @media (max-width: 760px) {
+    .garuda-header { align-items: flex-start; flex-direction: column; }
+    .garuda-insight { grid-template-columns: 64px 1fr; }
     .sidebar {
       transform: translateX(-100%);
       transition: transform .2s ease;
