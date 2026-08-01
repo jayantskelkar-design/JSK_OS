@@ -36,9 +36,23 @@ function migrateTaskDatabase() {
     } else {
       var normalized = currentHeaders.map(function (value) { return String(value || '').trim(); });
       if (normalized.indexOf('Task ID') === -1 || normalized.indexOf('Title') === -1) {
-        throw new Error(
-          'Tasks sheet contains data but its Task ID and Title headers were not found.'
-        );
+        var isLegacyTaskSchema =
+          normalized.indexOf('Task_ID') !== -1 &&
+          normalized.indexOf('Task') !== -1;
+        var hasLegacyData = sheet.getLastRow() > 1;
+
+        if (!isLegacyTaskSchema || hasLegacyData) {
+          throw new Error(
+            'Tasks sheet contains an unsupported schema or existing task data. ' +
+            'A safe migration mapping is required before it can be upgraded.'
+          );
+        }
+
+        sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1))
+          .clearContent();
+        sheet.getRange(1, 1, 1, JSK_TASK_SCHEMA.HEADERS.length)
+          .setValues([JSK_TASK_SCHEMA.HEADERS.slice()]);
+        normalized = JSK_TASK_SCHEMA.HEADERS.slice();
       }
       JSK_TASK_SCHEMA.HEADERS.forEach(function (header) {
         if (normalized.indexOf(header) === -1) {
