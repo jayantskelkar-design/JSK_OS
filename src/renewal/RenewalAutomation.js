@@ -98,6 +98,50 @@ JSKOS.RenewalAutomation = (function () {
       .getUniqueId();
   }
 
+  /**
+   * Idempotently upgrades the schema and installs the daily trigger.
+   * Safe to call from the web-app bootstrap on every request.
+   */
+  function ensureReady() {
+    var properties = PropertiesService.getScriptProperties();
+    var installedVersion = Number(
+      properties.getProperty(JSK_POLICY_SCHEMA.PROPERTY_KEY)
+    ) || 0;
+    var migration = null;
+
+    if (installedVersion < JSK_POLICY_SCHEMA.VERSION) {
+      migration = migratePolicyDatabase();
+    }
+
+    var trigger = findDailyTrigger_();
+    var triggerCreated = false;
+    if (!trigger) {
+      trigger = ScriptApp.newTrigger('runDailyRenewalAutomation')
+        .timeBased()
+        .atHour(CONFIG.TRIGGER_HOUR)
+        .everyDays(1)
+        .inTimezone(CONFIG.TIMEZONE)
+        .create();
+      triggerCreated = true;
+    }
+
+    return {
+      ready: true,
+      schemaVersion: JSK_POLICY_SCHEMA.VERSION,
+      migration: migration,
+      triggerId: trigger.getUniqueId(),
+      triggerCreated: triggerCreated
+    };
+  }
+
+  /** @private */
+  function findDailyTrigger_() {
+    var matches = ScriptApp.getProjectTriggers().filter(function (trigger) {
+      return trigger.getHandlerFunction() === 'runDailyRenewalAutomation';
+    });
+    return matches.length ? matches[0] : null;
+  }
+
   function removeDailyTriggers() {
     var removed = 0;
     ScriptApp.getProjectTriggers().forEach(function (trigger) {
@@ -240,6 +284,7 @@ JSKOS.RenewalAutomation = (function () {
   return {
     runDaily: runDaily,
     buildReminderCandidates: buildReminderCandidates_,
+    ensureReady: ensureReady,
     installDailyTrigger: installDailyTrigger,
     removeDailyTriggers: removeDailyTriggers
   };
@@ -255,4 +300,8 @@ function installDailyRenewalAutomation() {
 
 function removeDailyRenewalAutomation() {
   return JSKOS.RenewalAutomation.removeDailyTriggers();
+}
+
+function ensureBuild1002Automation() {
+  return JSKOS.RenewalAutomation.ensureReady();
 }

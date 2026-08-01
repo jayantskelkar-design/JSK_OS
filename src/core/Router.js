@@ -23,8 +23,29 @@ JSKOS.RouteConfig = Object.freeze({
  * @return {GoogleAppsScript.HTML.HtmlOutput}
  */
 function doGet(event) {
+  bootstrapBuild1002Automation_();
   var route = JSKOS.Router.resolve(event);
   return JSKOS.Router.render(route);
+}
+
+/**
+ * Keeps Build 1002 schema and daily automation ready without blocking UI.
+ * @private
+ */
+function bootstrapBuild1002Automation_() {
+  try {
+    if (
+      JSKOS.RenewalAutomation &&
+      typeof JSKOS.RenewalAutomation.ensureReady === 'function'
+    ) {
+      JSKOS.RenewalAutomation.ensureReady();
+    }
+  } catch (error) {
+    console.error(
+      'Build 1002 automation bootstrap failed: ' +
+      (error && error.stack ? error.stack : error)
+    );
+  }
 }
 
 JSKOS.Router = Object.freeze({
