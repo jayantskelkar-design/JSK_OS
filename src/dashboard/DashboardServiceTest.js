@@ -58,6 +58,7 @@ function testDashboardService() {
 
   testRenewalDashboardBoundaries_();
   testRenewalPipeline_();
+  testTaskDashboardSummary();
 
   assertDashboardService_(
     dashboard.renewalPipeline &&
@@ -131,6 +132,26 @@ function testDashboardService() {
   console.info(JSON.stringify(result));
 
   return result;
+}
+
+function testTaskDashboardSummary() {
+  var summary = JSKOS.DashboardService.summarizeTasks([
+    { taskId: 'TSK-1', title: 'Overdue call', status: 'Open', priority: 'High', dueDate: '2026-08-01', owner: '' },
+    { taskId: 'TSK-2', title: 'Today critical', status: 'In Progress', priority: 'Critical', dueDate: '2026-08-02', owner: 'JSK' },
+    { taskId: 'TSK-3', title: 'Future high', status: 'Waiting', priority: 'High', dueDate: '2026-08-10', owner: 'JSK' },
+    { taskId: 'TSK-4', title: 'No date', status: 'Open', priority: 'Medium', dueDate: '', owner: '' },
+    { taskId: 'TSK-5', title: 'Completed', status: 'Completed', priority: 'Critical', dueDate: '2026-08-01', owner: 'JSK' }
+  ], new Date(2026, 7, 2), 8);
+
+  assertDashboardService_(summary.summary.totalOpen === 4, 'Open task count failed.');
+  assertDashboardService_(summary.summary.dueToday === 1, 'Today task count failed.');
+  assertDashboardService_(summary.summary.overdue === 1, 'Overdue task count failed.');
+  assertDashboardService_(summary.summary.highPriority === 3, 'High-priority task count failed.');
+  assertDashboardService_(summary.summary.unassigned === 2, 'Unassigned task count failed.');
+  assertDashboardService_(summary.items.length === 3, 'Actionable task count failed.');
+  assertDashboardService_(summary.items[0].taskId === 'TSK-1', 'Task ordering failed.');
+
+  return { success: true, message: 'Task dashboard summary test passed.' };
 }
 
 function validateDashboardMetric_(value, metricName) {

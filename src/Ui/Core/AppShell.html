@@ -212,6 +212,53 @@
           <? } ?>
         </section>
 
+        <section class="panel task-dashboard-panel">
+          <div class="panel-header renewal-panel-header">
+            <div>
+              <span class="eyebrow">Build 1004 · Phase 1</span>
+              <h3>Task Command Center</h3>
+              <p>Today's work, overdue actions and priority alerts.</p>
+            </div>
+            <a class="panel-link" href="<?= routeUrls.tasks ?>">Manage Tasks</a>
+          </div>
+
+          <div class="task-dashboard-summary">
+            <article><span>Total Open</span><strong><?= dashboard.tasks.summary.totalOpen ?></strong></article>
+            <article><span>Today</span><strong><?= dashboard.tasks.summary.dueToday ?></strong></article>
+            <article class="task-overdue"><span>Overdue</span><strong><?= dashboard.tasks.summary.overdue ?></strong></article>
+            <article class="task-priority"><span>High / Critical</span><strong><?= dashboard.tasks.summary.highPriority ?></strong></article>
+            <article><span>Unassigned</span><strong><?= dashboard.tasks.summary.unassigned ?></strong></article>
+          </div>
+
+          <div class="task-dashboard-layout">
+            <div class="task-dashboard-list">
+              <? if (dashboard.tasks.items.length === 0) { ?>
+                <div class="garuda-empty">No urgent task actions available.</div>
+              <? } else { ?>
+                <? dashboard.tasks.items.forEach(function (task) { ?>
+                  <article data-dashboard-task="<?= task.taskId ?>">
+                    <span class="task-state task-state-<?= task.state.toLowerCase() ?>"><?= task.state ?></span>
+                    <div><strong><?= task.title ?></strong><span><?= task.taskType ?> · <?= task.priority ?></span></div>
+                    <div><span>Owner</span><strong><?= task.owner || 'Unassigned' ?></strong></div>
+                    <div><span>Due Date</span><strong><?= task.dueDate || 'Not set' ?></strong></div>
+                    <button class="task-complete-button" data-task-complete="<?= task.taskId ?>" data-task-version="<?= task.recordVersion ?>">Complete</button>
+                  </article>
+                <? }); ?>
+              <? } ?>
+            </div>
+            <aside class="owner-workload">
+              <h4>Owner Workload</h4>
+              <? if (dashboard.tasks.ownerWorkload.length === 0) { ?>
+                <span>No open tasks.</span>
+              <? } else { ?>
+                <? dashboard.tasks.ownerWorkload.forEach(function (owner) { ?>
+                  <div><span><?= owner.owner ?></span><strong><?= owner.count ?></strong></div>
+                <? }); ?>
+              <? } ?>
+            </aside>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="panel-header">
             <div>
@@ -251,6 +298,11 @@
               <span>
                 Manage policies, premiums and renewals.
               </span>
+            </a>
+
+            <a class="quick-action" href="<?= routeUrls.tasks ?>">
+              <strong>Task Management</strong>
+              <span>Plan, assign and complete follow-ups.</span>
             </a>
 
             <div class="quick-action disabled">

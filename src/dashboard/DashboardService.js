@@ -24,8 +24,78 @@ JSKOS.DashboardService = (function () {
       renewals: getRenewalSummary(),
       renewalPipeline: getRenewalPipeline(),
       garudaInsights: getGarudaInsights(),
-      workQueue: getWorkQueue()
+      workQueue: getWorkQueue(),
+      tasks: getTaskDashboard()
     };
+  }
+
+  function getTaskDashboard(referenceDate) {
+    try {
+      ensureBuild1004Tasks();
+      var result = new TaskRepository().search({});
+      return summarizeTasks_(result.items || [], referenceDate || new Date(), 8);
+    } catch (error) {
+      console.warn('Task dashboard unavailable: ' + getErrorMessage_(error));
+      return emptyTaskDashboard_();
+    }
+  }
+
+  function summarizeTasks_(tasks, referenceDate, limit) {
+    var today = formatDashboardDate_(referenceDate || new Date());
+    var summary = { totalOpen: 0, dueToday: 0, overdue: 0, highPriority: 0, unassigned: 0 };
+    var ownerWorkload = {};
+    var actionable = [];
+
+    (Array.isArray(tasks) ? tasks : []).forEach(function (task) {
+      var status = String(task.status || 'Open').trim().toLowerCase();
+      if (status === 'completed' || status === 'cancelled') return;
+      var dueDate = String(task.dueDate || '');
+      var priority = String(task.priority || 'Medium').trim();
+      var owner = String(task.owner || '').trim();
+      summary.totalOpen += 1;
+      if (dueDate === today) summary.dueToday += 1;
+      if (dueDate && dueDate < today) summary.overdue += 1;
+      if (priority === 'High' || priority === 'Critical') summary.highPriority += 1;
+      if (!owner) summary.unassigned += 1;
+      ownerWorkload[owner || 'Unassigned'] = (ownerWorkload[owner || 'Unassigned'] || 0) + 1;
+
+      if ((dueDate && dueDate <= today) || priority === 'High' || priority === 'Critical') {
+        actionable.push(Object.assign({}, task, {
+          state: dueDate && dueDate < today ? 'Overdue' : dueDate === today ? 'Today' : 'Priority'
+        }));
+      }
+    });
+
+    actionable.sort(function (left, right) {
+      var rank = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+      var dateCompare = String(left.dueDate || '9999').localeCompare(String(right.dueDate || '9999'));
+      var leftRank = rank[left.priority] !== undefined ? rank[left.priority] : 9;
+      var rightRank = rank[right.priority] !== undefined ? rank[right.priority] : 9;
+      return dateCompare || leftRank - rightRank;
+    });
+    return {
+      summary: summary,
+      items: actionable.slice(0, Math.max(1, Number(limit) || 8)),
+      ownerWorkload: Object.keys(ownerWorkload).sort().map(function (owner) {
+        return { owner: owner, count: ownerWorkload[owner] };
+      })
+    };
+  }
+
+  function emptyTaskDashboard_() {
+    return {
+      summary: { totalOpen: 0, dueToday: 0, overdue: 0, highPriority: 0, unassigned: 0 },
+      items: [],
+      ownerWorkload: []
+    };
+  }
+
+  function formatDashboardDate_(value) {
+    return Utilities.formatDate(
+      value instanceof Date ? value : new Date(value),
+      'Asia/Kolkata',
+      'yyyy-MM-dd'
+    );
   }
 
   function getWorkQueue(referenceDate) {
@@ -391,6 +461,8 @@ JSKOS.DashboardService = (function () {
     getRenewalPipeline: getRenewalPipeline,
     summarizeRenewalPipeline: summarizeRenewalPipeline_,
     getGarudaInsights: getGarudaInsights,
-    getWorkQueue: getWorkQueue
+    getWorkQueue: getWorkQueue,
+    getTaskDashboard: getTaskDashboard,
+    summarizeTasks: summarizeTasks_
   };
 })();
