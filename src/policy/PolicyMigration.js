@@ -10,7 +10,7 @@
  */
 
 var JSK_POLICY_SCHEMA = Object.freeze({
-  VERSION: 4,
+  VERSION: 5,
   SHEET_NAME: 'Policies',
   AUDIT_SHEET_NAME: 'Audit_Log',
   HEADER_ROW: 1,
@@ -224,6 +224,7 @@ function migratePolicyDatabase() {
     }
 
     formatPolicySheet_(sheet, headerRow);
+    clearPolicyValidations_(sheet, headerRow);
     backfillPolicyRenewalStages_(sheet, headerRow);
     configurePolicyValidations_(sheet, headerRow);
     ensurePolicyAuditSheet_(spreadsheet);
@@ -713,6 +714,22 @@ function configurePolicyValidations_(sheet, headerRow) {
     JSK_POLICY_SCHEMA.BOOLEAN_VALUES,
     rowCount
   );
+}
+
+/**
+ * Removes stale validation rules left behind when schema columns move.
+ * The migration immediately reapplies the owned rules to canonical columns.
+ * @private
+ */
+function clearPolicyValidations_(sheet, headerRow) {
+  var headers = readPolicyHeaders_(sheet, headerRow);
+  var rowCount = Math.max(sheet.getMaxRows() - headerRow, 1);
+
+  if (!headers.length) return;
+
+  sheet
+    .getRange(headerRow + 1, 1, rowCount, headers.length)
+    .clearDataValidations();
 }
 
 /** @private */
