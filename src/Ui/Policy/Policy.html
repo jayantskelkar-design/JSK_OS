@@ -85,9 +85,9 @@
         </button>
 
         <div>
-          <h1>JSK Policy Management</h1>
+          <h1><?= workMode ? 'Renewal Work Management' : 'JSK Policy Management' ?></h1>
           <p>
-            Manage policy protection, renewals and coverage records.
+            <?= workMode ? 'Assign, schedule and progress renewal follow-ups.' : 'Manage policy protection, renewals and coverage records.' ?>
           </p>
         </div>
 
@@ -176,6 +176,22 @@
               <option value="Lapsed">Lapsed</option>
               <option value="Cancelled">Cancelled</option>
               <option value="Rejected">Rejected</option>
+            </select>
+
+            <select id="renewalStageFilter" class="filter-select">
+              <option value="">All Renewal Stages</option>
+            </select>
+
+            <select id="actionWindowFilter" class="filter-select">
+              <option value="">All Action Dates</option>
+              <option value="today">Today</option>
+              <option value="overdue">Overdue</option>
+              <option value="next7">Next 7 Days</option>
+              <option value="unassigned">Unassigned</option>
+            </select>
+
+            <select id="assignedOwnerFilter" class="filter-select">
+              <option value="">All Owners</option>
             </select>
 
             <select id="policyTypeFilter" class="filter-select">

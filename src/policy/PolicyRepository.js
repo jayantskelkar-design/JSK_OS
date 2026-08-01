@@ -300,8 +300,15 @@ class PolicyRepository {
       familyId: this._normalizeText(criteria.familyId).toUpperCase(),
       policyStatus: this._normalizeText(criteria.policyStatus).toLowerCase(),
       renewalStage: this._normalizeText(criteria.renewalStage).toLowerCase(),
+      assignedOwner: this._normalizeText(criteria.assignedOwner).toLowerCase(),
       riskCategory: this._normalizeText(criteria.riskCategory).toLowerCase()
     };
+
+    var actionWindow = this._normalizeText(criteria.actionWindow).toLowerCase();
+    var actionToday = new Date();
+    actionToday.setHours(0, 0, 0, 0);
+    var actionNext7 = new Date(actionToday.getTime());
+    actionNext7.setDate(actionNext7.getDate() + 7);
 
     var startFrom = criteria.renewalFrom
       ? this._toDate(criteria.renewalFrom)
@@ -328,7 +335,15 @@ class PolicyRepository {
       if (!this._matchesExactUpper(record['Family ID'], filters.familyId)) return false;
       if (!this._matchesExact(record['Policy Status'], filters.policyStatus)) return false;
       if (!this._matchesExact(record['Renewal Stage'], filters.renewalStage)) return false;
+      if (!this._matchesExact(record['Assigned Owner'], filters.assignedOwner)) return false;
       if (!this._matchesExact(record['Risk Category'], filters.riskCategory)) return false;
+
+      var actionDate = this._toDate(record['Next Action Date']);
+      if (actionDate) actionDate.setHours(0, 0, 0, 0);
+      if (actionWindow === 'today' && (!actionDate || actionDate.getTime() !== actionToday.getTime())) return false;
+      if (actionWindow === 'overdue' && (!actionDate || actionDate.getTime() >= actionToday.getTime())) return false;
+      if (actionWindow === 'next7' && (!actionDate || actionDate.getTime() <= actionToday.getTime() || actionDate.getTime() > actionNext7.getTime())) return false;
+      if (actionWindow === 'unassigned' && this._normalizeText(record['Assigned Owner'])) return false;
 
       var renewalDate = this._toDate(record['Renewal Date']);
       if (startFrom && (!renewalDate || renewalDate.getTime() < startFrom.getTime())) return false;

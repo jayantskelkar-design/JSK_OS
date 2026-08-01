@@ -9,7 +9,8 @@
  *
  * @return {GoogleAppsScript.HTML.HtmlOutput} Policy Management page.
  */
-function renderPolicyUi() {
+function renderPolicyUi(options) {
+  options = options || {};
   var template = HtmlService.createTemplateFromFile(
     'Ui/Policy/Policy'
   );
@@ -19,6 +20,7 @@ function renderPolicyUi() {
   template.currentUser =
     JSKOS.ConfigService.getCurrentUser();
   template.routeUrls = JSKOS.Router.getRouteUrls();
+  template.workMode = Boolean(options.workMode);
 
   return template
     .evaluate()

@@ -183,6 +183,12 @@ function getPolicySearchFilters() {
           return item.policyStatus;
         })
       ),
+      renewalStages: JSK_POLICY_SCHEMA.RENEWAL_STAGE_VALUES.slice(),
+      assignedOwners: policySearchUniqueSorted_(
+        items.map(function (item) {
+          return item.assignedOwner;
+        })
+      ),
       riskCategories: policySearchUniqueSorted_(
         items.map(function (item) {
           return item.riskCategory;

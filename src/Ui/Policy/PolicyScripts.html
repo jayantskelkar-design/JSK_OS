@@ -41,6 +41,12 @@
         document.getElementById('searchInput');
       elements.statusFilter =
         document.getElementById('statusFilter');
+      elements.renewalStageFilter =
+        document.getElementById('renewalStageFilter');
+      elements.actionWindowFilter =
+        document.getElementById('actionWindowFilter');
+      elements.assignedOwnerFilter =
+        document.getElementById('assignedOwnerFilter');
       elements.policyTypeFilter =
         document.getElementById('policyTypeFilter');
       elements.insurerFilter =
@@ -130,6 +136,9 @@
         'change',
         resetAndLoad
       );
+      elements.renewalStageFilter.addEventListener('change', resetAndLoad);
+      elements.actionWindowFilter.addEventListener('change', resetAndLoad);
+      elements.assignedOwnerFilter.addEventListener('change', resetAndLoad);
       elements.policyTypeFilter.addEventListener(
         'change',
         resetAndLoad
@@ -244,6 +253,9 @@
       callServer('apiPolicySearch', {
         query: elements.searchInput.value.trim(),
         policyStatus: elements.statusFilter.value,
+        renewalStage: elements.renewalStageFilter.value,
+        actionWindow: elements.actionWindowFilter.value,
+        assignedOwner: elements.assignedOwnerFilter.value,
         policyType: elements.policyTypeFilter.value,
         insurerName: elements.insurerFilter.value,
         includeDeleted: elements.includeArchivedCheckbox.checked,
@@ -297,6 +309,16 @@
             elements.insurerFilter,
             filters.insurerNames,
             'All Insurers'
+          );
+          populateSelect(
+            elements.renewalStageFilter,
+            filters.renewalStages,
+            'All Renewal Stages'
+          );
+          populateSelect(
+            elements.assignedOwnerFilter,
+            filters.assignedOwners,
+            'All Owners'
           );
 
           state.filtersLoaded = true;
