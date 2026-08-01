@@ -5,6 +5,7 @@ var JSK_META_WA = Object.freeze({
   TOKEN_KEY: 'JSK_OS_META_WA_ACCESS_TOKEN',
   PHONE_ID_KEY: 'JSK_OS_META_WA_PHONE_NUMBER_ID',
   VERIFY_TOKEN_KEY: 'JSK_OS_META_WA_VERIFY_TOKEN',
+  TEST_RECIPIENT_KEY: 'JSK_OS_META_WA_TEST_RECIPIENT',
   GRAPH_VERSION_KEY: 'JSK_OS_META_GRAPH_VERSION',
   DEFAULT_GRAPH_VERSION: 'v24.0',
   PROVIDER: 'Meta WhatsApp',
@@ -27,6 +28,7 @@ function metaWhatsAppConfigStatus_() {
     accessTokenConfigured: Boolean(values[JSK_META_WA.TOKEN_KEY]),
     phoneNumberIdConfigured: Boolean(values[JSK_META_WA.PHONE_ID_KEY]),
     verifyTokenConfigured: Boolean(values[JSK_META_WA.VERIFY_TOKEN_KEY]),
+    testRecipientConfigured: Boolean(values[JSK_META_WA.TEST_RECIPIENT_KEY]),
     graphVersion: values[JSK_META_WA.GRAPH_VERSION_KEY] || JSK_META_WA.DEFAULT_GRAPH_VERSION
   };
 }
@@ -168,3 +170,26 @@ function sanitizeMetaError_(error) { return String(error && error.message ? erro
 
 function getMetaWhatsAppConfigStatus() { return metaWhatsAppConfigStatus_(); }
 function processMetaWhatsAppOutbox() { return sendQueuedMetaWhatsApp(20); }
+
+/** Sends exactly one controlled test message; it does not process other queued rows. */
+function sendMetaWhatsAppLiveTest() {
+  ensureBuild1006Communications();
+  var properties = PropertiesService.getScriptProperties();
+  var recipient = String(properties.getProperty(JSK_META_WA.TEST_RECIPIENT_KEY) || '').replace(/\D/g, '');
+  if (!/^\d{10,15}$/.test(recipient)) throw new Error('JSK_OS_META_WA_TEST_RECIPIENT is missing or invalid.');
+  var repository = new CommunicationRepository();
+  var queued = repository.queue({
+    channel: 'WhatsApp', recipient: recipient,
+    message: 'JSK OS Meta WhatsApp integration test successful.',
+    provider: JSK_META_WA.PROVIDER,
+    idempotencyKey: 'META-LIVE-TEST-' + Utilities.formatDate(new Date(), 'Asia/Kolkata', 'yyyyMMddHHmmss')
+  }, 'Meta WhatsApp Live Test');
+  var claimed = repository.update(queued.communicationId, {
+    status: 'Sending', provider: JSK_META_WA.PROVIDER, lastError: ''
+  }, 'Meta WhatsApp Live Test', queued.recordVersion);
+  sendMetaWhatsAppItem_(repository, claimed, getMetaWhatsAppConfig_());
+  var result = repository.findById(queued.communicationId, true);
+  console.info(JSON.stringify({ success: true, communicationId: result.communicationId,
+    status: result.status, providerMessageIdConfigured: Boolean(result.providerMessageId) }));
+  return result;
+}
