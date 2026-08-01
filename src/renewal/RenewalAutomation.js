@@ -66,6 +66,7 @@ JSKOS.RenewalAutomation = (function () {
     var dashboardResult = sendDailyDashboard_(policies, today);
     result.dashboardSent = dashboardResult.sent;
     result.overdueEscalations = dashboardResult.escalations;
+    result.taskAutomation = JSKOS.TaskAutomation.runDaily(policies, today);
     return result;
   }
 
