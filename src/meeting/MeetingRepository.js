@@ -106,7 +106,7 @@ class MeetingRepository {
 
   _normalize(data) {
     data = data || {};
-    var aliases = { title:'Title', meetingType:'Meeting Type', status:'Status', startAt:'Start At', endAt:'End At', location:'Location', meetingLink:'Meeting Link', agenda:'Agenda', notes:'Notes', owner:'Owner', companyId:'Company ID', personId:'Person ID', policyId:'Policy ID', taskId:'Task ID', reminderMinutes:'Reminder Minutes' };
+    var aliases = { title:'Title', meetingType:'Meeting Type', status:'Status', startAt:'Start At', endAt:'End At', location:'Location', meetingLink:'Meeting Link', agenda:'Agenda', notes:'Notes', owner:'Owner', companyId:'Company ID', personId:'Person ID', policyId:'Policy ID', taskId:'Task ID', reminderMinutes:'Reminder Minutes', calendarEventId:'Calendar Event ID', reminderSentAt:'Reminder Sent At', followUpTaskId:'Follow-up Task ID' };
     var result = {};
     Object.keys(data).forEach(function (key) {
       var header = aliases[key] || key;
@@ -131,7 +131,7 @@ class MeetingRepository {
   }
 
   _format(record) {
-    var special = { 'Meeting ID':'meetingId', 'Company ID':'companyId', 'Person ID':'personId', 'Policy ID':'policyId', 'Task ID':'taskId' };
+    var special = { 'Meeting ID':'meetingId', 'Company ID':'companyId', 'Person ID':'personId', 'Policy ID':'policyId', 'Task ID':'taskId', 'Calendar Event ID':'calendarEventId', 'Follow-up Task ID':'followUpTaskId' };
     var result = {};
     this.headers.forEach(function (header) {
       if (!header) return;

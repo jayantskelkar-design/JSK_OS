@@ -1,13 +1,14 @@
 /** JSK OS Build 1005 - Meeting database migration. */
 
 var JSK_MEETING_SCHEMA = Object.freeze({
-  VERSION: 1,
+  VERSION: 2,
   SHEET_NAME: 'Meetings',
   PROPERTY_KEY: 'JSK_OS_MEETING_SCHEMA_VERSION',
   HEADERS: Object.freeze([
     'Meeting ID', 'Title', 'Meeting Type', 'Status', 'Start At', 'End At',
     'Location', 'Meeting Link', 'Agenda', 'Notes', 'Owner',
     'Company ID', 'Person ID', 'Policy ID', 'Task ID', 'Reminder Minutes',
+    'Calendar Event ID', 'Reminder Sent At', 'Follow-up Task ID',
     'Created At', 'Created By', 'Updated At', 'Updated By',
     'Record Version', 'Is Deleted'
   ]),
