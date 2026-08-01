@@ -1,0 +1,2 @@
+/** JSK OS Build 1006 - Communication foundation smoke test. */
+function testCommunicationFoundation(){var migration=ensureBuild1006Communications();var result=new CommunicationRepository().search({});if(!migration.success||!Array.isArray(result.items))throw new Error('Communication foundation test failed.');var report={success:true,schemaVersion:migration.schemaVersion,communicationCount:result.totalItems};console.info(JSON.stringify(report));return report;}
