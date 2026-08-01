@@ -59,6 +59,7 @@ function testDashboardService() {
   testRenewalDashboardBoundaries_();
   testRenewalPipeline_();
   testTaskDashboardSummary();
+  testMeetingDashboardSummary();
 
   assertDashboardService_(
     dashboard.renewalPipeline &&
@@ -132,6 +133,21 @@ function testDashboardService() {
   console.info(JSON.stringify(result));
 
   return result;
+}
+
+function testMeetingDashboardSummary() {
+  var summary = JSKOS.DashboardService.summarizeMeetings([
+    { meetingId:'M1', title:'Today', status:'Scheduled', startAt:'2026-08-02T11:00', owner:'JSK' },
+    { meetingId:'M2', title:'Missed', status:'Scheduled', startAt:'2026-08-01T11:00', owner:'' },
+    { meetingId:'M3', title:'Upcoming', status:'Scheduled', startAt:'2026-08-05T11:00', owner:'JSK' },
+    { meetingId:'M4', title:'Done', status:'Completed', startAt:'2026-08-01T11:00', owner:'JSK' }
+  ], new Date(2026, 7, 2, 9, 0), 8);
+  assertDashboardService_(summary.summary.today === 1, 'Today meeting count failed.');
+  assertDashboardService_(summary.summary.missed === 1, 'Missed meeting count failed.');
+  assertDashboardService_(summary.summary.upcoming === 1, 'Upcoming meeting count failed.');
+  assertDashboardService_(summary.summary.completed === 1, 'Completed meeting count failed.');
+  assertDashboardService_(summary.summary.unassigned === 1, 'Unassigned meeting count failed.');
+  return { success:true, message:'Meeting dashboard summary passed.' };
 }
 
 function testTaskDashboardSummary() {

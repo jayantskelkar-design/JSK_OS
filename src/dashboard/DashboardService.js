@@ -25,8 +25,48 @@ JSKOS.DashboardService = (function () {
       renewalPipeline: getRenewalPipeline(),
       garudaInsights: getGarudaInsights(),
       workQueue: getWorkQueue(),
-      tasks: getTaskDashboard()
+      tasks: getTaskDashboard(),
+      meetings: getMeetingDashboard()
     };
+  }
+
+  function getMeetingDashboard(referenceDate) {
+    try {
+      ensureBuild1005Meetings();
+      return summarizeMeetings_(new MeetingRepository().search({}).items || [], referenceDate || new Date(), 8);
+    } catch (error) {
+      console.warn('Meeting dashboard unavailable: ' + getErrorMessage_(error));
+      return emptyMeetingDashboard_();
+    }
+  }
+
+  function summarizeMeetings_(meetings, referenceDate, limit) {
+    var now = referenceDate instanceof Date ? new Date(referenceDate.getTime()) : new Date(referenceDate);
+    var today = formatDashboardDate_(now);
+    var next7 = new Date(now.getTime() + 7 * 86400000);
+    var summary = { today: 0, upcoming: 0, missed: 0, completed: 0, unassigned: 0 };
+    var ownerWorkload = {}, actionable = [];
+    (Array.isArray(meetings) ? meetings : []).forEach(function (meeting) {
+      var start = new Date(meeting.startAt), status = String(meeting.status || 'Scheduled');
+      if (status === 'Completed') { summary.completed += 1; return; }
+      if (status === 'Cancelled') return;
+      if (isNaN(start.getTime())) return;
+      var owner = String(meeting.owner || '').trim();
+      if (!owner) summary.unassigned += 1;
+      ownerWorkload[owner || 'Unassigned'] = (ownerWorkload[owner || 'Unassigned'] || 0) + 1;
+      var day = formatDashboardDate_(start), state = '';
+      if (status === 'Scheduled' && day === today) summary.today += 1;
+      if ((status === 'Scheduled' || status === 'No Show') && start < now) { summary.missed += 1; state = 'Missed'; }
+      else if (status === 'Scheduled' && day === today) { state = 'Today'; }
+      else if (status === 'Scheduled' && start <= next7) { summary.upcoming += 1; state = 'Upcoming'; }
+      if (state) actionable.push(Object.assign({}, meeting, { state: state }));
+    });
+    actionable.sort(function (left, right) { return String(left.startAt).localeCompare(String(right.startAt)); });
+    return { summary: summary, items: actionable.slice(0, Math.max(1, Number(limit) || 8)), ownerWorkload: Object.keys(ownerWorkload).sort().map(function (owner) { return { owner: owner, count: ownerWorkload[owner] }; }) };
+  }
+
+  function emptyMeetingDashboard_() {
+    return { summary: { today: 0, upcoming: 0, missed: 0, completed: 0, unassigned: 0 }, items: [], ownerWorkload: [] };
   }
 
   function getTaskDashboard(referenceDate) {
@@ -463,6 +503,8 @@ JSKOS.DashboardService = (function () {
     getGarudaInsights: getGarudaInsights,
     getWorkQueue: getWorkQueue,
     getTaskDashboard: getTaskDashboard,
-    summarizeTasks: summarizeTasks_
+    summarizeTasks: summarizeTasks_,
+    getMeetingDashboard: getMeetingDashboard,
+    summarizeMeetings: summarizeMeetings_
   };
 })();

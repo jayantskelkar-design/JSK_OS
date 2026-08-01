@@ -26,6 +26,21 @@
     initializeToast();
     initializeUniversalSearch();
     initializeDashboardTasks();
+    initializeDashboardMeetings();
+
+    function initializeDashboardMeetings() {
+      document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-meeting-complete]');
+        if (!button) return;
+        button.disabled = true; button.textContent = 'Completing...';
+        google.script.run.withSuccessHandler(function (response) {
+          if (!response || response.success !== true) { window.JSKToast.error(response && response.error ? response.error.message : 'Meeting could not be completed.'); button.disabled = false; button.textContent = 'Complete'; return; }
+          window.JSKToast.success('Meeting completed successfully.'); window.setTimeout(function () { window.location.reload(); }, 500);
+        }).withFailureHandler(function (error) { window.JSKToast.error(error && error.message ? error.message : 'Meeting API error.'); button.disabled = false; button.textContent = 'Complete'; }).apiMeetingComplete({
+          meetingId: button.getAttribute('data-meeting-complete'), expectedVersion: Number(button.getAttribute('data-meeting-version')) || undefined, actor: 'JSK OS Dashboard'
+        });
+      });
+    }
 
     function initializeDashboardTasks() {
       document.addEventListener('click', function (event) {
