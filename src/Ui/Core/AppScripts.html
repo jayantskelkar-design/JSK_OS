@@ -25,6 +25,38 @@
 
     initializeToast();
     initializeUniversalSearch();
+    initializeDashboardTasks();
+
+    function initializeDashboardTasks() {
+      document.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-task-complete]');
+        if (!button) return;
+        button.disabled = true;
+        button.textContent = 'Completing...';
+        google.script.run
+          .withSuccessHandler(function (response) {
+            if (!response || response.success !== true) {
+              var message = response && response.error && response.error.message;
+              window.JSKToast.error(message || 'Task could not be completed.');
+              button.disabled = false;
+              button.textContent = 'Complete';
+              return;
+            }
+            window.JSKToast.success('Task completed successfully.');
+            window.setTimeout(function () { window.location.reload(); }, 500);
+          })
+          .withFailureHandler(function (error) {
+            window.JSKToast.error(error && error.message ? error.message : 'Task API error.');
+            button.disabled = false;
+            button.textContent = 'Complete';
+          })
+          .apiTaskComplete({
+            taskId: button.getAttribute('data-task-complete'),
+            expectedVersion: Number(button.getAttribute('data-task-version')) || undefined,
+            actor: 'JSK OS Dashboard'
+          });
+      });
+    }
 
     function initializeToast() {
       var MAX_TOASTS = 5;

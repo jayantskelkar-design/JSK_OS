@@ -41,7 +41,7 @@ function getJSKOSDefaultTemplateModel_() {
     applicationName: 'JSK OS',
     applicationVersion:
       (JSKOS.Config && JSKOS.Config.APP && JSKOS.Config.APP.VERSION) ||
-      '1.2.0-beta',
+      '1.3.0-beta',
     currentUser: 'SYSTEM',
     activeRoute: 'dashboard',
     webAppUrl: getJSKOSWebAppUrl_(),

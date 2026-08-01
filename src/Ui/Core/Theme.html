@@ -426,6 +426,28 @@
   .work-queue-list > article > div { min-width: 0; display: grid; gap: 3px; }
   .work-queue-list span { color: var(--muted); font-size: 11px; }
   .work-queue-list strong { font-size: 12px; overflow-wrap: anywhere; }
+
+  .task-dashboard-summary { margin-top: 18px; display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 10px; }
+  .task-dashboard-summary article { padding: 14px; display: grid; gap: 6px; border: 1px solid var(--border); border-radius: 11px; background: #fbfcfd; }
+  .task-dashboard-summary span { color: var(--muted); font-size: 12px; }
+  .task-dashboard-summary strong { color: var(--navy); font-size: 24px; }
+  .task-dashboard-summary .task-overdue { border-color: #efb1ad; background: #fff7f6; }
+  .task-dashboard-summary .task-priority { border-color: #ecd179; background: #fffbed; }
+  .task-dashboard-layout { margin-top: 14px; display: grid; grid-template-columns: 1fr 240px; gap: 14px; }
+  .task-dashboard-list { display: grid; gap: 9px; }
+  .task-dashboard-list > article { padding: 12px 14px; display: grid; grid-template-columns: 80px 1.4fr .7fr .7fr auto; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 11px; }
+  .task-dashboard-list > article > div { min-width: 0; display: grid; gap: 3px; }
+  .task-dashboard-list span { color: var(--muted); font-size: 11px; }
+  .task-dashboard-list strong { font-size: 12px; overflow-wrap: anywhere; }
+  .task-state { padding: 6px 8px; border-radius: 999px; text-align: center; font-weight: 800; }
+  .task-state-overdue { color: #b42318!important; background: #fff0ef; }
+  .task-state-today { color: #8a6500!important; background: #fff3bf; }
+  .task-state-priority { color: #6941c6!important; background: #f4f0ff; }
+  .task-complete-button { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--navy); color: #fff; font-weight: 700; }
+  .owner-workload { padding: 14px; border: 1px solid var(--border); border-radius: 11px; background: #fbfcfd; }
+  .owner-workload h4 { margin: 0 0 10px; }
+  .owner-workload > div { padding: 8px 0; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .owner-workload > span { color: var(--muted); font-size: 12px; }
   .work-state { padding: 5px 8px; border-radius: 999px; background: #e9eef4; text-align: center; font-weight: 800; }
   .work-state-overdue { background: #fee4e2; color: #b42318 !important; }
   .work-state-today { background: #fff1c2; color: #785500 !important; }
@@ -776,6 +798,8 @@
   @media (max-width: 1050px) {
     .garuda-insight { grid-template-columns: 70px 1fr 1fr; }
     .work-queue-list > article { grid-template-columns: 80px 1fr 1fr; }
+    .task-dashboard-layout { grid-template-columns: 1fr; }
+    .task-dashboard-list > article { grid-template-columns: 74px 1fr 1fr; }
     .topbar-title p {
       display: none;
     }
@@ -788,6 +812,7 @@
     .renewal-grid,
     .pipeline-grid,
     .work-queue-summary,
+    .task-dashboard-summary,
     .quick-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }

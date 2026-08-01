@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <?!= include('Ui/Task/TaskStyles'); ?>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-mark">JSK</div><div><strong><?= applicationName ?></strong><span>Version <?= applicationVersion ?></span></div></div>
+    <nav>
+      <a href="<?= routeUrls.dashboard ?>">⌂ Dashboard</a>
+      <a href="<?= routeUrls.companies ?>">▦ Companies</a>
+      <a href="<?= routeUrls.people ?>">♟ People</a>
+      <a href="<?= routeUrls.policies ?>">▤ Policies</a>
+      <a class="active" href="<?= routeUrls.tasks ?>">✓ Tasks</a>
+    </nav>
+    <div class="motto"><strong>First Assurance...</strong><span>Then Insurance.</span></div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <button id="menuButton" class="menu-button">☰</button>
+      <div><h1>Task Management</h1><p>Plan, assign and complete business follow-ups.</p></div>
+      <div class="user"><strong><?= currentUser ?></strong><span>Administrator</span></div>
+    </header>
+
+    <section class="content">
+      <div class="summary-grid">
+        <article><span>Total Open</span><strong id="totalOpen">0</strong></article>
+        <article><span>Due Today</span><strong id="dueToday">0</strong></article>
+        <article class="danger"><span>Overdue</span><strong id="overdue">0</strong></article>
+        <article><span>Completed</span><strong id="completed">0</strong></article>
+      </div>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div><h2>Tasks</h2><p>Linked actions across companies, people and policies.</p></div>
+          <button class="button primary" id="addTaskButton">＋ Add Task</button>
+        </div>
+        <div class="toolbar">
+          <input id="searchInput" type="search" placeholder="Search task, owner or linked ID">
+          <select id="statusFilter"><option value="">All Statuses</option><option>Open</option><option>In Progress</option><option>Waiting</option><option>Completed</option><option>Cancelled</option></select>
+          <select id="priorityFilter"><option value="">All Priorities</option><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select>
+          <select id="dateFilter"><option value="">All Dates</option><option value="today">Today</option><option value="overdue">Overdue</option></select>
+          <input id="ownerFilter" placeholder="Filter owner">
+          <button class="button" id="refreshButton">Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Task</th><th>Owner</th><th>Due</th><th>Priority</th><th>Status</th><th>Linked To</th><th>Actions</th></tr></thead><tbody id="taskTableBody"></tbody></table>
+          <div id="emptyState" class="empty hidden">No tasks found.</div>
+          <div id="loadingState" class="empty">Loading tasks...</div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="taskModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header"><div><h2 id="modalTitle">Add Task</h2><p>Create a linked business action.</p></div><button id="closeModalButton">×</button></div>
+      <form id="taskForm">
+        <input type="hidden" id="taskId"><input type="hidden" id="recordVersion">
+        <div class="form-grid">
+          <label class="wide">Title <span>*</span><input id="title" required maxlength="200"></label>
+          <label class="wide">Description<textarea id="description" rows="3" maxlength="2000"></textarea></label>
+          <label>Task Type<select id="taskType"><option>Follow-up</option><option>Call</option><option>Email</option><option>WhatsApp</option><option>Document</option><option>Renewal</option><option>General</option></select></label>
+          <label>Status<select id="status"><option>Open</option><option>In Progress</option><option>Waiting</option><option>Completed</option><option>Cancelled</option></select></label>
+          <label>Priority<select id="priority"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></label>
+          <label>Owner<input id="owner" maxlength="150"></label>
+          <label>Due Date<input id="dueDate" type="date"></label>
+          <label>Company ID<input id="companyId" maxlength="100"></label>
+          <label>Person ID<input id="personId" maxlength="100"></label>
+          <label>Policy ID<input id="policyId" maxlength="100"></label>
+        </div>
+        <div class="modal-footer"><button type="button" class="button" id="cancelModalButton">Cancel</button><button type="submit" class="button primary" id="saveTaskButton">Save Task</button></div>
+      </form>
+    </div>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+  <?!= include('Ui/Task/TaskScripts'); ?>
+</body>
+</html>
+
