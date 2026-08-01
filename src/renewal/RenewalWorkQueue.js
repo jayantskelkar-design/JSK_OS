@@ -72,6 +72,18 @@ JSKOS.RenewalWorkQueue = (function () {
   }
 
   function formatLocalDate_(date) {
+    if (
+      typeof Utilities !== 'undefined' &&
+      Utilities &&
+      typeof Utilities.formatDate === 'function'
+    ) {
+      return Utilities.formatDate(
+        date,
+        'Asia/Kolkata',
+        'yyyy-MM-dd'
+      );
+    }
+
     return [
       date.getFullYear(),
       String(date.getMonth() + 1).padStart(2, '0'),

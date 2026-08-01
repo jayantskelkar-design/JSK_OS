@@ -21,3 +21,18 @@ function testRenewalWorkQueue() {
   }
   return { success: true, summary: result.summary };
 }
+
+function testRenewalWorkQueueTimezoneFormatting() {
+  var result = JSKOS.RenewalWorkQueue.build([
+    {
+      policyId: 'IST-DATE',
+      policyStatus: 'Active',
+      nextActionDate: new Date('2026-07-31T18:30:00.000Z')
+    }
+  ], new Date('2026-07-31T18:30:00.000Z'), 1);
+
+  if (result.items[0].nextActionDate !== '2026-08-01') {
+    throw new Error('Apps Script timezone formatting failed.');
+  }
+  return { success: true, date: result.items[0].nextActionDate };
+}
