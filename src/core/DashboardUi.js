@@ -23,7 +23,8 @@ function renderEnterpriseDashboardUi() {
     {
       renewals: dashboard.renewals,
       renewalPipeline: dashboard.renewalPipeline,
-      garudaInsights: dashboard.garudaInsights
+      garudaInsights: dashboard.garudaInsights,
+      workQueue: dashboard.workQueue
     }
   );
 

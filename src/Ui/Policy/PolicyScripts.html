@@ -517,7 +517,7 @@
         'sumInsured', 'netPremium', 'gstAmount', 'totalPremium',
         'paymentFrequency', 'previousPolicyNumber', 'agentBroker',
         'branch', 'claimsCount', 'policyDocumentUrl', 'remarks',
-        'renewalStage'
+        'renewalStage', 'assignedOwner', 'followUpNotes'
       ].forEach(function (field) {
         setInputValue(field, isEditing ? policy[field] : '');
       });
@@ -539,7 +539,7 @@
         isEditing ? policy.claimsCount : 0
       );
 
-      ['startDate', 'endDate', 'renewalDate', 'lastClaimDate']
+      ['startDate', 'endDate', 'renewalDate', 'nextActionDate', 'lastClaimDate']
         .forEach(function (field) {
           setInputValue(
             field,
@@ -664,6 +664,9 @@
           renewalDate: getInputValue('renewalDate'),
           policyStatus: getInputValue('policyStatus'),
           renewalStage: getInputValue('renewalStage'),
+          assignedOwner: getInputValue('assignedOwner'),
+          nextActionDate: getInputValue('nextActionDate'),
+          followUpNotes: getInputValue('followUpNotes'),
           paymentFrequency: getInputValue('paymentFrequency'),
           agentBroker: getInputValue('agentBroker'),
           branch: getInputValue('branch'),

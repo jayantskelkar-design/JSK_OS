@@ -10,7 +10,7 @@
  */
 
 var JSK_POLICY_SCHEMA = Object.freeze({
-  VERSION: 2,
+  VERSION: 3,
   SHEET_NAME: 'Policies',
   AUDIT_SHEET_NAME: 'Audit_Log',
   HEADER_ROW: 1,
@@ -39,6 +39,9 @@ var JSK_POLICY_SCHEMA = Object.freeze({
     'Renewal Date',
     'Policy Status',
     'Renewal Stage',
+    'Assigned Owner',
+    'Next Action Date',
+    'Follow-up Notes',
     'Payment Frequency',
     'Agent / Broker',
     'Branch',
@@ -77,6 +80,9 @@ var JSK_POLICY_SCHEMA = Object.freeze({
     'Renewal Date': 115,
     'Policy Status': 135,
     'Renewal Stage': 150,
+    'Assigned Owner': 180,
+    'Next Action Date': 125,
+    'Follow-up Notes': 320,
     'Payment Frequency': 140,
     'Agent / Broker': 180,
     'Branch': 150,
@@ -484,6 +490,7 @@ function formatPolicySheet_(sheet, headerRow) {
     'Start Date',
     'End Date',
     'Renewal Date',
+    'Next Action Date',
     'Last Claim Date'
   ].forEach(function (header) {
     applyPolicyColumnFormat_(

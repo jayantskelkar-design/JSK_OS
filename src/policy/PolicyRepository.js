@@ -23,6 +23,7 @@ var JSK_POLICY_REPOSITORY_CONFIG = Object.freeze({
     'Family ID', 'Insured Name', 'Risk Category', 'Sum Insured',
     'Net Premium', 'GST Amount', 'Total Premium', 'Start Date',
     'End Date', 'Renewal Date', 'Policy Status', 'Renewal Stage',
+    'Assigned Owner', 'Next Action Date', 'Follow-up Notes',
     'Payment Frequency',
     'Agent / Broker', 'Branch', 'Nominee', 'Policy Document URL',
     'Previous Policy Number', 'Claims Count', 'Last Claim Date',
@@ -34,13 +35,13 @@ var JSK_POLICY_REPOSITORY_CONFIG = Object.freeze({
     'Policy ID', 'Policy Number', 'Proposal Number', 'Policy Type',
     'Product Name', 'Insurer Name', 'Company ID', 'Person ID',
     'Family ID', 'Insured Name', 'Risk Category', 'Policy Status',
-    'Renewal Stage',
+    'Renewal Stage', 'Assigned Owner', 'Follow-up Notes',
     'Agent / Broker', 'Branch', 'Nominee', 'Previous Policy Number',
     'Remarks'
   ]),
 
   DATE_HEADERS: Object.freeze([
-    'Start Date', 'End Date', 'Renewal Date', 'Last Claim Date',
+    'Start Date', 'End Date', 'Renewal Date', 'Next Action Date', 'Last Claim Date',
     'Created At', 'Updated At'
   ]),
 
@@ -655,6 +656,8 @@ class PolicyRepository {
       gstAmount: 'GST Amount', totalPremium: 'Total Premium',
       startDate: 'Start Date', endDate: 'End Date', renewalDate: 'Renewal Date',
       policyStatus: 'Policy Status', renewalStage: 'Renewal Stage',
+      assignedOwner: 'Assigned Owner', nextActionDate: 'Next Action Date',
+      followUpNotes: 'Follow-up Notes',
       paymentFrequency: 'Payment Frequency',
       agentBroker: 'Agent / Broker', branch: 'Branch', nominee: 'Nominee',
       policyDocumentUrl: 'Policy Document URL',

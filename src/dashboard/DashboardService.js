@@ -23,8 +23,26 @@ JSKOS.DashboardService = (function () {
       summary: getSummary(),
       renewals: getRenewalSummary(),
       renewalPipeline: getRenewalPipeline(),
-      garudaInsights: getGarudaInsights()
+      garudaInsights: getGarudaInsights(),
+      workQueue: getWorkQueue()
     };
+  }
+
+  function getWorkQueue(referenceDate) {
+    try {
+      return JSKOS.RenewalWorkQueue.build(
+        collectPolicies_(new PolicyRepository()),
+        referenceDate || new Date(),
+        8
+      );
+    } catch (error) {
+      console.warn('Renewal work queue unavailable: ' + getErrorMessage_(error));
+      return {
+        summary: { dueToday: 0, overdue: 0, next7Days: 0, unassigned: 0 },
+        items: [],
+        asOf: new Date().toISOString()
+      };
+    }
   }
 
   function getGarudaInsights(referenceDate) {
@@ -372,6 +390,7 @@ JSKOS.DashboardService = (function () {
     summarizeRenewals: summarizeRenewals_,
     getRenewalPipeline: getRenewalPipeline,
     summarizeRenewalPipeline: summarizeRenewalPipeline_,
-    getGarudaInsights: getGarudaInsights
+    getGarudaInsights: getGarudaInsights,
+    getWorkQueue: getWorkQueue
   };
 })();
