@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <?!= include('Ui/Policy/PolicyStyles'); ?>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">JSK</div>
+
+        <div>
+          <div class="brand-name">
+            <?= applicationName ?>
+          </div>
+
+          <div class="brand-version">
+            Version <?= applicationVersion ?>
+          </div>
+        </div>
+      </div>
+
+      <nav class="navigation">
+        <a class="nav-item" href="<?= routeUrls.dashboard ?>">
+          <span class="nav-icon">⌂</span>
+          <span>Dashboard</span>
+        </a>
+
+        <a class="nav-item" href="<?= routeUrls.companies ?>">
+          <span class="nav-icon">▦</span>
+          <span>Companies</span>
+        </a>
+
+        <a class="nav-item" href="<?= routeUrls.people ?>">
+          <span class="nav-icon">♟</span>
+          <span>People</span>
+        </a>
+
+        <a class="nav-item active" href="<?= routeUrls.policies ?>">
+          <span class="nav-icon">▤</span>
+          <span>Policies</span>
+        </a>
+
+        <a class="nav-item disabled" href="#">
+          <span class="nav-icon">✓</span>
+          <span>Tasks</span>
+        </a>
+
+        <a class="nav-item disabled" href="#">
+          <span class="nav-icon">◷</span>
+          <span>Meetings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-title">
+          First Assurance...
+        </div>
+        <div class="sidebar-footer-subtitle">
+          Then Insurance.
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+
+      <header class="topbar">
+        <button
+          type="button"
+          class="mobile-menu-button"
+          id="mobileMenuButton"
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+
+        <div>
+          <h1>JSK Policy Management</h1>
+          <p>
+            Manage policy protection, renewals and coverage records.
+          </p>
+        </div>
+
+        <div class="user-panel">
+          <div class="user-avatar">
+            <?= String(currentUser || 'S').charAt(0).toUpperCase() ?>
+          </div>
+
+          <div class="user-details">
+            <strong><?= currentUser ?></strong>
+            <span>Administrator</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="content">
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span class="summary-label">Total Policies</span>
+            <strong id="totalPolicies">0</strong>
+            <span class="summary-note">All active records</span>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">Current Page</span>
+            <strong id="currentPageCount">0</strong>
+            <span class="summary-note">Policies displayed</span>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">Renewals Due</span>
+            <strong id="renewalsDueCount">0</strong>
+            <span class="summary-note">Current page</span>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">Total Premium</span>
+            <strong id="totalPremiumValue">₹0</strong>
+            <span class="summary-note">Current page</span>
+          </article>
+        </div>
+
+        <section class="panel">
+          <div class="panel-header">
+
+            <div>
+              <h2>Policies</h2>
+              <p>
+                Search, create and manage insurance policy records.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              class="button button-primary"
+              id="addPolicyButton"
+            >
+              <span>＋</span>
+              Add Policy
+            </button>
+          </div>
+
+          <div class="toolbar">
+
+            <div class="search-box">
+              <span class="search-icon">⌕</span>
+
+              <input
+                type="search"
+                id="searchInput"
+                placeholder="Search policy number, insured, insurer or product"
+                autocomplete="off"
+              >
+            </div>
+
+            <select id="statusFilter" class="filter-select">
+              <option value="">All Statuses</option>
+              <option value="Draft">Draft</option>
+              <option value="Proposed">Proposed</option>
+              <option value="Issued">Issued</option>
+              <option value="Active">Active</option>
+              <option value="Renewal Due">Renewal Due</option>
+              <option value="Renewed">Renewed</option>
+              <option value="Expired">Expired</option>
+              <option value="Lapsed">Lapsed</option>
+              <option value="Cancelled">Cancelled</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+
+            <select id="policyTypeFilter" class="filter-select">
+              <option value="">All Policy Types</option>
+            </select>
+
+            <select id="insurerFilter" class="filter-select">
+              <option value="">All Insurers</option>
+            </select>
+
+            <label class="archive-toggle">
+              <input
+                type="checkbox"
+                id="includeArchivedCheckbox"
+              >
+              <span>Include archived</span>
+            </label>
+
+            <button
+              type="button"
+              class="button button-secondary"
+              id="refreshButton"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div class="table-container">
+            <table class="policy-table">
+              <thead>
+                <tr>
+                  <th>Policy</th>
+                  <th>Insured</th>
+                  <th>Type</th>
+                  <th>Insurer</th>
+                  <th>Premium</th>
+                  <th>Renewal</th>
+                  <th>Status</th>
+                  <th class="action-column">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody id="policyTableBody"></tbody>
+            </table>
+
+            <div class="loading-state" id="loadingState">
+              <div class="spinner"></div>
+              <p>Loading policies...</p>
+            </div>
+
+            <div
+              class="empty-state hidden"
+              id="emptyState"
+            >
+              <div class="empty-icon">▤</div>
+              <h3>No policies found</h3>
+              <p>
+                Add your first policy or change the search filters.
+              </p>
+            </div>
+          </div>
+
+          <div class="pagination">
+            <div id="paginationSummary">
+              Showing 0 policies
+            </div>
+
+            <div class="pagination-controls">
+              <button
+                type="button"
+                class="page-button"
+                id="previousPageButton"
+              >
+                Previous
+              </button>
+
+              <span id="pageIndicator">
+                Page 1 of 1
+              </span>
+
+              <button
+                type="button"
+                class="page-button"
+                id="nextPageButton"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div
+    class="modal-backdrop hidden"
+    id="policyModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="policyModalTitle"
+  >
+    <div class="modal-card policy-modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 id="policyModalTitle">Add Policy</h2>
+          <p id="policyModalSubtitle">
+            Record policy, protection and renewal information.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="modal-close-button"
+          id="closeModalButton"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+
+      <form id="policyForm" novalidate>
+        <input type="hidden" id="policyId">
+        <input type="hidden" id="recordVersion">
+
+        <div class="form-grid">
+          <div class="form-section-title form-group-wide">
+            Policy Identification
+          </div>
+
+          <div class="form-group">
+            <label for="policyNumber">
+              Policy Number <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="policyNumber"
+              maxlength="100"
+              required
+            >
+            <span class="field-error" data-error-for="policyNumber"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="proposalNumber">Proposal Number</label>
+            <input
+              type="text"
+              id="proposalNumber"
+              maxlength="100"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="policyType">
+              Policy Type <span class="required">*</span>
+            </label>
+            <select id="policyType" required>
+              <option value="">Select Policy Type</option>
+              <option value="Life Insurance">Life Insurance</option>
+              <option value="Health Insurance">Health Insurance</option>
+              <option value="Group Mediclaim">Group Mediclaim</option>
+              <option value="Group Personal Accident">Group Personal Accident</option>
+              <option value="Group Term Life">Group Term Life</option>
+              <option value="Workmen Compensation">Workmen Compensation</option>
+              <option value="Fire Insurance">Fire Insurance</option>
+              <option value="Property Insurance">Property Insurance</option>
+              <option value="Industrial All Risk">Industrial All Risk</option>
+              <option value="Machinery Breakdown">Machinery Breakdown</option>
+              <option value="Electronic Equipment">Electronic Equipment</option>
+              <option value="Marine Insurance">Marine Insurance</option>
+              <option value="Motor Insurance">Motor Insurance</option>
+              <option value="Public Liability">Public Liability</option>
+              <option value="Product Liability">Product Liability</option>
+              <option value="Professional Indemnity">Professional Indemnity</option>
+              <option value="Directors and Officers">Directors and Officers</option>
+              <option value="Cyber Insurance">Cyber Insurance</option>
+              <option value="Fidelity Guarantee">Fidelity Guarantee</option>
+              <option value="Keyman Insurance">Keyman Insurance</option>
+              <option value="Other">Other</option>
+            </select>
+            <span class="field-error" data-error-for="policyType"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="productName">Product Name</label>
+            <input type="text" id="productName" maxlength="150">
+          </div>
+
+          <div class="form-group">
+            <label for="insurerName">
+              Insurer Name <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="insurerName"
+              maxlength="150"
+              required
+            >
+            <span class="field-error" data-error-for="insurerName"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="policyStatus">Policy Status</label>
+            <select id="policyStatus">
+              <option value="Draft">Draft</option>
+              <option value="Proposed">Proposed</option>
+              <option value="Issued">Issued</option>
+              <option value="Active">Active</option>
+              <option value="Renewal Due">Renewal Due</option>
+              <option value="Renewed">Renewed</option>
+              <option value="Expired">Expired</option>
+              <option value="Lapsed">Lapsed</option>
+              <option value="Cancelled">Cancelled</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+
+          <div class="form-section-title form-group-wide">
+            Relationships and Insured Details
+          </div>
+
+          <div class="form-group">
+            <label for="companyId">Company ID</label>
+            <input type="text" id="companyId" maxlength="100">
+          </div>
+
+          <div class="form-group">
+            <label for="personId">Person ID</label>
+            <input type="text" id="personId" maxlength="100">
+          </div>
+
+          <div class="form-group">
+            <label for="familyId">Family ID</label>
+            <input type="text" id="familyId" maxlength="100">
+          </div>
+
+          <div class="form-group">
+            <label for="insuredName">
+              Insured Name <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="insuredName"
+              maxlength="150"
+              required
+            >
+            <span class="field-error" data-error-for="insuredName"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="nominee">Nominee</label>
+            <input type="text" id="nominee" maxlength="150">
+          </div>
+
+          <div class="form-group">
+            <label for="riskCategory">Risk Category</label>
+            <select id="riskCategory">
+              <option value="Not Assessed">Not Assessed</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+
+          <div class="form-section-title form-group-wide">
+            Coverage and Premium
+          </div>
+
+          <div class="form-group">
+            <label for="sumInsured">Sum Insured</label>
+            <input type="number" id="sumInsured" min="0" step="0.01">
+          </div>
+
+          <div class="form-group">
+            <label for="netPremium">Net Premium</label>
+            <input type="number" id="netPremium" min="0" step="0.01">
+          </div>
+
+          <div class="form-group">
+            <label for="gstAmount">GST Amount</label>
+            <input type="number" id="gstAmount" min="0" step="0.01">
+          </div>
+
+          <div class="form-group">
+            <label for="totalPremium">Total Premium</label>
+            <input type="number" id="totalPremium" min="0" step="0.01">
+          </div>
+
+          <div class="form-group">
+            <label for="paymentFrequency">Payment Frequency</label>
+            <select id="paymentFrequency">
+              <option value="Not Applicable">Not Applicable</option>
+              <option value="Single">Single</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Quarterly">Quarterly</option>
+              <option value="Half-Yearly">Half-Yearly</option>
+              <option value="Annual">Annual</option>
+            </select>
+          </div>
+
+          <div class="form-section-title form-group-wide">
+            Policy Period and Renewal
+          </div>
+
+          <div class="form-group">
+            <label for="startDate">Start Date</label>
+            <input type="date" id="startDate">
+          </div>
+
+          <div class="form-group">
+            <label for="endDate">End Date</label>
+            <input type="date" id="endDate">
+          </div>
+
+          <div class="form-group">
+            <label for="renewalDate">Renewal Date</label>
+            <input type="date" id="renewalDate">
+          </div>
+
+          <div class="form-group">
+            <label for="previousPolicyNumber">Previous Policy Number</label>
+            <input
+              type="text"
+              id="previousPolicyNumber"
+              maxlength="100"
+            >
+          </div>
+
+          <div class="form-section-title form-group-wide">
+            Servicing, Claims and Documents
+          </div>
+
+          <div class="form-group">
+            <label for="agentBroker">Agent / Broker</label>
+            <input type="text" id="agentBroker" maxlength="150">
+          </div>
+
+          <div class="form-group">
+            <label for="branch">Branch</label>
+            <input type="text" id="branch" maxlength="120">
+          </div>
+
+          <div class="form-group">
+            <label for="claimsCount">Claims Count</label>
+            <input type="number" id="claimsCount" min="0" step="1">
+          </div>
+
+          <div class="form-group">
+            <label for="lastClaimDate">Last Claim Date</label>
+            <input type="date" id="lastClaimDate">
+          </div>
+
+          <div class="form-group form-group-wide">
+            <label for="policyDocumentUrl">Policy Document URL</label>
+            <input
+              type="url"
+              id="policyDocumentUrl"
+              maxlength="500"
+              placeholder="https://..."
+            >
+            <span class="field-error" data-error-for="policyDocumentUrl"></span>
+          </div>
+
+          <div class="form-group form-group-wide">
+            <label for="remarks">Remarks</label>
+            <textarea
+              id="remarks"
+              rows="4"
+              maxlength="2000"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="button button-secondary"
+            id="cancelModalButton"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="button button-primary"
+            id="savePolicyButton"
+          >
+            Save Policy
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <?!= include('Ui/Policy/PolicyScripts'); ?>
+</body>
+</html>
