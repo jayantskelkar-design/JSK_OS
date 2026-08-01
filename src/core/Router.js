@@ -23,9 +23,17 @@ JSKOS.RouteConfig = Object.freeze({
  * @return {GoogleAppsScript.HTML.HtmlOutput}
  */
 function doGet(event) {
+  if (event && event.parameter && event.parameter['hub.mode']) {
+    return handleMetaWhatsAppWebhookVerification(event);
+  }
   bootstrapBuild1002Automation_();
   var route = JSKOS.Router.resolve(event);
   return JSKOS.Router.render(route, event);
+}
+
+/** Meta WhatsApp webhook entry point. */
+function doPost(event) {
+  return handleMetaWhatsAppWebhook(event);
 }
 
 /**
