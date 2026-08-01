@@ -76,6 +76,59 @@
           </article>
         </div>
 
+        <section class="panel renewal-panel">
+          <div class="panel-header renewal-panel-header">
+            <div>
+              <span class="eyebrow">Build 1002 · Phase 1</span>
+              <h3>Renewal Intelligence</h3>
+              <p>
+                Prioritize policies by their next renewal window.
+              </p>
+            </div>
+
+            <a class="panel-link" href="<?= routeUrls.policies ?>">
+              Open Policies
+            </a>
+          </div>
+
+          <div class="renewal-grid">
+            <article class="renewal-card renewal-card-30">
+              <span class="renewal-icon">📅</span>
+              <span class="summary-label">30 Days Due</span>
+              <strong><?= dashboard.renewals.due30Days ?></strong>
+              <span>Due today through day 30</span>
+            </article>
+
+            <article class="renewal-card renewal-card-60">
+              <span class="renewal-icon">📅</span>
+              <span class="summary-label">60 Days Due</span>
+              <strong><?= dashboard.renewals.due60Days ?></strong>
+              <span>Due from day 31 to day 60</span>
+            </article>
+
+            <article class="renewal-card renewal-card-90">
+              <span class="renewal-icon">📅</span>
+              <span class="summary-label">90 Days Due</span>
+              <strong><?= dashboard.renewals.due90Days ?></strong>
+              <span>Due from day 61 to day 90</span>
+            </article>
+
+            <article class="renewal-card renewal-card-overdue">
+              <span class="renewal-icon">🔴</span>
+              <span class="summary-label">Overdue Renewals</span>
+              <strong><?= dashboard.renewals.overdue ?></strong>
+              <span>Past due and requires action</span>
+            </article>
+
+            <article class="renewal-card renewal-card-renewed">
+              <span class="renewal-icon">🟢</span>
+              <span class="summary-label">Renewed Policies</span>
+              <strong><?= dashboard.renewals.renewed ?></strong>
+              <span>Policies marked as renewed</span>
+            </article>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="panel-header">
             <div>

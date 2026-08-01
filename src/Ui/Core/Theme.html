@@ -306,6 +306,71 @@
     margin: 0;
   }
 
+  .renewal-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .renewal-panel-header h3 {
+    margin-top: 7px;
+  }
+
+  .panel-link {
+    padding: 9px 13px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--navy);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .panel-link:hover {
+    border-color: var(--gold);
+  }
+
+  .renewal-grid {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .renewal-card {
+    min-width: 0;
+    padding: 17px;
+    display: grid;
+    gap: 7px;
+    border: 1px solid var(--border);
+    border-top: 3px solid #8aa4c2;
+    border-radius: 13px;
+    background: #fbfcfd;
+  }
+
+  .renewal-card strong {
+    color: var(--navy);
+    font-size: 28px;
+  }
+
+  .renewal-card > span:last-child {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .renewal-icon {
+    font-size: 18px;
+  }
+
+  .renewal-card-30 { border-top-color: #d4af37; }
+  .renewal-card-60 { border-top-color: #4d83bd; }
+  .renewal-card-90 { border-top-color: #7d73b5; }
+  .renewal-card-overdue { border-top-color: #d14343; }
+  .renewal-card-renewed { border-top-color: #2f9b61; }
+
   .panel-header p {
     margin-top: 5px;
     color: var(--muted);
@@ -659,6 +724,7 @@
     }
 
     .summary-grid,
+    .renewal-grid,
     .quick-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -729,8 +795,14 @@
     }
 
     .summary-grid,
+    .renewal-grid,
     .quick-grid {
       grid-template-columns: 1fr;
+    }
+
+    .renewal-panel-header {
+      align-items: flex-start;
+      flex-direction: column;
     }
 
     .footer {

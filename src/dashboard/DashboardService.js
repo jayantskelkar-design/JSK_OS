@@ -20,8 +20,144 @@ JSKOS.DashboardService = (function () {
    */
   function getDashboard() {
     return {
-      summary: getSummary()
+      summary: getSummary(),
+      renewals: getRenewalSummary()
     };
+  }
+
+  /**
+   * Returns renewal intelligence metrics for the dashboard.
+   *
+   * @param {Date=} referenceDate
+   * @return {Object}
+   */
+  function getRenewalSummary(referenceDate) {
+    try {
+      return summarizeRenewals_(
+        collectPolicies_(new PolicyRepository()),
+        referenceDate || new Date()
+      );
+    } catch (error) {
+      console.warn(
+        'Renewal dashboard unavailable: ' +
+        getErrorMessage_(error)
+      );
+
+      return emptyRenewalSummary_(referenceDate || new Date());
+    }
+  }
+
+  /**
+   * Builds deterministic renewal buckets from policy records.
+   * Exposed through summarizeRenewals() to support boundary tests.
+   *
+   * @param {Object[]} policies
+   * @param {Date=} referenceDate
+   * @return {Object}
+   * @private
+   */
+  function summarizeRenewals_(policies, referenceDate) {
+    var summary = emptyRenewalSummary_(referenceDate || new Date());
+    var eligibleStatuses = {
+      issued: true,
+      active: true,
+      'renewal due': true
+    };
+    var today = startOfDay_(referenceDate || new Date());
+    var dayMilliseconds = 24 * 60 * 60 * 1000;
+
+    (Array.isArray(policies) ? policies : []).forEach(function (policy) {
+      var status = String(policy && policy.policyStatus || '')
+        .trim()
+        .toLowerCase();
+
+      if (status === 'renewed') {
+        summary.renewed += 1;
+        return;
+      }
+
+      if (!eligibleStatuses[status]) return;
+
+      var renewalDate = startOfDay_(policy && policy.renewalDate);
+      if (!renewalDate) return;
+
+      var daysUntilRenewal = Math.round(
+        (renewalDate.getTime() - today.getTime()) /
+        dayMilliseconds
+      );
+
+      if (daysUntilRenewal < 0) {
+        summary.overdue += 1;
+      } else if (daysUntilRenewal <= 30) {
+        summary.due30Days += 1;
+      } else if (daysUntilRenewal <= 60) {
+        summary.due60Days += 1;
+      } else if (daysUntilRenewal <= 90) {
+        summary.due90Days += 1;
+      }
+    });
+
+    return summary;
+  }
+
+  /** @private */
+  function collectPolicies_(repository) {
+    var policies = [];
+    var page = 1;
+    var result;
+
+    do {
+      result = repository.search({
+        includeDeleted: false,
+        page: page,
+        pageSize: 200
+      });
+
+      if (result && Array.isArray(result.items)) {
+        policies = policies.concat(result.items);
+      }
+
+      page += 1;
+    } while (
+      result &&
+      result.pagination &&
+      result.pagination.hasNext
+    );
+
+    return policies;
+  }
+
+  /** @private */
+  function emptyRenewalSummary_(referenceDate) {
+    var date = startOfDay_(referenceDate) || startOfDay_(new Date());
+
+    return {
+      due30Days: 0,
+      due60Days: 0,
+      due90Days: 0,
+      overdue: 0,
+      renewed: 0,
+      asOf: date.toISOString()
+    };
+  }
+
+  /** @private */
+  function startOfDay_(value) {
+    if (
+      value === null ||
+      value === undefined ||
+      String(value).trim() === ''
+    ) {
+      return null;
+    }
+
+    var date = value instanceof Date
+      ? new Date(value.getTime())
+      : new Date(value);
+
+    if (isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
   }
 
   /**
@@ -128,6 +264,8 @@ JSKOS.DashboardService = (function () {
 
   return {
     getDashboard: getDashboard,
-    getSummary: getSummary
+    getSummary: getSummary,
+    getRenewalSummary: getRenewalSummary,
+    summarizeRenewals: summarizeRenewals_
   };
 })();

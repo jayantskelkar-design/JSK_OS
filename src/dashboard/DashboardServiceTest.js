@@ -37,6 +37,27 @@ function testDashboardService() {
     'Dashboard summary is unavailable.'
   );
 
+  assertDashboardService_(
+    dashboard.renewals &&
+      typeof dashboard.renewals === 'object',
+    'Renewal dashboard is unavailable.'
+  );
+
+  [
+    'due30Days',
+    'due60Days',
+    'due90Days',
+    'overdue',
+    'renewed'
+  ].forEach(function (metricName) {
+    validateDashboardMetric_(
+      dashboard.renewals[metricName],
+      'renewals.' + metricName
+    );
+  });
+
+  testRenewalDashboardBoundaries_();
+
   validateDashboardMetric_(
     dashboard.summary.companies,
     'companies'
@@ -114,4 +135,24 @@ function assertDashboardService_(condition, message) {
       'DashboardService Test Failed: ' + message
     );
   }
+}
+
+function testRenewalDashboardBoundaries_() {
+  var referenceDate = new Date(2026, 7, 1);
+  var summary = JSKOS.DashboardService.summarizeRenewals([
+    { policyStatus: 'Active', renewalDate: new Date(2026, 6, 31) },
+    { policyStatus: 'Active', renewalDate: new Date(2026, 7, 1) },
+    { policyStatus: 'Renewal Due', renewalDate: new Date(2026, 7, 31) },
+    { policyStatus: 'Issued', renewalDate: new Date(2026, 8, 1) },
+    { policyStatus: 'Active', renewalDate: new Date(2026, 8, 30) },
+    { policyStatus: 'Active', renewalDate: new Date(2026, 9, 1) },
+    { policyStatus: 'Renewed', renewalDate: new Date(2026, 7, 10) },
+    { policyStatus: 'Cancelled', renewalDate: new Date(2026, 7, 10) }
+  ], referenceDate);
+
+  assertDashboardService_(summary.overdue === 1, 'Overdue boundary failed.');
+  assertDashboardService_(summary.due30Days === 2, '30-day boundary failed.');
+  assertDashboardService_(summary.due60Days === 2, '60-day boundary failed.');
+  assertDashboardService_(summary.due90Days === 1, '90-day boundary failed.');
+  assertDashboardService_(summary.renewed === 1, 'Renewed count failed.');
 }

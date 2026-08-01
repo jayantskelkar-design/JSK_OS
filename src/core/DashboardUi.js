@@ -14,10 +14,14 @@ function renderEnterpriseDashboardUi() {
       'dashboard'
     );
 
-  model.dashboard =
-    JSKOS.DashboardService
-      .getDashboard()
-      .summary;
+  var dashboard =
+    JSKOS.DashboardService.getDashboard();
+
+  model.dashboard = Object.assign(
+    {},
+    dashboard.summary,
+    { renewals: dashboard.renewals }
+  );
 
   Object.keys(model).forEach(function (key) {
     template[key] = model[key];
