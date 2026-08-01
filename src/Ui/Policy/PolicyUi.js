@@ -16,7 +16,7 @@ function renderPolicyUi(options) {
   );
 
   template.applicationName = JSKOS.Config.APP.NAME;
-  template.applicationVersion = '1.0.0';
+  template.applicationVersion = JSKOS.Config.APP.VERSION;
   template.currentUser =
     JSKOS.ConfigService.getCurrentUser();
   template.routeUrls = JSKOS.Router.getRouteUrls();
