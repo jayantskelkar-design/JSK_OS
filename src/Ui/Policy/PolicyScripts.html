@@ -91,6 +91,12 @@
         document.getElementById('savePolicyButton');
       elements.toastContainer =
         document.getElementById('toastContainer');
+      elements.workModal = document.getElementById('workModal');
+      elements.workForm = document.getElementById('workForm');
+      elements.workPolicyLabel = document.getElementById('workPolicyLabel');
+      elements.closeWorkModalButton = document.getElementById('closeWorkModalButton');
+      elements.cancelWorkModalButton = document.getElementById('cancelWorkModalButton');
+      elements.saveWorkButton = document.getElementById('saveWorkButton');
     }
 
     function bindEvents() {
@@ -199,6 +205,13 @@
         'click',
         handleTableAction
       );
+
+      elements.closeWorkModalButton.addEventListener('click', closeWorkModal);
+      elements.cancelWorkModalButton.addEventListener('click', closeWorkModal);
+      elements.workModal.addEventListener('click', function (event) {
+        if (event.target === elements.workModal) closeWorkModal();
+      });
+      elements.workForm.addEventListener('submit', handleWorkSubmit);
 
       bindPremiumCalculation();
       bindDateDefaults();
@@ -424,7 +437,11 @@
                     'data-policy-id="' +
                     escapeAttribute(policy.policyId) +
                     '">Restore</button>'
-                  : '<button class="action-button" data-action="edit" ' +
+                  : '<button class="action-button" data-action="work" ' +
+                    'data-policy-id="' +
+                    escapeAttribute(policy.policyId) +
+                    '">Quick Update</button>' +
+                    '<button class="action-button" data-action="edit" ' +
                     'data-policy-id="' +
                     escapeAttribute(policy.policyId) +
                     '">Edit</button>' +
@@ -487,6 +504,8 @@
 
       if (action === 'edit') {
         loadPolicyForEdit(policyId);
+      } else if (action === 'work') {
+        loadPolicyForWork(policyId);
       } else if (action === 'archive') {
         archivePolicy(policyId);
       } else if (action === 'restore') {
@@ -629,6 +648,88 @@
         .finally(function () {
           setSaveButtonLoading(false);
         });
+    }
+
+    function loadPolicyForWork(policyId) {
+      setLoading(true);
+      callServer('apiPolicyGet', {
+        policyId: policyId,
+        includeDeleted: false
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+          openWorkModal(response.data);
+        })
+        .catch(function (error) {
+          showToast(getErrorMessage(error), 'error');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function openWorkModal(policy) {
+      elements.workForm.reset();
+      document.getElementById('workPolicyId').value = policy.policyId || '';
+      document.getElementById('workRecordVersion').value = policy.recordVersion || '';
+      document.getElementById('workRenewalStage').value = policy.renewalStage || 'Call Pending';
+      document.getElementById('workAssignedOwner').value = policy.assignedOwner || '';
+      document.getElementById('workNextActionDate').value = formatDateForInput(policy.nextActionDate);
+      document.getElementById('workFollowUpNotes').value = policy.followUpNotes || '';
+      elements.workPolicyLabel.textContent =
+        (policy.policyNumber || policy.policyId) + ' · ' +
+        (policy.insuredName || 'Unnamed insured');
+      elements.workModal.classList.remove('hidden');
+    }
+
+    function closeWorkModal() {
+      if (elements.saveWorkButton.disabled) return;
+      elements.workModal.classList.add('hidden');
+      elements.workForm.reset();
+    }
+
+    function handleWorkSubmit(event) {
+      event.preventDefault();
+      var payload = {
+        policyId: document.getElementById('workPolicyId').value,
+        expectedVersion: Number(document.getElementById('workRecordVersion').value) || undefined,
+        actor: 'JSK OS Work Management',
+        data: {
+          renewalStage: document.getElementById('workRenewalStage').value,
+          assignedOwner: document.getElementById('workAssignedOwner').value.trim(),
+          nextActionDate: document.getElementById('workNextActionDate').value,
+          followUpNotes: document.getElementById('workFollowUpNotes').value.trim()
+        }
+      };
+
+      setWorkButtonLoading(true);
+      callServer('apiPolicyUpdate', payload)
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+          setWorkButtonLoading(false);
+          closeWorkModal();
+          showToast('Renewal work updated successfully.', 'success');
+          state.page = 1;
+          loadPolicyFilters();
+          loadPolicies();
+        })
+        .catch(function (error) {
+          var details = error && error.details ? error.details : {};
+          if (details.code === 'VERSION_CONFLICT' && details.currentVersion) {
+            document.getElementById('workRecordVersion').value = details.currentVersion;
+            showToast('Record changed. Review and click Save Work again.', 'warning');
+          } else {
+            showToast(getErrorMessage(error), 'error');
+          }
+        })
+        .finally(function () {
+          setWorkButtonLoading(false);
+        });
+    }
+
+    function setWorkButtonLoading(isLoading) {
+      elements.saveWorkButton.disabled = Boolean(isLoading);
+      elements.saveWorkButton.textContent = isLoading ? 'Saving...' : 'Save Work';
     }
 
     function handlePolicyVersionConflict(error) {
