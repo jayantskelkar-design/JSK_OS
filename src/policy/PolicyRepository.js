@@ -103,6 +103,9 @@ class PolicyRepository {
       if (!record['Policy Status']) {
         record['Policy Status'] = 'Active';
       }
+      if (!record['Renewal Stage']) {
+        record['Renewal Stage'] = 'Call Pending';
+      }
 
       var targetRow = repository.sheet.getLastRow() + 1;
       repository.sheet
@@ -213,6 +216,9 @@ class PolicyRepository {
 
       var updated = Object.assign({}, existing);
       repository._applyPolicyFields(updated, normalizedChanges);
+      if (!updated['Renewal Stage']) {
+        updated['Renewal Stage'] = 'Call Pending';
+      }
 
       var errors = repository._validateForUpdate(updated);
       if (errors.length) {
@@ -610,6 +616,9 @@ class PolicyRepository {
 
   _recordToRow(record) {
     return this.headers.map(function (header) {
+      if (header === 'Renewal Stage' && !record[header]) {
+        return 'Call Pending';
+      }
       return header ? record[header] : '';
     });
   }
