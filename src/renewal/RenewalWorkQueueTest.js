@@ -16,5 +16,8 @@ function testRenewalWorkQueue() {
   if (result.items.length !== 3 || result.items[0].policyId !== 'OVERDUE') {
     throw new Error('Work queue ordering failed.');
   }
+  if (result.items[1].nextActionDate !== '2026-08-01') {
+    throw new Error('Work queue local date formatting failed.');
+  }
   return { success: true, summary: result.summary };
 }

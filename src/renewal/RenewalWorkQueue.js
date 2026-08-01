@@ -33,7 +33,7 @@ JSKOS.RenewalWorkQueue = (function () {
         policyNumber: String(policy.policyNumber || policy.policyId || 'Unnumbered'),
         insuredName: String(policy.insuredName || 'Unknown Client'),
         assignedOwner: owner || 'Unassigned',
-        nextActionDate: actionDate.toISOString(),
+        nextActionDate: formatLocalDate_(actionDate),
         daysUntilAction: daysUntilAction,
         renewalStage: policy.renewalStage || 'Call Pending',
         followUpNotes: String(policy.followUpNotes || ''),
@@ -69,6 +69,14 @@ JSKOS.RenewalWorkQueue = (function () {
 
   function daysBetween_(fromDate, toDate) {
     return Math.round((toDate.getTime() - fromDate.getTime()) / (24 * 60 * 60 * 1000));
+  }
+
+  function formatLocalDate_(date) {
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0')
+    ].join('-');
   }
 
   return { build: build };

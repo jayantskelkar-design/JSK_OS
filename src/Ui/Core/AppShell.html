@@ -204,7 +204,7 @@
                   <span class="work-state work-state-<?= item.state.toLowerCase() ?>"><?= item.state ?></span>
                   <div><strong><?= item.insuredName ?></strong><span><?= item.policyNumber ?> · <?= item.renewalStage ?></span></div>
                   <div><span>Owner</span><strong><?= item.assignedOwner ?></strong></div>
-                  <div><span>Action Date</span><strong><?= item.nextActionDate.substring(0, 10) ?></strong></div>
+                  <div><span>Action Date</span><strong><?= item.nextActionDate ?></strong></div>
                   <div><span>Notes</span><strong><?= item.followUpNotes || 'No notes' ?></strong></div>
                 </article>
               <? }); ?>
