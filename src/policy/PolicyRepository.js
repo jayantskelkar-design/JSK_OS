@@ -236,9 +236,12 @@ class PolicyRepository {
       updated['Record Version'] = currentVersion + 1;
       updated['Is Deleted'] = false;
 
-      repository.sheet
-        .getRange(rowNumber, 1, 1, repository.headers.length)
-        .setValues([repository._recordToRow(updated)]);
+      repository._writeUpdatedFields(
+        rowNumber,
+        existing,
+        updated,
+        normalizedChanges
+      );
       SpreadsheetApp.flush();
 
       repository._writeAuditLogSafely({
@@ -621,6 +624,43 @@ class PolicyRepository {
       }
       return header ? record[header] : '';
     });
+  }
+
+  _writeUpdatedFields(rowNumber, existing, updated, normalizedChanges) {
+    var headersToWrite = {};
+
+    Object.keys(normalizedChanges || {}).forEach(function (header) {
+      if (!this._valuesEqual(existing[header], updated[header])) {
+        headersToWrite[header] = true;
+      }
+    }, this);
+
+    [
+      'Updated At',
+      'Updated By',
+      'Record Version',
+      'Is Deleted'
+    ].forEach(function (header) {
+      headersToWrite[header] = true;
+    });
+
+    Object.keys(headersToWrite).forEach(function (header) {
+      var columnIndex = this.headerMap[header];
+      if (columnIndex === undefined) return;
+      this.sheet
+        .getRange(rowNumber, columnIndex + 1)
+        .setValue(updated[header]);
+    }, this);
+  }
+
+  _valuesEqual(left, right) {
+    if (left instanceof Date && right instanceof Date) {
+      return left.getTime() === right.getTime();
+    }
+    if (this._isBlank(left) && this._isBlank(right)) {
+      return true;
+    }
+    return String(left) === String(right);
   }
 
   _createEmptyRecord() {
