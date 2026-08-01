@@ -10,7 +10,7 @@
  */
 
 var JSK_POLICY_SCHEMA = Object.freeze({
-  VERSION: 3,
+  VERSION: 4,
   SHEET_NAME: 'Policies',
   AUDIT_SHEET_NAME: 'Audit_Log',
   HEADER_ROW: 1,
@@ -224,6 +224,7 @@ function migratePolicyDatabase() {
     }
 
     formatPolicySheet_(sheet, headerRow);
+    backfillPolicyRenewalStages_(sheet, headerRow);
     configurePolicyValidations_(sheet, headerRow);
     ensurePolicyAuditSheet_(spreadsheet);
     savePolicySchemaVersion_();
@@ -249,6 +250,54 @@ function migratePolicyDatabase() {
   } finally {
     lock.releaseLock();
   }
+}
+
+/**
+ * Normalizes legacy blank renewal stages before strict validation is applied.
+ * @private
+ */
+function backfillPolicyRenewalStages_(sheet, headerRow) {
+  var headers = readPolicyHeaders_(sheet, headerRow);
+  var policyIdIndex = headers.indexOf('Policy ID');
+  var renewalStageIndex = headers.indexOf('Renewal Stage');
+  var lastRow = sheet.getLastRow();
+
+  if (
+    policyIdIndex === -1 ||
+    renewalStageIndex === -1 ||
+    lastRow <= headerRow
+  ) {
+    return 0;
+  }
+
+  var rowCount = lastRow - headerRow;
+  var policyIds = sheet
+    .getRange(headerRow + 1, policyIdIndex + 1, rowCount, 1)
+    .getDisplayValues();
+  var stageRange = sheet.getRange(
+    headerRow + 1,
+    renewalStageIndex + 1,
+    rowCount,
+    1
+  );
+  var stages = stageRange.getValues();
+  var changed = 0;
+
+  stages.forEach(function (row, index) {
+    if (
+      String(policyIds[index][0] || '').trim() &&
+      !String(row[0] || '').trim()
+    ) {
+      row[0] = 'Call Pending';
+      changed += 1;
+    }
+  });
+
+  if (changed) {
+    stageRange.setValues(stages);
+  }
+
+  return changed;
 }
 
 /** @private @return {number} */
