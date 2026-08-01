@@ -85,9 +85,9 @@
         </button>
 
         <div>
-          <h1>JSK Policy Management</h1>
+          <h1><?= workMode ? 'Renewal Work Management' : 'JSK Policy Management' ?></h1>
           <p>
-            Manage policy protection, renewals and coverage records.
+            <?= workMode ? 'Assign, schedule and progress renewal follow-ups.' : 'Manage policy protection, renewals and coverage records.' ?>
           </p>
         </div>
 
@@ -176,6 +176,22 @@
               <option value="Lapsed">Lapsed</option>
               <option value="Cancelled">Cancelled</option>
               <option value="Rejected">Rejected</option>
+            </select>
+
+            <select id="renewalStageFilter" class="filter-select">
+              <option value="">All Renewal Stages</option>
+            </select>
+
+            <select id="actionWindowFilter" class="filter-select">
+              <option value="">All Action Dates</option>
+              <option value="today">Today</option>
+              <option value="overdue">Overdue</option>
+              <option value="next7">Next 7 Days</option>
+              <option value="unassigned">Unassigned</option>
+            </select>
+
+            <select id="assignedOwnerFilter" class="filter-select">
+              <option value="">All Owners</option>
             </select>
 
             <select id="policyTypeFilter" class="filter-select">
@@ -509,6 +525,21 @@
           </div>
 
           <div class="form-group">
+            <label for="assignedOwner">Assigned Owner</label>
+            <input type="text" id="assignedOwner" maxlength="150">
+          </div>
+
+          <div class="form-group">
+            <label for="nextActionDate">Next Action Date</label>
+            <input type="date" id="nextActionDate">
+          </div>
+
+          <div class="form-group form-group-wide">
+            <label for="followUpNotes">Follow-up Notes</label>
+            <textarea id="followUpNotes" rows="3" maxlength="2000"></textarea>
+          </div>
+
+          <div class="form-group">
             <label for="previousPolicyNumber">Previous Policy Number</label>
             <input
               type="text"
@@ -578,6 +609,64 @@
           >
             Save Policy
           </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div
+    class="modal-backdrop hidden"
+    id="workModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="workModalTitle"
+  >
+    <div class="modal-card work-modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 id="workModalTitle">Quick Renewal Update</h2>
+          <p id="workPolicyLabel">Update the next renewal action.</p>
+        </div>
+        <button type="button" class="modal-close-button" id="closeWorkModalButton" aria-label="Close">×</button>
+      </div>
+
+      <form id="workForm">
+        <input type="hidden" id="workPolicyId">
+        <input type="hidden" id="workRecordVersion">
+        <div class="form-grid work-form-grid">
+          <div class="form-group">
+            <label for="workRenewalStage">Renewal Stage</label>
+            <select id="workRenewalStage" required>
+              <option value="Call Pending">Call Pending</option>
+              <option value="WhatsApp Sent">WhatsApp Sent</option>
+              <option value="Quote Sent">Quote Sent</option>
+              <option value="Negotiation">Negotiation</option>
+              <option value="Won">Won</option>
+              <option value="Lost">Lost</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="workAssignedOwner">Assigned Owner</label>
+            <input type="text" id="workAssignedOwner" maxlength="150">
+          </div>
+          <div class="form-group">
+            <label for="workNextActionDate">Next Action Date</label>
+            <input type="date" id="workNextActionDate">
+          </div>
+          <div class="form-group form-group-wide">
+            <label for="workFollowUpNotes">Follow-up Notes</label>
+            <textarea id="workFollowUpNotes" rows="4" maxlength="2000"></textarea>
+          </div>
+          <div class="form-group form-group-wide work-history-section">
+            <div class="work-history-heading">Follow-up Activity History</div>
+            <div id="workHistoryList" class="work-history-list">
+              <div class="work-history-empty">Loading history...</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="button button-secondary" id="cancelWorkModalButton">Cancel</button>
+          <button type="submit" class="button button-primary" id="saveWorkButton">Save Work</button>
         </div>
       </form>
     </div>

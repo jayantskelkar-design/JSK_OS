@@ -23,6 +23,7 @@ var JSK_POLICY_REPOSITORY_CONFIG = Object.freeze({
     'Family ID', 'Insured Name', 'Risk Category', 'Sum Insured',
     'Net Premium', 'GST Amount', 'Total Premium', 'Start Date',
     'End Date', 'Renewal Date', 'Policy Status', 'Renewal Stage',
+    'Assigned Owner', 'Next Action Date', 'Follow-up Notes',
     'Payment Frequency',
     'Agent / Broker', 'Branch', 'Nominee', 'Policy Document URL',
     'Previous Policy Number', 'Claims Count', 'Last Claim Date',
@@ -34,13 +35,13 @@ var JSK_POLICY_REPOSITORY_CONFIG = Object.freeze({
     'Policy ID', 'Policy Number', 'Proposal Number', 'Policy Type',
     'Product Name', 'Insurer Name', 'Company ID', 'Person ID',
     'Family ID', 'Insured Name', 'Risk Category', 'Policy Status',
-    'Renewal Stage',
+    'Renewal Stage', 'Assigned Owner', 'Follow-up Notes',
     'Agent / Broker', 'Branch', 'Nominee', 'Previous Policy Number',
     'Remarks'
   ]),
 
   DATE_HEADERS: Object.freeze([
-    'Start Date', 'End Date', 'Renewal Date', 'Last Claim Date',
+    'Start Date', 'End Date', 'Renewal Date', 'Next Action Date', 'Last Claim Date',
     'Created At', 'Updated At'
   ]),
 
@@ -101,6 +102,9 @@ class PolicyRepository {
 
       if (!record['Policy Status']) {
         record['Policy Status'] = 'Active';
+      }
+      if (!record['Renewal Stage']) {
+        record['Renewal Stage'] = 'Call Pending';
       }
 
       var targetRow = repository.sheet.getLastRow() + 1;
@@ -212,6 +216,9 @@ class PolicyRepository {
 
       var updated = Object.assign({}, existing);
       repository._applyPolicyFields(updated, normalizedChanges);
+      if (!updated['Renewal Stage']) {
+        updated['Renewal Stage'] = 'Call Pending';
+      }
 
       var errors = repository._validateForUpdate(updated);
       if (errors.length) {
@@ -229,9 +236,12 @@ class PolicyRepository {
       updated['Record Version'] = currentVersion + 1;
       updated['Is Deleted'] = false;
 
-      repository.sheet
-        .getRange(rowNumber, 1, 1, repository.headers.length)
-        .setValues([repository._recordToRow(updated)]);
+      repository._writeUpdatedFields(
+        rowNumber,
+        existing,
+        updated,
+        normalizedChanges
+      );
       SpreadsheetApp.flush();
 
       repository._writeAuditLogSafely({
@@ -290,8 +300,15 @@ class PolicyRepository {
       familyId: this._normalizeText(criteria.familyId).toUpperCase(),
       policyStatus: this._normalizeText(criteria.policyStatus).toLowerCase(),
       renewalStage: this._normalizeText(criteria.renewalStage).toLowerCase(),
+      assignedOwner: this._normalizeText(criteria.assignedOwner).toLowerCase(),
       riskCategory: this._normalizeText(criteria.riskCategory).toLowerCase()
     };
+
+    var actionWindow = this._normalizeText(criteria.actionWindow).toLowerCase();
+    var actionToday = new Date();
+    actionToday.setHours(0, 0, 0, 0);
+    var actionNext7 = new Date(actionToday.getTime());
+    actionNext7.setDate(actionNext7.getDate() + 7);
 
     var startFrom = criteria.renewalFrom
       ? this._toDate(criteria.renewalFrom)
@@ -318,7 +335,15 @@ class PolicyRepository {
       if (!this._matchesExactUpper(record['Family ID'], filters.familyId)) return false;
       if (!this._matchesExact(record['Policy Status'], filters.policyStatus)) return false;
       if (!this._matchesExact(record['Renewal Stage'], filters.renewalStage)) return false;
+      if (!this._matchesExact(record['Assigned Owner'], filters.assignedOwner)) return false;
       if (!this._matchesExact(record['Risk Category'], filters.riskCategory)) return false;
+
+      var actionDate = this._toDate(record['Next Action Date']);
+      if (actionDate) actionDate.setHours(0, 0, 0, 0);
+      if (actionWindow === 'today' && (!actionDate || actionDate.getTime() !== actionToday.getTime())) return false;
+      if (actionWindow === 'overdue' && (!actionDate || actionDate.getTime() >= actionToday.getTime())) return false;
+      if (actionWindow === 'next7' && (!actionDate || actionDate.getTime() <= actionToday.getTime() || actionDate.getTime() > actionNext7.getTime())) return false;
+      if (actionWindow === 'unassigned' && this._normalizeText(record['Assigned Owner'])) return false;
 
       var renewalDate = this._toDate(record['Renewal Date']);
       if (startFrom && (!renewalDate || renewalDate.getTime() < startFrom.getTime())) return false;
@@ -609,8 +634,98 @@ class PolicyRepository {
 
   _recordToRow(record) {
     return this.headers.map(function (header) {
+      if (header === 'Renewal Stage' && !record[header]) {
+        return 'Call Pending';
+      }
       return header ? record[header] : '';
     });
+  }
+
+  getRenewalHistory(policyId, limit) {
+    var normalizedId = this._normalizeRequiredId(policyId);
+    var auditSheet = this.spreadsheet.getSheetByName(
+      JSK_POLICY_REPOSITORY_CONFIG.AUDIT_SHEET_NAME
+    );
+    if (!auditSheet || auditSheet.getLastRow() <= 1) return [];
+
+    var maxItems = Math.min(50, Math.max(1, Number(limit) || 20));
+    var values = auditSheet
+      .getRange(2, 1, auditSheet.getLastRow() - 1, 8)
+      .getValues();
+    var tracked = [
+      'Renewal Stage', 'Assigned Owner',
+      'Next Action Date', 'Follow-up Notes'
+    ];
+    var history = [];
+
+    for (var index = values.length - 1; index >= 0; index--) {
+      var row = values[index];
+      if (this._normalizeText(row[3]).toUpperCase() !== normalizedId) continue;
+      var before = this._parseAuditData(row[6]);
+      var after = this._parseAuditData(row[7]);
+      var changes = [];
+
+      tracked.forEach(function (header) {
+        var oldValue = before[header] || '';
+        var newValue = after[header] || '';
+        if (!this._valuesEqual(oldValue, newValue)) {
+          changes.push({
+            field: header,
+            before: oldValue,
+            after: newValue
+          });
+        }
+      }, this);
+
+      if (!changes.length) continue;
+      history.push({
+        auditId: String(row[0] || ''),
+        timestamp: this._formatDateTimeForApi(row[1]),
+        action: String(row[4] || ''),
+        actor: String(row[5] || 'SYSTEM'),
+        changes: changes
+      });
+      if (history.length >= maxItems) break;
+    }
+
+    return history;
+  }
+
+  _writeUpdatedFields(rowNumber, existing, updated, normalizedChanges) {
+    var headersToWrite = {};
+
+    Object.keys(normalizedChanges || {}).forEach(function (header) {
+      if (!this._valuesEqual(existing[header], updated[header])) {
+        headersToWrite[header] = true;
+      }
+    }, this);
+
+    [
+      'Updated At',
+      'Updated By',
+      'Record Version',
+      'Is Deleted'
+    ].forEach(function (header) {
+      headersToWrite[header] = true;
+    });
+
+    Object.keys(headersToWrite).forEach(function (header) {
+      var columnIndex = this.headerMap[header];
+      if (columnIndex === undefined) return;
+      this.sheet
+        .getRange(rowNumber, columnIndex + 1)
+        .setValue(updated[header]);
+    }, this);
+  }
+
+  _valuesEqual(left, right) {
+    if (left instanceof Date && right instanceof Date) {
+      return left.getTime() === right.getTime();
+    }
+    if (this._isBlank(left) && this._isBlank(right)) {
+      return true;
+    }
+    return String(left) === String(right);
   }
 
   _createEmptyRecord() {
@@ -655,6 +770,8 @@ class PolicyRepository {
       gstAmount: 'GST Amount', totalPremium: 'Total Premium',
       startDate: 'Start Date', endDate: 'End Date', renewalDate: 'Renewal Date',
       policyStatus: 'Policy Status', renewalStage: 'Renewal Stage',
+      assignedOwner: 'Assigned Owner', nextActionDate: 'Next Action Date',
+      followUpNotes: 'Follow-up Notes',
       paymentFrequency: 'Payment Frequency',
       agentBroker: 'Agent / Broker', branch: 'Branch', nominee: 'Nominee',
       policyDocumentUrl: 'Policy Document URL',
@@ -852,6 +969,26 @@ class PolicyRepository {
         : record[key];
     }, this);
     return JSON.stringify(serializable);
+  }
+
+  _parseAuditData(value) {
+    if (!value) return {};
+    try {
+      var parsed = typeof value === 'string' ? JSON.parse(value) : value;
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  _formatDateTimeForApi(value) {
+    var date = value instanceof Date ? value : new Date(value);
+    if (isNaN(date.getTime())) return '';
+    return Utilities.formatDate(
+      date,
+      Session.getScriptTimeZone() || 'Asia/Kolkata',
+      'yyyy-MM-dd HH:mm:ss'
+    );
   }
 
   _writeAuditLogSafely(entry) {

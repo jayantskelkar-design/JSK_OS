@@ -9,16 +9,18 @@
  *
  * @return {GoogleAppsScript.HTML.HtmlOutput} Policy Management page.
  */
-function renderPolicyUi() {
+function renderPolicyUi(options) {
+  options = options || {};
   var template = HtmlService.createTemplateFromFile(
     'Ui/Policy/Policy'
   );
 
   template.applicationName = JSKOS.Config.APP.NAME;
-  template.applicationVersion = '1.0.0';
+  template.applicationVersion = JSKOS.Config.APP.VERSION;
   template.currentUser =
     JSKOS.ConfigService.getCurrentUser();
   template.routeUrls = JSKOS.Router.getRouteUrls();
+  template.workMode = Boolean(options.workMode);
 
   return template
     .evaluate()

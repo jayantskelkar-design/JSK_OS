@@ -178,6 +178,40 @@
           <? } ?>
         </section>
 
+        <section class="panel work-queue-panel">
+          <div class="panel-header renewal-panel-header">
+            <div>
+              <span class="eyebrow">Build 1003 · Phase 1</span>
+              <h3>Renewal Work Queue</h3>
+              <p>Today's assigned actions and overdue follow-ups.</p>
+            </div>
+            <a class="panel-link" href="<?= routeUrls.policies ?>&mode=work">Manage Work</a>
+          </div>
+
+          <div class="work-queue-summary">
+            <article><span>Today</span><strong><?= dashboard.workQueue.summary.dueToday ?></strong></article>
+            <article class="work-overdue"><span>Overdue</span><strong><?= dashboard.workQueue.summary.overdue ?></strong></article>
+            <article><span>Next 7 Days</span><strong><?= dashboard.workQueue.summary.next7Days ?></strong></article>
+            <article><span>Unassigned</span><strong><?= dashboard.workQueue.summary.unassigned ?></strong></article>
+          </div>
+
+          <? if (dashboard.workQueue.items.length === 0) { ?>
+            <div class="garuda-empty">No work queue actions due in the next seven days.</div>
+          <? } else { ?>
+            <div class="work-queue-list">
+              <? dashboard.workQueue.items.forEach(function (item) { ?>
+                <article>
+                  <span class="work-state work-state-<?= item.state.toLowerCase() ?>"><?= item.state ?></span>
+                  <div><strong><?= item.insuredName ?></strong><span><?= item.policyNumber ?> · <?= item.renewalStage ?></span></div>
+                  <div><span>Owner</span><strong><?= item.assignedOwner ?></strong></div>
+                  <div><span>Action Date</span><strong><?= item.nextActionDate ?></strong></div>
+                  <div><span>Notes</span><strong><?= item.followUpNotes || 'No notes' ?></strong></div>
+                </article>
+              <? }); ?>
+            </div>
+          <? } ?>
+        </section>
+
         <section class="panel">
           <div class="panel-header">
             <div>

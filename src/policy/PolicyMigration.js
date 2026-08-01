@@ -10,7 +10,7 @@
  */
 
 var JSK_POLICY_SCHEMA = Object.freeze({
-  VERSION: 2,
+  VERSION: 5,
   SHEET_NAME: 'Policies',
   AUDIT_SHEET_NAME: 'Audit_Log',
   HEADER_ROW: 1,
@@ -39,6 +39,9 @@ var JSK_POLICY_SCHEMA = Object.freeze({
     'Renewal Date',
     'Policy Status',
     'Renewal Stage',
+    'Assigned Owner',
+    'Next Action Date',
+    'Follow-up Notes',
     'Payment Frequency',
     'Agent / Broker',
     'Branch',
@@ -77,6 +80,9 @@ var JSK_POLICY_SCHEMA = Object.freeze({
     'Renewal Date': 115,
     'Policy Status': 135,
     'Renewal Stage': 150,
+    'Assigned Owner': 180,
+    'Next Action Date': 125,
+    'Follow-up Notes': 320,
     'Payment Frequency': 140,
     'Agent / Broker': 180,
     'Branch': 150,
@@ -218,6 +224,8 @@ function migratePolicyDatabase() {
     }
 
     formatPolicySheet_(sheet, headerRow);
+    clearPolicyValidations_(sheet, headerRow);
+    backfillPolicyRenewalStages_(sheet, headerRow);
     configurePolicyValidations_(sheet, headerRow);
     ensurePolicyAuditSheet_(spreadsheet);
     savePolicySchemaVersion_();
@@ -243,6 +251,60 @@ function migratePolicyDatabase() {
   } finally {
     lock.releaseLock();
   }
+}
+
+/**
+ * Normalizes legacy blank renewal stages before strict validation is applied.
+ * @private
+ */
+function backfillPolicyRenewalStages_(sheet, headerRow) {
+  var headers = readPolicyHeaders_(sheet, headerRow);
+  var policyIdIndex = headers.indexOf('Policy ID');
+  var renewalStageIndex = headers.indexOf('Renewal Stage');
+  var lastRow = sheet.getLastRow();
+
+  if (
+    policyIdIndex === -1 ||
+    renewalStageIndex === -1 ||
+    lastRow <= headerRow
+  ) {
+    return 0;
+  }
+
+  var rowCount = lastRow - headerRow;
+  var policyIds = sheet
+    .getRange(headerRow + 1, policyIdIndex + 1, rowCount, 1)
+    .getDisplayValues();
+  var stageRange = sheet.getRange(
+    headerRow + 1,
+    renewalStageIndex + 1,
+    rowCount,
+    1
+  );
+  var stages = stageRange.getValues();
+  var targetA1Ranges = [];
+
+  stages.forEach(function (row, index) {
+    if (
+      String(policyIds[index][0] || '').trim() &&
+      !String(row[0] || '').trim()
+    ) {
+      targetA1Ranges.push(
+        sheet.getRange(
+          headerRow + 1 + index,
+          renewalStageIndex + 1
+        ).getA1Notation()
+      );
+    }
+  });
+
+  if (targetA1Ranges.length) {
+    sheet
+      .getRangeList(targetA1Ranges)
+      .setValue('Call Pending');
+  }
+
+  return targetA1Ranges.length;
 }
 
 /** @private @return {number} */
@@ -484,6 +546,7 @@ function formatPolicySheet_(sheet, headerRow) {
     'Start Date',
     'End Date',
     'Renewal Date',
+    'Next Action Date',
     'Last Claim Date'
   ].forEach(function (header) {
     applyPolicyColumnFormat_(
@@ -651,6 +714,22 @@ function configurePolicyValidations_(sheet, headerRow) {
     JSK_POLICY_SCHEMA.BOOLEAN_VALUES,
     rowCount
   );
+}
+
+/**
+ * Removes stale validation rules left behind when schema columns move.
+ * The migration immediately reapplies the owned rules to canonical columns.
+ * @private
+ */
+function clearPolicyValidations_(sheet, headerRow) {
+  var headers = readPolicyHeaders_(sheet, headerRow);
+  var rowCount = Math.max(sheet.getMaxRows() - headerRow, 1);
+
+  if (!headers.length) return;
+
+  sheet
+    .getRange(headerRow + 1, 1, rowCount, headers.length)
+    .clearDataValidations();
 }
 
 /** @private */

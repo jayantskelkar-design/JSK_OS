@@ -15,7 +15,7 @@ function renderPeopleUi() {
   );
 
   template.applicationName = JSKOS.Config.APP.NAME;
-  template.applicationVersion = '1.2.0';
+  template.applicationVersion = JSKOS.Config.APP.VERSION;
   template.currentUser =
     JSKOS.ConfigService.getCurrentUser();
   template.routeUrls = JSKOS.Router.getRouteUrls();

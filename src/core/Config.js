@@ -9,7 +9,7 @@ var JSKOS = JSKOS || {};
 JSKOS.Config = Object.freeze({
   APP: Object.freeze({
     NAME: 'JSK OS',
-    VERSION: '1.0.0',
+    VERSION: '1.2.0-beta',
     ENVIRONMENT: 'PRODUCTION',
     TIMEZONE: 'Asia/Kolkata'
   }),

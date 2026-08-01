@@ -48,6 +48,10 @@ class PolicyService {
     return policy;
   }
 
+  getRenewalHistory(policyId, limit) {
+    return this.repository.getRenewalHistory(policyId, limit);
+  }
+
   update(policyId, payload, actor, expectedVersion) {
     return this.repository.update(
       policyId,
@@ -142,6 +146,19 @@ function apiPolicyGet(payload) {
         request.includeDeleted
       )
     });
+  });
+}
+
+/** Gets renewal-field activity for a policy. */
+function apiPolicyRenewalHistory(payload) {
+  return policyApiExecute_('renewalHistory', function () {
+    var request = policyNormalizeRequest_(payload);
+    var policyId = policyRequireText_(
+      request.policyId,
+      'policyId',
+      'Policy ID is required.'
+    );
+    return policyGetService_().getRenewalHistory(policyId, request.limit);
   });
 }
 

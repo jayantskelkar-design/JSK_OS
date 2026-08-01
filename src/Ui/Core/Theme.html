@@ -416,6 +416,20 @@
   .garuda-alert strong { color: #b42318; }
   .garuda-empty { margin-top: 18px; padding: 22px; border: 1px dashed var(--border); border-radius: 12px; color: var(--muted); text-align: center; }
 
+  .work-queue-summary { margin-top: 18px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .work-queue-summary article { padding: 15px; display: grid; gap: 6px; border: 1px solid var(--border); border-radius: 11px; background: #fbfcfd; }
+  .work-queue-summary span { color: var(--muted); font-size: 12px; }
+  .work-queue-summary strong { color: var(--navy); font-size: 25px; }
+  .work-queue-summary .work-overdue { border-color: #efb1ad; background: #fff7f6; }
+  .work-queue-list { margin-top: 14px; display: grid; gap: 9px; }
+  .work-queue-list > article { padding: 12px 14px; display: grid; grid-template-columns: 86px 1.2fr .8fr .8fr 1.4fr; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 11px; }
+  .work-queue-list > article > div { min-width: 0; display: grid; gap: 3px; }
+  .work-queue-list span { color: var(--muted); font-size: 11px; }
+  .work-queue-list strong { font-size: 12px; overflow-wrap: anywhere; }
+  .work-state { padding: 5px 8px; border-radius: 999px; background: #e9eef4; text-align: center; font-weight: 800; }
+  .work-state-overdue { background: #fee4e2; color: #b42318 !important; }
+  .work-state-today { background: #fff1c2; color: #785500 !important; }
+
   .panel-header p {
     margin-top: 5px;
     color: var(--muted);
@@ -761,6 +775,7 @@
 
   @media (max-width: 1050px) {
     .garuda-insight { grid-template-columns: 70px 1fr 1fr; }
+    .work-queue-list > article { grid-template-columns: 80px 1fr 1fr; }
     .topbar-title p {
       display: none;
     }
@@ -772,6 +787,7 @@
     .summary-grid,
     .renewal-grid,
     .pipeline-grid,
+    .work-queue-summary,
     .quick-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -780,6 +796,7 @@
   @media (max-width: 760px) {
     .garuda-header { align-items: flex-start; flex-direction: column; }
     .garuda-insight { grid-template-columns: 64px 1fr; }
+    .work-queue-list > article { grid-template-columns: 72px 1fr; }
     .sidebar {
       transform: translateX(-100%);
       transition: transform .2s ease;

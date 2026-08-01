@@ -25,7 +25,7 @@ JSKOS.RouteConfig = Object.freeze({
 function doGet(event) {
   bootstrapBuild1002Automation_();
   var route = JSKOS.Router.resolve(event);
-  return JSKOS.Router.render(route);
+  return JSKOS.Router.render(route, event);
 }
 
 /**
@@ -64,7 +64,7 @@ JSKOS.Router = Object.freeze({
     return route.key;
   },
 
-  render: function (route) {
+  render: function (route, event) {
     try {
       switch (route) {
         case 'companies':
@@ -74,7 +74,7 @@ JSKOS.Router = Object.freeze({
           return JSKOS.Router.renderPeople();
 
         case 'policies':
-          return JSKOS.Router.renderPolicies();
+          return JSKOS.Router.renderPolicies(event);
 
         case 'dashboard':
         default:
@@ -109,12 +109,16 @@ JSKOS.Router = Object.freeze({
     return renderPeopleUi();
   },
 
-  renderPolicies: function () {
+  renderPolicies: function (event) {
     if (typeof renderPolicyUi !== 'function') {
       throw new Error('renderPolicyUi() is unavailable.');
     }
 
-    return renderPolicyUi();
+    return renderPolicyUi({
+      workMode: Boolean(
+        event && event.parameter && event.parameter.mode === 'work'
+      )
+    });
   },
 
   /**

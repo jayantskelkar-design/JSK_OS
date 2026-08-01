@@ -628,6 +628,55 @@
     font-size: 11px;
   }
 
+  .work-modal-card {
+    width: min(720px, calc(100vw - 32px));
+  }
+
+  .work-form-grid {
+    padding: 24px;
+  }
+
+  .work-history-section {
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .work-history-heading {
+    margin-bottom: 10px;
+    color: var(--navy);
+    font-weight: 800;
+  }
+
+  .work-history-list {
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .work-history-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .work-history-item > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--navy);
+  }
+
+  .work-history-item span,
+  .work-history-empty {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .work-history-item ul {
+    margin: 8px 0 0;
+    padding-left: 18px;
+    color: var(--text);
+    font-size: 12px;
+  }
+
   .loading-state,
   .empty-state {
     min-height: 310px;
