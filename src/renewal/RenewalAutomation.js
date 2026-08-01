@@ -17,12 +17,15 @@ JSKOS.RenewalAutomation = (function () {
     DASHBOARD_RECIPIENTS_KEY: 'JSK_OS_RENEWAL_DASHBOARD_RECIPIENTS',
     LOG_SHEET: 'Renewal_Automation_Log',
     WHATSAPP_QUEUE_SHEET: 'Renewal_WhatsApp_Queue',
-    REMINDER_DAYS: Object.freeze([30, 7, 1, 0])
+    REMINDER_DAYS: Object.freeze([30, 7, 1, 0]),
+    ESCALATION_DAYS: 3
   });
 
   function runDaily(referenceDate) {
     var today = startOfDay_(referenceDate || new Date());
     var policies = collectPolicies_();
+    var followUpResult = synchronizeFollowUpActions_(policies, today);
+    if (followUpResult.updated) policies = collectPolicies_();
     var candidates = buildReminderCandidates_(policies, today);
     var peopleRepository = new PeopleRepository();
     var result = {
@@ -31,6 +34,9 @@ JSKOS.RenewalAutomation = (function () {
       whatsappQueued: 0,
       skipped: 0,
       dashboardSent: false,
+      actionsAutoCreated: followUpResult.created,
+      terminalActionsClosed: followUpResult.closed,
+      overdueEscalations: 0,
       generatedAt: new Date().toISOString()
     };
 
@@ -57,8 +63,83 @@ JSKOS.RenewalAutomation = (function () {
       if (!contact.email && !contact.whatsapp) result.skipped += 1;
     });
 
-    result.dashboardSent = sendDailyDashboard_(policies, today);
+    var dashboardResult = sendDailyDashboard_(policies, today);
+    result.dashboardSent = dashboardResult.sent;
+    result.overdueEscalations = dashboardResult.escalations;
     return result;
+  }
+
+  function synchronizeFollowUpActions_(policies, today) {
+    var plan = buildFollowUpPlan_(policies, today);
+    var repository = new PolicyRepository();
+    var result = { created: 0, closed: 0, updated: 0 };
+
+    plan.forEach(function (item) {
+      try {
+        repository.update(
+          item.policyId,
+          item.data,
+          'GARUDA Follow-up Automation',
+          item.expectedVersion
+        );
+        result[item.type === 'CLOSE' ? 'closed' : 'created'] += 1;
+        result.updated += 1;
+      } catch (error) {
+        console.error(
+          'Follow-up automation skipped ' + item.policyId + ': ' +
+          (error && error.stack ? error.stack : error)
+        );
+      }
+    });
+    return result;
+  }
+
+  function buildFollowUpPlan_(policies, referenceDate) {
+    var today = startOfDay_(referenceDate || new Date());
+    var active = { issued: true, active: true, 'renewal due': true };
+    var insights = JSKOS.GarudaRenewalIntelligence.analyzePolicies(
+      policies, today, 1000
+    );
+    var insightMap = {};
+    insights.forEach(function (insight) {
+      insightMap[insight.policyId] = insight;
+    });
+
+    return (Array.isArray(policies) ? policies : []).reduce(function (plan, policy) {
+      var stage = String(policy.renewalStage || '').trim().toLowerCase();
+      var status = String(policy.policyStatus || '').trim().toLowerCase();
+      var hasAction = Boolean(startOfDay_(policy.nextActionDate));
+      if ((stage === 'won' || stage === 'lost') && hasAction) {
+        plan.push({
+          type: 'CLOSE',
+          policyId: policy.policyId,
+          expectedVersion: policy.recordVersion,
+          data: { nextActionDate: '' }
+        });
+        return plan;
+      }
+      if (!active[status] || stage === 'won' || stage === 'lost' || hasAction) {
+        return plan;
+      }
+
+      var insight = insightMap[policy.policyId];
+      if (!insight) return plan;
+      var offset = insight.daysUntilRenewal <= 7 ? 0 :
+        insight.daysUntilRenewal <= 30 ? 2 : 7;
+      var actionDate = new Date(today.getTime());
+      actionDate.setDate(actionDate.getDate() + offset);
+      var data = { nextActionDate: formatDate_(actionDate) };
+      if (!String(policy.followUpNotes || '').trim()) {
+        data.followUpNotes = 'GARUDA: ' + insight.suggestedFollowUp;
+      }
+      plan.push({
+        type: 'CREATE',
+        policyId: policy.policyId,
+        expectedVersion: policy.recordVersion,
+        data: data
+      });
+      return plan;
+    }, []);
   }
 
   function buildReminderCandidates_(policies, referenceDate) {
@@ -210,10 +291,20 @@ JSKOS.RenewalAutomation = (function () {
   function sendDailyDashboard_(policies, today) {
     var recipients = PropertiesService.getScriptProperties()
       .getProperty(CONFIG.DASHBOARD_RECIPIENTS_KEY);
-    if (!String(recipients || '').trim()) return false;
+    if (!String(recipients || '').trim()) return { sent: false, escalations: 0 };
 
     var renewals = JSKOS.DashboardService.summarizeRenewals(policies, today);
     var pipeline = JSKOS.DashboardService.summarizeRenewalPipeline(policies, today);
+    var workQueue = JSKOS.RenewalWorkQueue.build(policies, today, 1000);
+    var ownerGroups = {};
+    workQueue.items.forEach(function (item) {
+      var owner = item.assignedOwner || 'Unassigned';
+      if (!ownerGroups[owner]) ownerGroups[owner] = [];
+      ownerGroups[owner].push(item);
+    });
+    var escalations = workQueue.items.filter(function (item) {
+      return item.daysUntilAction <= -CONFIG.ESCALATION_DAYS;
+    });
     var body = [
       'JSK OS Daily Renewal Dashboard - ' + formatDate_(today), '',
       'Due in 30 days: ' + renewals.due30Days,
@@ -226,10 +317,27 @@ JSKOS.RenewalAutomation = (function () {
       'Quote Sent: ' + pipeline.quoteSent,
       'Negotiation: ' + pipeline.negotiation,
       'Won: ' + pipeline.won,
-      'Lost: ' + pipeline.lost
-    ].join('\n');
-    MailApp.sendEmail(String(recipients), 'JSK OS Daily Renewal Dashboard', body);
-    return true;
+      'Lost: ' + pipeline.lost, '',
+      'OWNER-WISE FOLLOW-UP SUMMARY'
+    ];
+    Object.keys(ownerGroups).sort().forEach(function (owner) {
+      body.push(owner + ': ' + ownerGroups[owner].length + ' action(s)');
+      ownerGroups[owner].forEach(function (item) {
+        body.push('  - ' + item.policyNumber + ' | ' + item.state +
+          ' | ' + item.nextActionDate + ' | ' + item.renewalStage);
+      });
+    });
+    body.push('', 'ESCALATIONS (3+ DAYS OVERDUE): ' + escalations.length);
+    escalations.forEach(function (item) {
+      body.push('  - ' + item.policyNumber + ' | ' + item.assignedOwner +
+        ' | overdue ' + Math.abs(item.daysUntilAction) + ' day(s)');
+    });
+    MailApp.sendEmail(
+      String(recipients),
+      'JSK OS Daily Renewal Dashboard',
+      body.join('\n')
+    );
+    return { sent: true, escalations: escalations.length };
   }
 
   function wasProcessed_(channel, candidate, today) {
@@ -284,6 +392,7 @@ JSKOS.RenewalAutomation = (function () {
   return {
     runDaily: runDaily,
     buildReminderCandidates: buildReminderCandidates_,
+    buildFollowUpPlan: buildFollowUpPlan_,
     ensureReady: ensureReady,
     installDailyTrigger: installDailyTrigger,
     removeDailyTriggers: removeDailyTriggers
