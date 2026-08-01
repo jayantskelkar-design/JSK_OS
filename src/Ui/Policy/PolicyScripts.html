@@ -1,0 +1,1072 @@
+<script>
+  (function () {
+    'use strict';
+
+    var RENEWAL_WARNING_DAYS = 30;
+
+    var state = {
+      page: 1,
+      pageSize: 25,
+      totalPages: 0,
+      totalItems: 0,
+      items: [],
+      loading: false,
+      searchTimer: null,
+      filtersLoaded: false
+    };
+
+    var elements = {};
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      initializePolicyUi
+    );
+
+    function initializePolicyUi() {
+      cacheElements();
+      bindEvents();
+      loadPolicyFilters();
+      loadPolicies();
+    }
+
+    function cacheElements() {
+      elements.sidebar = document.getElementById('sidebar');
+      elements.mobileMenuButton =
+        document.getElementById('mobileMenuButton');
+      elements.addPolicyButton =
+        document.getElementById('addPolicyButton');
+      elements.refreshButton =
+        document.getElementById('refreshButton');
+      elements.searchInput =
+        document.getElementById('searchInput');
+      elements.statusFilter =
+        document.getElementById('statusFilter');
+      elements.policyTypeFilter =
+        document.getElementById('policyTypeFilter');
+      elements.insurerFilter =
+        document.getElementById('insurerFilter');
+      elements.includeArchivedCheckbox =
+        document.getElementById('includeArchivedCheckbox');
+      elements.policyTableBody =
+        document.getElementById('policyTableBody');
+      elements.loadingState =
+        document.getElementById('loadingState');
+      elements.emptyState =
+        document.getElementById('emptyState');
+      elements.previousPageButton =
+        document.getElementById('previousPageButton');
+      elements.nextPageButton =
+        document.getElementById('nextPageButton');
+      elements.pageIndicator =
+        document.getElementById('pageIndicator');
+      elements.paginationSummary =
+        document.getElementById('paginationSummary');
+      elements.totalPolicies =
+        document.getElementById('totalPolicies');
+      elements.currentPageCount =
+        document.getElementById('currentPageCount');
+      elements.renewalsDueCount =
+        document.getElementById('renewalsDueCount');
+      elements.totalPremiumValue =
+        document.getElementById('totalPremiumValue');
+      elements.policyModal =
+        document.getElementById('policyModal');
+      elements.policyModalTitle =
+        document.getElementById('policyModalTitle');
+      elements.policyModalSubtitle =
+        document.getElementById('policyModalSubtitle');
+      elements.closeModalButton =
+        document.getElementById('closeModalButton');
+      elements.cancelModalButton =
+        document.getElementById('cancelModalButton');
+      elements.policyForm =
+        document.getElementById('policyForm');
+      elements.savePolicyButton =
+        document.getElementById('savePolicyButton');
+      elements.toastContainer =
+        document.getElementById('toastContainer');
+    }
+
+    function bindEvents() {
+      if (elements.mobileMenuButton && elements.sidebar) {
+        elements.mobileMenuButton.addEventListener(
+          'click',
+          function () {
+            elements.sidebar.classList.toggle('open');
+          }
+        );
+      }
+
+      elements.addPolicyButton.addEventListener(
+        'click',
+        function () {
+          openPolicyModal();
+        }
+      );
+
+      elements.refreshButton.addEventListener(
+        'click',
+        function () {
+          loadPolicyFilters();
+          loadPolicies();
+        }
+      );
+
+      elements.searchInput.addEventListener(
+        'input',
+        function () {
+          window.clearTimeout(state.searchTimer);
+          state.searchTimer = window.setTimeout(
+            function () {
+              state.page = 1;
+              loadPolicies();
+            },
+            350
+          );
+        }
+      );
+
+      elements.statusFilter.addEventListener(
+        'change',
+        resetAndLoad
+      );
+      elements.policyTypeFilter.addEventListener(
+        'change',
+        resetAndLoad
+      );
+      elements.insurerFilter.addEventListener(
+        'change',
+        resetAndLoad
+      );
+      elements.includeArchivedCheckbox.addEventListener(
+        'change',
+        resetAndLoad
+      );
+
+      elements.previousPageButton.addEventListener(
+        'click',
+        function () {
+          if (state.page > 1) {
+            state.page -= 1;
+            loadPolicies();
+          }
+        }
+      );
+
+      elements.nextPageButton.addEventListener(
+        'click',
+        function () {
+          if (state.page < state.totalPages) {
+            state.page += 1;
+            loadPolicies();
+          }
+        }
+      );
+
+      elements.closeModalButton.addEventListener(
+        'click',
+        closePolicyModal
+      );
+      elements.cancelModalButton.addEventListener(
+        'click',
+        closePolicyModal
+      );
+
+      elements.policyModal.addEventListener(
+        'click',
+        function (event) {
+          if (event.target === elements.policyModal) {
+            closePolicyModal();
+          }
+        }
+      );
+
+      elements.policyForm.addEventListener(
+        'submit',
+        handlePolicySubmit
+      );
+
+      elements.policyTableBody.addEventListener(
+        'click',
+        handleTableAction
+      );
+
+      bindPremiumCalculation();
+      bindDateDefaults();
+
+      document.addEventListener(
+        'keydown',
+        function (event) {
+          if (
+            event.key === 'Escape' &&
+            !elements.policyModal.classList.contains('hidden')
+          ) {
+            closePolicyModal();
+          }
+        }
+      );
+    }
+
+    function bindPremiumCalculation() {
+      ['netPremium', 'gstAmount'].forEach(function (id) {
+        var input = document.getElementById(id);
+        if (input) {
+          input.addEventListener('input', updateTotalPremium);
+        }
+      });
+    }
+
+    function bindDateDefaults() {
+      var endDate = document.getElementById('endDate');
+      var renewalDate = document.getElementById('renewalDate');
+
+      if (endDate && renewalDate) {
+        endDate.addEventListener('change', function () {
+          if (!renewalDate.value) {
+            renewalDate.value = endDate.value;
+          }
+        });
+      }
+    }
+
+    function resetAndLoad() {
+      state.page = 1;
+      loadPolicies();
+    }
+
+    function loadPolicies() {
+      if (state.loading) {
+        return;
+      }
+
+      setLoading(true);
+
+      callServer('apiPolicySearch', {
+        query: elements.searchInput.value.trim(),
+        policyStatus: elements.statusFilter.value,
+        policyType: elements.policyTypeFilter.value,
+        insurerName: elements.insurerFilter.value,
+        includeDeleted: elements.includeArchivedCheckbox.checked,
+        page: state.page,
+        pageSize: state.pageSize
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          var result = response.data || {};
+          var pagination = result.pagination || {};
+
+          state.items = Array.isArray(result.items)
+            ? result.items
+            : [];
+          state.page = Number(pagination.page) || 1;
+          state.totalPages = Number(pagination.totalPages) || 0;
+          state.totalItems = Number(pagination.totalItems) || 0;
+
+          renderPolicies();
+          renderPagination();
+          renderSummary();
+        })
+        .catch(function (error) {
+          state.items = [];
+          state.totalPages = 0;
+          state.totalItems = 0;
+
+          renderPolicies();
+          renderPagination();
+          renderSummary();
+          showToast(getErrorMessage(error), 'error');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function loadPolicyFilters() {
+      callServer('getPolicySearchFilters', {})
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          var filters = response.data || {};
+          populateSelect(
+            elements.policyTypeFilter,
+            filters.policyTypes,
+            'All Policy Types'
+          );
+          populateSelect(
+            elements.insurerFilter,
+            filters.insurerNames,
+            'All Insurers'
+          );
+
+          state.filtersLoaded = true;
+        })
+        .catch(function () {
+          state.filtersLoaded = false;
+        });
+    }
+
+    function populateSelect(select, values, defaultLabel) {
+      var currentValue = select.value;
+      var normalizedValues = Array.isArray(values) ? values : [];
+
+      select.innerHTML = '';
+      select.appendChild(createOption('', defaultLabel));
+
+      normalizedValues.forEach(function (value) {
+        select.appendChild(createOption(value, value));
+      });
+
+      select.value = currentValue;
+    }
+
+    function createOption(value, label) {
+      var option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      return option;
+    }
+
+    function renderPolicies() {
+      elements.policyTableBody.innerHTML = '';
+
+      if (state.items.length === 0) {
+        elements.emptyState.classList.remove('hidden');
+        return;
+      }
+
+      elements.emptyState.classList.add('hidden');
+
+      var fragment = document.createDocumentFragment();
+
+      state.items.forEach(function (policy) {
+        var row = document.createElement('tr');
+        var archived = Boolean(policy.isDeleted);
+        var renewalState = getRenewalState(policy.renewalDate);
+
+        if (renewalState.className) {
+          row.classList.add(renewalState.className);
+        }
+
+        row.innerHTML =
+          '<td>' +
+            '<div class="policy-identity">' +
+              '<strong>' +
+                escapeHtml(policy.policyNumber || 'Unnumbered Policy') +
+              '</strong>' +
+              '<span>' +
+                escapeHtml(policy.productName || policy.policyId || '') +
+              '</span>' +
+            '</div>' +
+          '</td>' +
+
+          '<td>' +
+            '<div class="insured-details">' +
+              '<strong>' +
+                escapeHtml(policy.insuredName || '—') +
+              '</strong>' +
+              '<span>' +
+                escapeHtml(policy.companyId || policy.personId || '—') +
+              '</span>' +
+            '</div>' +
+          '</td>' +
+
+          '<td>' + escapeHtml(policy.policyType || '—') + '</td>' +
+          '<td>' + escapeHtml(policy.insurerName || '—') + '</td>' +
+          '<td class="money-cell">' +
+            escapeHtml(formatCurrency(policy.totalPremium)) +
+          '</td>' +
+          '<td>' +
+            '<div class="renewal-details">' +
+              '<strong>' + escapeHtml(formatDate(policy.renewalDate)) + '</strong>' +
+              '<span>' + escapeHtml(renewalState.label) + '</span>' +
+            '</div>' +
+          '</td>' +
+          '<td>' +
+            createBadge(
+              archived ? 'Archived' : policy.policyStatus || 'Active'
+            ) +
+          '</td>' +
+          '<td class="action-column">' +
+            '<div class="actions">' +
+              (
+                archived
+                  ? '<button class="action-button" data-action="restore" ' +
+                    'data-policy-id="' +
+                    escapeAttribute(policy.policyId) +
+                    '">Restore</button>'
+                  : '<button class="action-button" data-action="edit" ' +
+                    'data-policy-id="' +
+                    escapeAttribute(policy.policyId) +
+                    '">Edit</button>' +
+                    '<button class="action-button danger" data-action="archive" ' +
+                    'data-policy-id="' +
+                    escapeAttribute(policy.policyId) +
+                    '">Archive</button>'
+              ) +
+            '</div>' +
+          '</td>';
+
+        fragment.appendChild(row);
+      });
+
+      elements.policyTableBody.appendChild(fragment);
+    }
+
+    function renderPagination() {
+      var totalPages = Math.max(1, state.totalPages);
+
+      elements.pageIndicator.textContent =
+        'Page ' + state.page + ' of ' + totalPages;
+      elements.paginationSummary.textContent =
+        'Showing ' + state.items.length + ' of ' +
+        state.totalItems + ' policies';
+
+      elements.previousPageButton.disabled = state.page <= 1;
+      elements.nextPageButton.disabled =
+        state.totalPages === 0 || state.page >= state.totalPages;
+    }
+
+    function renderSummary() {
+      var renewalsDue = 0;
+      var totalPremium = 0;
+
+      state.items.forEach(function (policy) {
+        var renewalState = getRenewalState(policy.renewalDate);
+        if (renewalState.isDue) {
+          renewalsDue += 1;
+        }
+
+        totalPremium += Number(policy.totalPremium) || 0;
+      });
+
+      elements.totalPolicies.textContent = state.totalItems;
+      elements.currentPageCount.textContent = state.items.length;
+      elements.renewalsDueCount.textContent = renewalsDue;
+      elements.totalPremiumValue.textContent = formatCurrency(totalPremium);
+    }
+
+    function handleTableAction(event) {
+      var button = event.target.closest('[data-action]');
+
+      if (!button) {
+        return;
+      }
+
+      var action = button.dataset.action;
+      var policyId = button.dataset.policyId;
+
+      if (action === 'edit') {
+        loadPolicyForEdit(policyId);
+      } else if (action === 'archive') {
+        archivePolicy(policyId);
+      } else if (action === 'restore') {
+        restorePolicy(policyId);
+      }
+    }
+
+    function loadPolicyForEdit(policyId) {
+      setLoading(true);
+
+      callServer('apiPolicyGet', {
+        policyId: policyId,
+        includeDeleted: false
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+          openPolicyModal(response.data);
+        })
+        .catch(function (error) {
+          showToast(getErrorMessage(error), 'error');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function openPolicyModal(policy) {
+      clearFormErrors();
+      elements.policyForm.reset();
+
+      var isEditing = Boolean(policy && policy.policyId);
+
+      elements.policyModalTitle.textContent =
+        isEditing ? 'Edit Policy' : 'Add Policy';
+      elements.policyModalSubtitle.textContent =
+        isEditing
+          ? 'Update policy, protection and renewal information.'
+          : 'Record policy, protection and renewal information.';
+
+      setInputValue('policyId', isEditing ? policy.policyId : '');
+      setInputValue(
+        'recordVersion',
+        isEditing ? policy.recordVersion : ''
+      );
+
+      [
+        'policyNumber', 'proposalNumber', 'policyType',
+        'productName', 'insurerName', 'companyId', 'personId',
+        'familyId', 'insuredName', 'nominee', 'riskCategory',
+        'sumInsured', 'netPremium', 'gstAmount', 'totalPremium',
+        'paymentFrequency', 'previousPolicyNumber', 'agentBroker',
+        'branch', 'claimsCount', 'policyDocumentUrl', 'remarks'
+      ].forEach(function (field) {
+        setInputValue(field, isEditing ? policy[field] : '');
+      });
+
+      setInputValue(
+        'policyStatus',
+        isEditing ? policy.policyStatus : 'Active'
+      );
+      setInputValue(
+        'riskCategory',
+        isEditing ? policy.riskCategory : 'Not Assessed'
+      );
+      setInputValue(
+        'paymentFrequency',
+        isEditing ? policy.paymentFrequency : 'Not Applicable'
+      );
+      setInputValue(
+        'claimsCount',
+        isEditing ? policy.claimsCount : 0
+      );
+
+      ['startDate', 'endDate', 'renewalDate', 'lastClaimDate']
+        .forEach(function (field) {
+          setInputValue(
+            field,
+            isEditing ? formatDateForInput(policy[field]) : ''
+          );
+        });
+
+      elements.policyModal.classList.remove('hidden');
+
+      window.setTimeout(function () {
+        document.getElementById('policyNumber').focus();
+      }, 50);
+    }
+
+    function closePolicyModal() {
+      if (elements.savePolicyButton.disabled) {
+        return;
+      }
+
+      elements.policyModal.classList.add('hidden');
+      elements.policyForm.reset();
+      clearFormErrors();
+    }
+
+    function handlePolicySubmit(event) {
+      event.preventDefault();
+      clearFormErrors();
+
+      var payload = collectFormData();
+
+      if (!validatePolicyPayload(payload.data)) {
+        return;
+      }
+
+      setSaveButtonLoading(true);
+
+      var isUpdate = Boolean(payload.policyId);
+      var methodName = isUpdate
+        ? 'apiPolicyUpdate'
+        : 'apiPolicyCreate';
+
+      callServer(methodName, payload)
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+
+          setSaveButtonLoading(false);
+          closePolicyModal();
+          showToast(
+            isUpdate
+              ? 'Policy updated successfully.'
+              : 'Policy created successfully.',
+            'success'
+          );
+
+          state.page = 1;
+          loadPolicyFilters();
+          loadPolicies();
+        })
+        .catch(function (error) {
+          displayFormError(error);
+        })
+        .finally(function () {
+          setSaveButtonLoading(false);
+        });
+    }
+
+    function validatePolicyPayload(data) {
+      var valid = true;
+
+      [
+        ['policyNumber', 'Policy Number is required.'],
+        ['policyType', 'Policy Type is required.'],
+        ['insurerName', 'Insurer Name is required.'],
+        ['insuredName', 'Insured Name is required.']
+      ].forEach(function (rule) {
+        if (!data[rule[0]]) {
+          showFieldError(rule[0], rule[1]);
+          valid = false;
+        }
+      });
+
+      if (
+        data.startDate && data.endDate &&
+        new Date(data.startDate).getTime() >
+          new Date(data.endDate).getTime()
+      ) {
+        showFieldError(
+          'endDate',
+          'End Date must be on or after Start Date.'
+        );
+        valid = false;
+      }
+
+      return valid;
+    }
+
+    function collectFormData() {
+      var policyId = getInputValue('policyId');
+      var recordVersion = getNumberInputValue('recordVersion');
+
+      return {
+        policyId: policyId || undefined,
+        expectedVersion: recordVersion || undefined,
+        actor: 'JSK OS UI',
+        data: {
+          policyNumber: getInputValue('policyNumber'),
+          proposalNumber: getInputValue('proposalNumber'),
+          policyType: getInputValue('policyType'),
+          productName: getInputValue('productName'),
+          insurerName: getInputValue('insurerName'),
+          companyId: getInputValue('companyId'),
+          personId: getInputValue('personId'),
+          familyId: getInputValue('familyId'),
+          insuredName: getInputValue('insuredName'),
+          riskCategory: getInputValue('riskCategory'),
+          sumInsured: getOptionalNumber('sumInsured'),
+          netPremium: getOptionalNumber('netPremium'),
+          gstAmount: getOptionalNumber('gstAmount'),
+          totalPremium: getOptionalNumber('totalPremium'),
+          startDate: getInputValue('startDate'),
+          endDate: getInputValue('endDate'),
+          renewalDate: getInputValue('renewalDate'),
+          policyStatus: getInputValue('policyStatus'),
+          paymentFrequency: getInputValue('paymentFrequency'),
+          agentBroker: getInputValue('agentBroker'),
+          branch: getInputValue('branch'),
+          nominee: getInputValue('nominee'),
+          policyDocumentUrl: getInputValue('policyDocumentUrl'),
+          previousPolicyNumber: getInputValue('previousPolicyNumber'),
+          claimsCount: getOptionalInteger('claimsCount'),
+          lastClaimDate: getInputValue('lastClaimDate'),
+          remarks: getInputValue('remarks')
+        }
+      };
+    }
+
+    function archivePolicy(policyId) {
+      var policy = findPolicyInState(policyId);
+
+      if (!policy) {
+        showToast('Policy record not found.', 'error');
+        return;
+      }
+
+      if (!window.confirm(
+        'Archive policy "' +
+        (policy.policyNumber || policy.policyId) +
+        '"?\n\nThe policy can be restored later.'
+      )) {
+        return;
+      }
+
+      setLoading(true);
+
+      callServer('apiPolicyArchive', {
+        policyId: policy.policyId,
+        expectedVersion: policy.recordVersion,
+        actor: 'JSK OS UI'
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+          showToast('Policy archived successfully.', 'success');
+          loadPolicies();
+        })
+        .catch(function (error) {
+          showToast(getErrorMessage(error), 'error');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function restorePolicy(policyId) {
+      var policy = findPolicyInState(policyId);
+
+      if (!policy) {
+        showToast('Policy record not found.', 'error');
+        return;
+      }
+
+      setLoading(true);
+
+      callServer('apiPolicyRestore', {
+        policyId: policy.policyId,
+        expectedVersion: policy.recordVersion,
+        actor: 'JSK OS UI'
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+          showToast('Policy restored successfully.', 'success');
+          loadPolicyFilters();
+          loadPolicies();
+        })
+        .catch(function (error) {
+          showToast(getErrorMessage(error), 'error');
+        })
+        .finally(function () {
+          setLoading(false);
+        });
+    }
+
+    function findPolicyInState(policyId) {
+      return state.items.find(function (policy) {
+        return policy.policyId === policyId;
+      });
+    }
+
+    function updateTotalPremium() {
+      var netPremium = getNumberInputValue('netPremium');
+      var gstAmount = getNumberInputValue('gstAmount');
+      var totalInput = document.getElementById('totalPremium');
+
+      if (totalInput) {
+        totalInput.value = formatDecimal(netPremium + gstAmount);
+      }
+    }
+
+    function getRenewalState(value) {
+      if (!value) {
+        return {
+          label: 'Not scheduled',
+          className: '',
+          isDue: false
+        };
+      }
+
+      var renewalDate = new Date(value);
+      if (isNaN(renewalDate.getTime())) {
+        return {
+          label: 'Invalid date',
+          className: '',
+          isDue: false
+        };
+      }
+
+      renewalDate.setHours(0, 0, 0, 0);
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      var days = Math.ceil(
+        (renewalDate.getTime() - today.getTime()) /
+        (24 * 60 * 60 * 1000)
+      );
+
+      if (days < 0) {
+        return {
+          label: Math.abs(days) + ' days overdue',
+          className: 'renewal-overdue-row',
+          isDue: true
+        };
+      }
+
+      if (days === 0) {
+        return {
+          label: 'Due today',
+          className: 'renewal-due-row',
+          isDue: true
+        };
+      }
+
+      if (days <= RENEWAL_WARNING_DAYS) {
+        return {
+          label: 'Due in ' + days + ' days',
+          className: 'renewal-due-row',
+          isDue: true
+        };
+      }
+
+      return {
+        label: 'In ' + days + ' days',
+        className: '',
+        isDue: false
+      };
+    }
+
+    function setLoading(isLoading) {
+      state.loading = Boolean(isLoading);
+      elements.loadingState.classList.toggle('hidden', !state.loading);
+      elements.refreshButton.disabled = state.loading;
+      elements.addPolicyButton.disabled = state.loading;
+    }
+
+    function setSaveButtonLoading(isLoading) {
+      elements.savePolicyButton.disabled = Boolean(isLoading);
+      elements.savePolicyButton.textContent = isLoading
+        ? 'Saving...'
+        : 'Save Policy';
+    }
+
+    function callServer(functionName, payload) {
+      return new Promise(function (resolve, reject) {
+        if (!window.google || !google.script || !google.script.run) {
+          reject(new Error(
+            'Google Apps Script connection is unavailable.'
+          ));
+          return;
+        }
+
+        var runner = google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(function (error) {
+            reject(
+              error instanceof Error
+                ? error
+                : new Error(
+                    error && error.message
+                      ? error.message
+                      : 'Server request failed.'
+                  )
+            );
+          });
+
+        runner[functionName](payload);
+      });
+    }
+
+    function assertSuccessfulResponse(response) {
+      if (!response) {
+        throw new Error('The server returned an empty response.');
+      }
+
+      if (response.success !== true) {
+        var error = new Error(
+          response.error && response.error.message
+            ? response.error.message
+            : 'The request could not be completed.'
+        );
+        error.details = response.error || {};
+        throw error;
+      }
+    }
+
+    function displayFormError(error) {
+      var details = error && error.details ? error.details : {};
+      var fields = Array.isArray(details.fields)
+        ? details.fields
+        : [];
+
+      fields.forEach(function (fieldError) {
+        showFieldError(fieldError.field, fieldError.message);
+      });
+
+      var message = getErrorMessage(error);
+      var formError = elements.policyForm.querySelector('.form-error');
+
+      if (!formError) {
+        formError = document.createElement('div');
+        formError.className = 'form-error form-group-wide';
+        elements.policyForm
+          .querySelector('.form-grid')
+          .prepend(formError);
+      }
+
+      formError.textContent = message;
+      formError.classList.remove('hidden');
+      showToast(message, 'error');
+    }
+
+    function clearFormErrors() {
+      document.querySelectorAll('[data-error-for]')
+        .forEach(function (element) {
+          element.textContent = '';
+        });
+
+      elements.policyForm
+        .querySelectorAll('.field-invalid')
+        .forEach(function (element) {
+          element.classList.remove('field-invalid');
+        });
+
+      var formError = elements.policyForm.querySelector('.form-error');
+      if (formError) {
+        formError.textContent = '';
+        formError.classList.add('hidden');
+      }
+    }
+
+    function showFieldError(field, message) {
+      var input = document.getElementById(field);
+      var errorElement = document.querySelector(
+        '[data-error-for="' + escapeSelector(field) + '"]'
+      );
+
+      if (input) {
+        input.classList.add('field-invalid');
+      }
+
+      if (errorElement) {
+        errorElement.textContent = message || 'Invalid value.';
+      }
+    }
+
+    function getErrorMessage(error) {
+      if (error && error.message) {
+        return error.message;
+      }
+      return 'The request could not be completed.';
+    }
+
+    function showToast(message, type) {
+      var toast = document.createElement('div');
+      toast.className = 'toast ' + (type || 'info');
+      toast.setAttribute('role', 'status');
+      toast.textContent = message;
+
+      elements.toastContainer.appendChild(toast);
+
+      window.setTimeout(function () {
+        toast.classList.add('visible');
+      }, 10);
+
+      window.setTimeout(function () {
+        toast.classList.remove('visible');
+        window.setTimeout(function () {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 250);
+      }, 3500);
+    }
+
+    function createBadge(value) {
+      var normalized = String(value || 'Unknown');
+      var className = normalized
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-');
+
+      return '<span class="status-badge status-' +
+        escapeAttribute(className) + '">' +
+        escapeHtml(normalized) + '</span>';
+    }
+
+    function setInputValue(id, value) {
+      var element = document.getElementById(id);
+      if (element) {
+        element.value = value === null || value === undefined
+          ? ''
+          : value;
+      }
+    }
+
+    function getInputValue(id) {
+      var element = document.getElementById(id);
+      return element ? String(element.value || '').trim() : '';
+    }
+
+    function getNumberInputValue(id) {
+      var value = getInputValue(id);
+      var number = Number(value);
+      return value === '' || !isFinite(number) ? 0 : number;
+    }
+
+    function getOptionalNumber(id) {
+      var value = getInputValue(id);
+      return value === '' ? '' : Number(value);
+    }
+
+    function getOptionalInteger(id) {
+      var value = getInputValue(id);
+      return value === '' ? 0 : Math.max(0, parseInt(value, 10) || 0);
+    }
+
+    function formatCurrency(value) {
+      var amount = Number(value) || 0;
+
+      try {
+        return new Intl.NumberFormat('en-IN', {
+          style: 'currency',
+          currency: 'INR',
+          maximumFractionDigits: 2
+        }).format(amount);
+      } catch (error) {
+        return '₹' + amount.toFixed(2);
+      }
+    }
+
+    function formatDecimal(value) {
+      return (Math.round((Number(value) || 0) * 100) / 100).toFixed(2);
+    }
+
+    function formatDate(value) {
+      if (!value) {
+        return '—';
+      }
+
+      var date = new Date(value);
+      if (isNaN(date.getTime())) {
+        return String(value);
+      }
+
+      try {
+        return new Intl.DateTimeFormat('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }).format(date);
+      } catch (error) {
+        return date.toLocaleDateString();
+      }
+    }
+
+    function formatDateForInput(value) {
+      if (!value) {
+        return '';
+      }
+
+      var date = new Date(value);
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+
+      var year = date.getFullYear();
+      var month = String(date.getMonth() + 1).padStart(2, '0');
+      var day = String(date.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    }
+
+    function escapeHtml(value) {
+      return String(value === null || value === undefined ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value).replace(/`/g, '&#096;');
+    }
+
+    function escapeSelector(value) {
+      if (window.CSS && typeof window.CSS.escape === 'function') {
+        return window.CSS.escape(value);
+      }
+      return String(value).replace(/(["\\])/g, '\\$1');
+    }
+  })();
+</script>
