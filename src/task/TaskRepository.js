@@ -131,9 +131,17 @@ class TaskRepository {
   }
   _format(record) {
     var result = {};
+    var specialKeys = {
+      'Task ID': 'taskId',
+      'Company ID': 'companyId',
+      'Person ID': 'personId',
+      'Policy ID': 'policyId'
+    };
     this.headers.forEach(function (header) {
       if (!header) return;
-      var key = header.replace(/[^a-zA-Z0-9]+(.)/g, function (_, c) { return c.toUpperCase(); }).replace(/^[A-Z]/, function (c) { return c.toLowerCase(); });
+      var key = specialKeys[header] || header
+        .replace(/[^a-zA-Z0-9]+(.)/g, function (_, c) { return c.toUpperCase(); })
+        .replace(/^[A-Z]/, function (c) { return c.toLowerCase(); });
       var value = record[header];
       result[key] = value instanceof Date
         ? Utilities.formatDate(value, 'Asia/Kolkata', header.indexOf(' At') !== -1 ? 'yyyy-MM-dd HH:mm:ss' : 'yyyy-MM-dd')

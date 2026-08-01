@@ -1,0 +1,45 @@
+<script>
+(function(){'use strict';
+  var state={items:[],timer:null};
+  var $=function(id){return document.getElementById(id);};
+  document.addEventListener('DOMContentLoaded',function(){
+    $('menuButton').onclick=function(){$('sidebar').classList.toggle('open');};
+    $('addTaskButton').onclick=function(){openModal();};
+    $('closeModalButton').onclick=closeModal;$('cancelModalButton').onclick=closeModal;
+    $('taskModal').onclick=function(e){if(e.target===$('taskModal'))closeModal();};
+    $('taskForm').onsubmit=saveTask;$('taskTableBody').onclick=tableAction;
+    $('refreshButton').onclick=loadTasks;
+    ['statusFilter','priorityFilter','dateFilter','ownerFilter'].forEach(function(id){$(id).onchange=loadTasks;});
+    $('searchInput').oninput=function(){clearTimeout(state.timer);state.timer=setTimeout(loadTasks,300);};
+    loadTasks();
+  });
+  function call(name,payload){return new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](payload||{});});}
+  function assertResponse(response){if(!response||response.success!==true){var e=response&&response.error||{};var error=new Error(e.message||'Task API error.');error.details=e.details||{};throw error;}return response.data;}
+  function loadTasks(){
+    $('loadingState').classList.remove('hidden');$('emptyState').classList.add('hidden');
+    call('apiTaskSearch',{query:$('searchInput').value,status:$('statusFilter').value,priority:$('priorityFilter').value,dateView:$('dateFilter').value,owner:$('ownerFilter').value})
+      .then(function(r){var d=assertResponse(r);state.items=d.items||[];render();})
+      .catch(function(e){show(e.message,'error');state.items=[];render();});
+  }
+  function render(){
+    $('loadingState').classList.add('hidden');$('taskTableBody').innerHTML='';
+    if(!state.items.length){$('emptyState').classList.remove('hidden');}
+    var today=localDate(new Date()),open=0,due=0,late=0,done=0;
+    state.items.forEach(function(t){if(t.status==='Completed')done++;else open++;if(t.status!=='Completed'&&t.dueDate===today)due++;if(t.status!=='Completed'&&t.dueDate&&t.dueDate<today)late++;
+      var tr=document.createElement('tr');var linked=t.policyId||t.companyId||t.personId||'—';
+      tr.innerHTML='<td><strong>'+esc(t.title)+'</strong><br><small>'+esc(t.taskType||'General')+'</small></td><td>'+esc(t.owner||'Unassigned')+'</td><td>'+esc(t.dueDate||'Not set')+'</td><td><span class="badge '+esc(t.priority)+'">'+esc(t.priority||'Medium')+'</span></td><td><span class="badge '+esc(t.status)+'">'+esc(t.status||'Open')+'</span></td><td>'+esc(linked)+'</td><td><div class="actions"><button data-action="edit" data-id="'+esc(t.taskId)+'">Edit</button>'+(t.status!=='Completed'?'<button data-action="complete" data-id="'+esc(t.taskId)+'">Complete</button>':'')+'</div></td>';$('taskTableBody').appendChild(tr);
+    });$('totalOpen').textContent=open;$('dueToday').textContent=due;$('overdue').textContent=late;$('completed').textContent=done;
+  }
+  function tableAction(e){var b=e.target.closest('[data-action]');if(!b)return;var task=state.items.filter(function(t){return t.taskId===b.dataset.id;})[0];if(!task)return;if(b.dataset.action==='edit')openModal(task);else completeTask(task);}
+  function openModal(t){$('taskForm').reset();t=t||{};$('modalTitle').textContent=t.taskId?'Edit Task':'Add Task';['taskId','recordVersion','title','description','taskType','status','priority','owner','dueDate','companyId','personId','policyId'].forEach(function(id){$(id).value=t[id]||'';});if(!t.taskId){$('taskType').value='Follow-up';$('status').value='Open';$('priority').value='Medium';}$('taskModal').classList.remove('hidden');}
+  function closeModal(){if($('saveTaskButton').disabled)return;$('taskModal').classList.add('hidden');}
+  function payload(){return{taskId:$('taskId').value||undefined,expectedVersion:Number($('recordVersion').value)||undefined,actor:'JSK OS Task UI',data:{title:$('title').value.trim(),description:$('description').value.trim(),taskType:$('taskType').value,status:$('status').value,priority:$('priority').value,owner:$('owner').value.trim(),dueDate:$('dueDate').value,companyId:$('companyId').value.trim(),personId:$('personId').value.trim(),policyId:$('policyId').value.trim()}};}
+  function saveTask(e){e.preventDefault();var p=payload();if(!p.data.title){show('Task Title is required.','error');return;}setSaving(true);call(p.taskId?'apiTaskUpdate':'apiTaskCreate',p).then(function(r){assertResponse(r);setSaving(false);closeModal();show(p.taskId?'Task updated.':'Task created.','success');loadTasks();}).catch(function(e){show(e.message,'error');}).finally(function(){setSaving(false);});}
+  function completeTask(t){call('apiTaskComplete',{taskId:t.taskId,expectedVersion:t.recordVersion,actor:'JSK OS Task UI'}).then(function(r){assertResponse(r);show('Task completed.','success');loadTasks();}).catch(function(e){show(e.message,'error');});}
+  function setSaving(v){$('saveTaskButton').disabled=v;$('saveTaskButton').textContent=v?'Saving...':'Save Task';}
+  function show(message,type){var el=$('toast');el.textContent=message;el.className='toast '+(type||'');setTimeout(function(){el.classList.add('hidden');},3500);}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function localDate(d){return[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
+})();
+</script>
+
