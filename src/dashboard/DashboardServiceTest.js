@@ -57,6 +57,27 @@ function testDashboardService() {
   });
 
   testRenewalDashboardBoundaries_();
+  testRenewalPipeline_();
+
+  assertDashboardService_(
+    dashboard.renewalPipeline &&
+      typeof dashboard.renewalPipeline === 'object',
+    'Renewal pipeline is unavailable.'
+  );
+
+  [
+    'callPending',
+    'whatsappSent',
+    'quoteSent',
+    'negotiation',
+    'won',
+    'lost'
+  ].forEach(function (metricName) {
+    validateDashboardMetric_(
+      dashboard.renewalPipeline[metricName],
+      'renewalPipeline.' + metricName
+    );
+  });
 
   validateDashboardMetric_(
     dashboard.summary.companies,
@@ -155,4 +176,24 @@ function testRenewalDashboardBoundaries_() {
   assertDashboardService_(summary.due60Days === 2, '60-day boundary failed.');
   assertDashboardService_(summary.due90Days === 1, '90-day boundary failed.');
   assertDashboardService_(summary.renewed === 1, 'Renewed count failed.');
+}
+
+function testRenewalPipeline_() {
+  var summary = JSKOS.DashboardService.summarizeRenewalPipeline([
+    { policyStatus: 'Active', renewalDate: new Date(2026, 7, 15) },
+    { policyStatus: 'Active', renewalDate: new Date(2027, 0, 1) },
+    { renewalStage: 'Call Pending' },
+    { renewalStage: 'WhatsApp Sent' },
+    { renewalStage: 'Quote Sent' },
+    { renewalStage: 'Negotiation' },
+    { renewalStage: 'Won' },
+    { renewalStage: 'Lost' }
+  ], new Date(2026, 7, 1));
+
+  assertDashboardService_(summary.callPending === 2, 'Call Pending count failed.');
+  assertDashboardService_(summary.whatsappSent === 1, 'WhatsApp Sent count failed.');
+  assertDashboardService_(summary.quoteSent === 1, 'Quote Sent count failed.');
+  assertDashboardService_(summary.negotiation === 1, 'Negotiation count failed.');
+  assertDashboardService_(summary.won === 1, 'Won count failed.');
+  assertDashboardService_(summary.lost === 1, 'Lost count failed.');
 }

@@ -386,6 +386,13 @@
             createBadge(
               archived ? 'Archived' : policy.policyStatus || 'Active'
             ) +
+            (
+              !archived && policy.renewalStage
+                ? '<div class="pipeline-stage">' +
+                  escapeHtml(policy.renewalStage) +
+                  '</div>'
+                : ''
+            ) +
           '</td>' +
           '<td class="action-column">' +
             '<div class="actions">' +
@@ -509,7 +516,8 @@
         'familyId', 'insuredName', 'nominee', 'riskCategory',
         'sumInsured', 'netPremium', 'gstAmount', 'totalPremium',
         'paymentFrequency', 'previousPolicyNumber', 'agentBroker',
-        'branch', 'claimsCount', 'policyDocumentUrl', 'remarks'
+        'branch', 'claimsCount', 'policyDocumentUrl', 'remarks',
+        'renewalStage'
       ].forEach(function (field) {
         setInputValue(field, isEditing ? policy[field] : '');
       });
@@ -655,6 +663,7 @@
           endDate: getInputValue('endDate'),
           renewalDate: getInputValue('renewalDate'),
           policyStatus: getInputValue('policyStatus'),
+          renewalStage: getInputValue('renewalStage'),
           paymentFrequency: getInputValue('paymentFrequency'),
           agentBroker: getInputValue('agentBroker'),
           branch: getInputValue('branch'),

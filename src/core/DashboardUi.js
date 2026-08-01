@@ -20,7 +20,10 @@ function renderEnterpriseDashboardUi() {
   model.dashboard = Object.assign(
     {},
     dashboard.summary,
-    { renewals: dashboard.renewals }
+    {
+      renewals: dashboard.renewals,
+      renewalPipeline: dashboard.renewalPipeline
+    }
   );
 
   Object.keys(model).forEach(function (key) {

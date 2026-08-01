@@ -10,7 +10,7 @@
  */
 
 var JSK_POLICY_SCHEMA = Object.freeze({
-  VERSION: 1,
+  VERSION: 2,
   SHEET_NAME: 'Policies',
   AUDIT_SHEET_NAME: 'Audit_Log',
   HEADER_ROW: 1,
@@ -38,6 +38,7 @@ var JSK_POLICY_SCHEMA = Object.freeze({
     'End Date',
     'Renewal Date',
     'Policy Status',
+    'Renewal Stage',
     'Payment Frequency',
     'Agent / Broker',
     'Branch',
@@ -75,6 +76,7 @@ var JSK_POLICY_SCHEMA = Object.freeze({
     'End Date': 110,
     'Renewal Date': 115,
     'Policy Status': 135,
+    'Renewal Stage': 150,
     'Payment Frequency': 140,
     'Agent / Broker': 180,
     'Branch': 150,
@@ -127,6 +129,15 @@ var JSK_POLICY_SCHEMA = Object.freeze({
     'Lapsed',
     'Cancelled',
     'Rejected'
+  ]),
+
+  RENEWAL_STAGE_VALUES: Object.freeze([
+    'Call Pending',
+    'WhatsApp Sent',
+    'Quote Sent',
+    'Negotiation',
+    'Won',
+    'Lost'
   ]),
 
   PAYMENT_FREQUENCY_VALUES: Object.freeze([
@@ -602,6 +613,15 @@ function configurePolicyValidations_(sheet, headerRow) {
     headers,
     'Policy Status',
     JSK_POLICY_SCHEMA.POLICY_STATUS_VALUES,
+    rowCount
+  );
+
+  setPolicyListValidation_(
+    sheet,
+    headerRow,
+    headers,
+    'Renewal Stage',
+    JSK_POLICY_SCHEMA.RENEWAL_STAGE_VALUES,
     rowCount
   );
 

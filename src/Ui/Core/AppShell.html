@@ -129,6 +129,25 @@
           </div>
         </section>
 
+        <section class="panel renewal-pipeline-panel">
+          <div class="panel-header">
+            <div>
+              <span class="eyebrow">Build 1002 · Phase 2</span>
+              <h3>Renewal Pipeline</h3>
+              <p>Track every renewal opportunity from first call to outcome.</p>
+            </div>
+          </div>
+
+          <div class="pipeline-grid">
+            <article><span>Call Pending</span><strong><?= dashboard.renewalPipeline.callPending ?></strong></article>
+            <article><span>WhatsApp Sent</span><strong><?= dashboard.renewalPipeline.whatsappSent ?></strong></article>
+            <article><span>Quote Sent</span><strong><?= dashboard.renewalPipeline.quoteSent ?></strong></article>
+            <article><span>Negotiation</span><strong><?= dashboard.renewalPipeline.negotiation ?></strong></article>
+            <article class="pipeline-won"><span>Won</span><strong><?= dashboard.renewalPipeline.won ?></strong></article>
+            <article class="pipeline-lost"><span>Lost</span><strong><?= dashboard.renewalPipeline.lost ?></strong></article>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="panel-header">
             <div>

@@ -22,7 +22,8 @@ var JSK_POLICY_REPOSITORY_CONFIG = Object.freeze({
     'Product Name', 'Insurer Name', 'Company ID', 'Person ID',
     'Family ID', 'Insured Name', 'Risk Category', 'Sum Insured',
     'Net Premium', 'GST Amount', 'Total Premium', 'Start Date',
-    'End Date', 'Renewal Date', 'Policy Status', 'Payment Frequency',
+    'End Date', 'Renewal Date', 'Policy Status', 'Renewal Stage',
+    'Payment Frequency',
     'Agent / Broker', 'Branch', 'Nominee', 'Policy Document URL',
     'Previous Policy Number', 'Claims Count', 'Last Claim Date',
     'Remarks', 'Created At', 'Created By', 'Updated At', 'Updated By',
@@ -33,6 +34,7 @@ var JSK_POLICY_REPOSITORY_CONFIG = Object.freeze({
     'Policy ID', 'Policy Number', 'Proposal Number', 'Policy Type',
     'Product Name', 'Insurer Name', 'Company ID', 'Person ID',
     'Family ID', 'Insured Name', 'Risk Category', 'Policy Status',
+    'Renewal Stage',
     'Agent / Broker', 'Branch', 'Nominee', 'Previous Policy Number',
     'Remarks'
   ]),
@@ -287,6 +289,7 @@ class PolicyRepository {
       personId: this._normalizeText(criteria.personId).toUpperCase(),
       familyId: this._normalizeText(criteria.familyId).toUpperCase(),
       policyStatus: this._normalizeText(criteria.policyStatus).toLowerCase(),
+      renewalStage: this._normalizeText(criteria.renewalStage).toLowerCase(),
       riskCategory: this._normalizeText(criteria.riskCategory).toLowerCase()
     };
 
@@ -314,6 +317,7 @@ class PolicyRepository {
       if (!this._matchesExactUpper(record['Person ID'], filters.personId)) return false;
       if (!this._matchesExactUpper(record['Family ID'], filters.familyId)) return false;
       if (!this._matchesExact(record['Policy Status'], filters.policyStatus)) return false;
+      if (!this._matchesExact(record['Renewal Stage'], filters.renewalStage)) return false;
       if (!this._matchesExact(record['Risk Category'], filters.riskCategory)) return false;
 
       var renewalDate = this._toDate(record['Renewal Date']);
@@ -650,7 +654,8 @@ class PolicyRepository {
       sumInsured: 'Sum Insured', netPremium: 'Net Premium',
       gstAmount: 'GST Amount', totalPremium: 'Total Premium',
       startDate: 'Start Date', endDate: 'End Date', renewalDate: 'Renewal Date',
-      policyStatus: 'Policy Status', paymentFrequency: 'Payment Frequency',
+      policyStatus: 'Policy Status', renewalStage: 'Renewal Stage',
+      paymentFrequency: 'Payment Frequency',
       agentBroker: 'Agent / Broker', branch: 'Branch', nominee: 'Nominee',
       policyDocumentUrl: 'Policy Document URL',
       previousPolicyNumber: 'Previous Policy Number',

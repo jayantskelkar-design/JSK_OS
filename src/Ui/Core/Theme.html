@@ -371,6 +371,38 @@
   .renewal-card-overdue { border-top-color: #d14343; }
   .renewal-card-renewed { border-top-color: #2f9b61; }
 
+  .pipeline-grid {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .pipeline-grid article {
+    min-width: 0;
+    padding: 15px;
+    display: grid;
+    gap: 8px;
+    border: 1px solid var(--border);
+    border-left: 4px solid #4d83bd;
+    border-radius: 11px;
+    background: #fbfcfd;
+  }
+
+  .pipeline-grid span {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .pipeline-grid strong {
+    color: var(--navy);
+    font-size: 25px;
+  }
+
+  .pipeline-grid .pipeline-won { border-left-color: #2f9b61; }
+  .pipeline-grid .pipeline-lost { border-left-color: #d14343; }
+
   .panel-header p {
     margin-top: 5px;
     color: var(--muted);
@@ -725,6 +757,7 @@
 
     .summary-grid,
     .renewal-grid,
+    .pipeline-grid,
     .quick-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -796,6 +829,7 @@
 
     .summary-grid,
     .renewal-grid,
+    .pipeline-grid,
     .quick-grid {
       grid-template-columns: 1fr;
     }

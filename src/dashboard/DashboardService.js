@@ -21,8 +21,97 @@ JSKOS.DashboardService = (function () {
   function getDashboard() {
     return {
       summary: getSummary(),
-      renewals: getRenewalSummary()
+      renewals: getRenewalSummary(),
+      renewalPipeline: getRenewalPipeline()
     };
+  }
+
+  /**
+   * Returns counts for each Build 1002 renewal pipeline stage.
+   * Blank stages on actionable renewals are treated as Call Pending.
+   *
+   * @param {Date=} referenceDate
+   * @return {Object}
+   */
+  function getRenewalPipeline(referenceDate) {
+    try {
+      return summarizeRenewalPipeline_(
+        collectPolicies_(new PolicyRepository()),
+        referenceDate || new Date()
+      );
+    } catch (error) {
+      console.warn(
+        'Renewal pipeline unavailable: ' +
+        getErrorMessage_(error)
+      );
+      return emptyRenewalPipeline_();
+    }
+  }
+
+  /** @private */
+  function summarizeRenewalPipeline_(policies, referenceDate) {
+    var summary = emptyRenewalPipeline_();
+    var today = startOfDay_(referenceDate || new Date());
+    var actionableStatuses = {
+      issued: true,
+      active: true,
+      'renewal due': true
+    };
+    var stageKeys = {
+      'call pending': 'callPending',
+      'whatsapp sent': 'whatsappSent',
+      'quote sent': 'quoteSent',
+      negotiation: 'negotiation',
+      won: 'won',
+      lost: 'lost'
+    };
+
+    (Array.isArray(policies) ? policies : []).forEach(function (policy) {
+      var stage = String(policy && policy.renewalStage || '')
+        .trim()
+        .toLowerCase();
+      var stageKey = stageKeys[stage];
+
+      if (stageKey) {
+        summary[stageKey] += 1;
+        return;
+      }
+
+      var status = String(policy && policy.policyStatus || '')
+        .trim()
+        .toLowerCase();
+      var renewalDate = startOfDay_(policy && policy.renewalDate);
+
+      if (
+        actionableStatuses[status] &&
+        renewalDate &&
+        daysBetween_(today, renewalDate) <= 90
+      ) {
+        summary.callPending += 1;
+      }
+    });
+
+    return summary;
+  }
+
+  /** @private */
+  function emptyRenewalPipeline_() {
+    return {
+      callPending: 0,
+      whatsappSent: 0,
+      quoteSent: 0,
+      negotiation: 0,
+      won: 0,
+      lost: 0
+    };
+  }
+
+  /** @private */
+  function daysBetween_(fromDate, toDate) {
+    return Math.round(
+      (toDate.getTime() - fromDate.getTime()) /
+      (24 * 60 * 60 * 1000)
+    );
   }
 
   /**
@@ -266,6 +355,8 @@ JSKOS.DashboardService = (function () {
     getDashboard: getDashboard,
     getSummary: getSummary,
     getRenewalSummary: getRenewalSummary,
-    summarizeRenewals: summarizeRenewals_
+    summarizeRenewals: summarizeRenewals_,
+    getRenewalPipeline: getRenewalPipeline,
+    summarizeRenewalPipeline: summarizeRenewalPipeline_
   };
 })();

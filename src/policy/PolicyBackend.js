@@ -247,6 +247,7 @@ function apiPolicySearch(payload) {
       personId: request.personId,
       familyId: request.familyId,
       policyStatus: request.policyStatus,
+      renewalStage: request.renewalStage,
       riskCategory: request.riskCategory,
       renewalFrom: request.renewalFrom,
       renewalTo: request.renewalTo,
