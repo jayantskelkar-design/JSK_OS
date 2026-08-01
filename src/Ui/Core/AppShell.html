@@ -259,6 +259,31 @@
           </div>
         </section>
 
+        <section class="panel meeting-dashboard-panel">
+          <div class="panel-header renewal-panel-header">
+            <div><span class="eyebrow">Build 1005 · Meeting Intelligence</span><h3>Meeting Command Center</h3><p>Today's schedule, upcoming meetings and missed follow-ups.</p></div>
+            <a class="panel-link" href="<?= routeUrls.meetings ?>">Manage Meetings</a>
+          </div>
+          <div class="meeting-dashboard-summary">
+            <article><span>Today</span><strong><?= dashboard.meetings.summary.today ?></strong></article>
+            <article><span>Upcoming 7 Days</span><strong><?= dashboard.meetings.summary.upcoming ?></strong></article>
+            <article class="meeting-missed"><span>Missed</span><strong><?= dashboard.meetings.summary.missed ?></strong></article>
+            <article><span>Completed</span><strong><?= dashboard.meetings.summary.completed ?></strong></article>
+            <article><span>Unassigned</span><strong><?= dashboard.meetings.summary.unassigned ?></strong></article>
+          </div>
+          <div class="meeting-dashboard-layout"><div class="meeting-dashboard-list">
+            <? if (dashboard.meetings.items.length === 0) { ?><div class="garuda-empty">No meeting actions in the next seven days.</div><? } else { ?>
+              <? dashboard.meetings.items.forEach(function (meeting) { ?><article>
+                <span class="meeting-state meeting-state-<?= meeting.state.toLowerCase() ?>"><?= meeting.state ?></span>
+                <div><strong><?= meeting.title ?></strong><span><?= meeting.meetingType ?> · <?= meeting.startAt ?></span></div>
+                <div><span>Owner</span><strong><?= meeting.owner || 'Unassigned' ?></strong></div>
+                <? if (meeting.meetingLink) { ?><a class="meeting-join" href="<?= meeting.meetingLink ?>" target="_blank" rel="noopener noreferrer">Join</a><? } ?>
+                <? if (meeting.status === 'Scheduled') { ?><button class="task-complete-button" data-meeting-complete="<?= meeting.meetingId ?>" data-meeting-version="<?= meeting.recordVersion ?>">Complete</button><? } ?>
+              </article><? }); ?>
+            <? } ?>
+          </div><aside class="owner-workload"><h4>Meeting Workload</h4><? if (!dashboard.meetings.ownerWorkload.length) { ?><span>No active meetings.</span><? } else { ?><? dashboard.meetings.ownerWorkload.forEach(function (owner) { ?><div><span><?= owner.owner ?></span><strong><?= owner.count ?></strong></div><? }); ?><? } ?></aside></div>
+        </section>
+
         <section class="panel">
           <div class="panel-header">
             <div>
@@ -304,6 +329,8 @@
               <strong>Task Management</strong>
               <span>Plan, assign and complete follow-ups.</span>
             </a>
+
+            <a class="quick-action" href="<?= routeUrls.meetings ?>"><strong>Meeting Management</strong><span>Schedule meetings and track outcomes.</span></a>
 
             <div class="quick-action disabled">
               <strong>GARUDA AI</strong>

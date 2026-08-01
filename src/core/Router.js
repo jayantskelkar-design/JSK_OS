@@ -12,7 +12,7 @@ JSKOS.RouteConfig = Object.freeze({
     people: Object.freeze({ key: 'people', title: 'People', icon: '♟', enabled: true }),
     policies: Object.freeze({ key: 'policies', title: 'Policies', icon: '▤', enabled: true }),
     tasks: Object.freeze({ key: 'tasks', title: 'Tasks', icon: '✓', enabled: true }),
-    meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: false })
+    meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: true })
   })
 });
 
@@ -79,6 +79,9 @@ JSKOS.Router = Object.freeze({
         case 'tasks':
           return JSKOS.Router.renderTasks();
 
+        case 'meetings':
+          return JSKOS.Router.renderMeetings();
+
         case 'dashboard':
         default:
           return JSKOS.Router.renderDashboard();
@@ -131,6 +134,13 @@ JSKOS.Router = Object.freeze({
     return renderTaskUi();
   },
 
+  renderMeetings: function () {
+    if (typeof renderMeetingUi !== 'function') {
+      throw new Error('renderMeetingUi() is unavailable.');
+    }
+    return renderMeetingUi();
+  },
+
   /**
    * Returns the deployed Web App URL when available.
    * Editor tests may return an empty string; that is expected.
@@ -165,7 +175,8 @@ JSKOS.Router = Object.freeze({
       companies: JSKOS.Router.buildRouteUrl('companies'),
       people: JSKOS.Router.buildRouteUrl('people'),
       policies: JSKOS.Router.buildRouteUrl('policies'),
-      tasks: JSKOS.Router.buildRouteUrl('tasks')
+      tasks: JSKOS.Router.buildRouteUrl('tasks'),
+      meetings: JSKOS.Router.buildRouteUrl('meetings')
     };
   },
 
