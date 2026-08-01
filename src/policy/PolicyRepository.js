@@ -641,6 +641,56 @@ class PolicyRepository {
     });
   }
 
+  getRenewalHistory(policyId, limit) {
+    var normalizedId = this._normalizeRequiredId(policyId);
+    var auditSheet = this.spreadsheet.getSheetByName(
+      JSK_POLICY_REPOSITORY_CONFIG.AUDIT_SHEET_NAME
+    );
+    if (!auditSheet || auditSheet.getLastRow() <= 1) return [];
+
+    var maxItems = Math.min(50, Math.max(1, Number(limit) || 20));
+    var values = auditSheet
+      .getRange(2, 1, auditSheet.getLastRow() - 1, 8)
+      .getValues();
+    var tracked = [
+      'Renewal Stage', 'Assigned Owner',
+      'Next Action Date', 'Follow-up Notes'
+    ];
+    var history = [];
+
+    for (var index = values.length - 1; index >= 0; index--) {
+      var row = values[index];
+      if (this._normalizeText(row[3]).toUpperCase() !== normalizedId) continue;
+      var before = this._parseAuditData(row[6]);
+      var after = this._parseAuditData(row[7]);
+      var changes = [];
+
+      tracked.forEach(function (header) {
+        var oldValue = before[header] || '';
+        var newValue = after[header] || '';
+        if (!this._valuesEqual(oldValue, newValue)) {
+          changes.push({
+            field: header,
+            before: oldValue,
+            after: newValue
+          });
+        }
+      }, this);
+
+      if (!changes.length) continue;
+      history.push({
+        auditId: String(row[0] || ''),
+        timestamp: this._formatDateTimeForApi(row[1]),
+        action: String(row[4] || ''),
+        actor: String(row[5] || 'SYSTEM'),
+        changes: changes
+      });
+      if (history.length >= maxItems) break;
+    }
+
+    return history;
+  }
+
   _writeUpdatedFields(rowNumber, existing, updated, normalizedChanges) {
     var headersToWrite = {};
 
@@ -919,6 +969,26 @@ class PolicyRepository {
         : record[key];
     }, this);
     return JSON.stringify(serializable);
+  }
+
+  _parseAuditData(value) {
+    if (!value) return {};
+    try {
+      var parsed = typeof value === 'string' ? JSON.parse(value) : value;
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  _formatDateTimeForApi(value) {
+    var date = value instanceof Date ? value : new Date(value);
+    if (isNaN(date.getTime())) return '';
+    return Utilities.formatDate(
+      date,
+      Session.getScriptTimeZone() || 'Asia/Kolkata',
+      'yyyy-MM-dd HH:mm:ss'
+    );
   }
 
   _writeAuditLogSafely(entry) {

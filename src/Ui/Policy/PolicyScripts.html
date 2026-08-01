@@ -97,6 +97,7 @@
       elements.closeWorkModalButton = document.getElementById('closeWorkModalButton');
       elements.cancelWorkModalButton = document.getElementById('cancelWorkModalButton');
       elements.saveWorkButton = document.getElementById('saveWorkButton');
+      elements.workHistoryList = document.getElementById('workHistoryList');
     }
 
     function bindEvents() {
@@ -680,6 +681,45 @@
         (policy.policyNumber || policy.policyId) + ' · ' +
         (policy.insuredName || 'Unnamed insured');
       elements.workModal.classList.remove('hidden');
+      loadWorkHistory(policy.policyId);
+    }
+
+    function loadWorkHistory(policyId) {
+      elements.workHistoryList.innerHTML =
+        '<div class="work-history-empty">Loading history...</div>';
+      callServer('apiPolicyRenewalHistory', {
+        policyId: policyId,
+        limit: 20
+      })
+        .then(function (response) {
+          assertSuccessfulResponse(response);
+          renderWorkHistory(Array.isArray(response.data) ? response.data : []);
+        })
+        .catch(function (error) {
+          elements.workHistoryList.innerHTML =
+            '<div class="work-history-empty">' +
+            escapeHtml(getErrorMessage(error)) + '</div>';
+        });
+    }
+
+    function renderWorkHistory(items) {
+      if (!items.length) {
+        elements.workHistoryList.innerHTML =
+          '<div class="work-history-empty">No renewal activity recorded yet.</div>';
+        return;
+      }
+
+      elements.workHistoryList.innerHTML = items.map(function (item) {
+        var changes = (item.changes || []).map(function (change) {
+          return '<li><strong>' + escapeHtml(change.field) + '</strong>: ' +
+            escapeHtml(String(change.before || 'Empty')) + ' → ' +
+            escapeHtml(String(change.after || 'Empty')) + '</li>';
+        }).join('');
+        return '<article class="work-history-item">' +
+          '<div><strong>' + escapeHtml(item.actor || 'SYSTEM') + '</strong>' +
+          '<span>' + escapeHtml(item.timestamp || '') + '</span></div>' +
+          '<ul>' + changes + '</ul></article>';
+      }).join('');
     }
 
     function closeWorkModal() {
@@ -709,6 +749,7 @@
           setWorkButtonLoading(false);
           closeWorkModal();
           showToast('Renewal work updated successfully.', 'success');
+          loadWorkHistory(payload.policyId);
           state.page = 1;
           loadPolicyFilters();
           loadPolicies();
