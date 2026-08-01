@@ -1,6 +1,6 @@
 /**
  * JSK OS Stable Router
- * Version: 1.0.2
+ * Version: 1.0.3
  */
 var JSKOS = JSKOS || {};
 
@@ -10,6 +10,7 @@ JSKOS.RouteConfig = Object.freeze({
     dashboard: Object.freeze({ key: 'dashboard', title: 'Dashboard', icon: '⌂', enabled: true }),
     companies: Object.freeze({ key: 'companies', title: 'Companies', icon: '▦', enabled: true }),
     people: Object.freeze({ key: 'people', title: 'People', icon: '♟', enabled: true }),
+    policies: Object.freeze({ key: 'policies', title: 'Policies', icon: '▤', enabled: true }),
     tasks: Object.freeze({ key: 'tasks', title: 'Tasks', icon: '✓', enabled: false }),
     meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: false })
   })
@@ -51,6 +52,9 @@ JSKOS.Router = Object.freeze({
         case 'people':
           return JSKOS.Router.renderPeople();
 
+        case 'policies':
+          return JSKOS.Router.renderPolicies();
+
         case 'dashboard':
         default:
           return JSKOS.Router.renderDashboard();
@@ -82,6 +86,14 @@ JSKOS.Router = Object.freeze({
     }
 
     return renderPeopleUi();
+  },
+
+  renderPolicies: function () {
+    if (typeof renderPolicyUi !== 'function') {
+      throw new Error('renderPolicyUi() is unavailable.');
+    }
+
+    return renderPolicyUi();
   },
 
   /**
@@ -116,7 +128,8 @@ JSKOS.Router = Object.freeze({
     return {
       dashboard: JSKOS.Router.buildRouteUrl('dashboard'),
       companies: JSKOS.Router.buildRouteUrl('companies'),
-      people: JSKOS.Router.buildRouteUrl('people')
+      people: JSKOS.Router.buildRouteUrl('people'),
+      policies: JSKOS.Router.buildRouteUrl('policies')
     };
   },
 
@@ -170,12 +183,14 @@ function testRouterRepair() {
     dashboard: JSKOS.Router.resolve({ parameter: { page: 'dashboard' } }),
     companies: JSKOS.Router.resolve({ parameter: { page: 'companies' } }),
     people: JSKOS.Router.resolve({ parameter: { page: 'people' } }),
+    policies: JSKOS.Router.resolve({ parameter: { page: 'policies' } }),
     unknown: JSKOS.Router.resolve({ parameter: { page: 'unknown' } })
   };
 
   if (checks.dashboard !== 'dashboard') throw new Error('Dashboard route test failed.');
   if (checks.companies !== 'companies') throw new Error('Companies route test failed.');
   if (checks.people !== 'people') throw new Error('People route test failed.');
+  if (checks.policies !== 'policies') throw new Error('Policies route test failed.');
   if (checks.unknown !== 'dashboard') throw new Error('Unknown route fallback test failed.');
 
   var result = {
@@ -193,7 +208,8 @@ function testAllWebRoutes() {
   var tests = [
     { route: 'dashboard', marker: 'JSK OS Enterprise' },
     { route: 'companies', marker: 'JSK Company CRM' },
-    { route: 'people', marker: 'JSK People CRM' }
+    { route: 'people', marker: 'JSK People CRM' },
+    { route: 'policies', marker: 'JSK Policy Management' }
   ];
 
   var results = tests.map(function (test) {
@@ -214,7 +230,7 @@ function testAllWebRoutes() {
 
   var result = {
     success: true,
-    message: 'Dashboard, Company and People routes passed.',
+    message: 'Dashboard, Company, People and Policy routes passed.',
     routes: results,
     webAppUrl: JSKOS.Router.getWebAppUrl(),
     timestamp: new Date().toISOString()
