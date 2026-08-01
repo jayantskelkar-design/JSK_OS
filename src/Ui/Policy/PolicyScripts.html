@@ -599,11 +599,42 @@
           loadPolicies();
         })
         .catch(function (error) {
+          if (handlePolicyVersionConflict(error)) {
+            return;
+          }
           displayFormError(error);
         })
         .finally(function () {
           setSaveButtonLoading(false);
         });
+    }
+
+    function handlePolicyVersionConflict(error) {
+      var details = error && error.details ? error.details : {};
+      var currentVersion = Number(details.currentVersion);
+
+      if (
+        details.code !== 'VERSION_CONFLICT' ||
+        !isFinite(currentVersion) ||
+        currentVersion < 1
+      ) {
+        return false;
+      }
+
+      setInputValue('recordVersion', currentVersion);
+      showToast(
+        'A newer policy version was detected. Review your changes and click Save Policy again.',
+        'warning'
+      );
+
+      var formError = elements.policyForm.querySelector('.form-error');
+      if (formError) {
+        formError.textContent =
+          'Latest record version loaded. Review the form, then save again.';
+        formError.classList.remove('hidden');
+      }
+
+      return true;
     }
 
     function validatePolicyPayload(data) {
