@@ -27,7 +27,9 @@ JSKOS.TaskAutomation = (function () {
       if (action.escalated) result.escalated += 1;
     });
 
-    result.summarySent = sendSummary_(repository.search({}).items || [], result, referenceDate || new Date());
+    var refreshedTasks = repository.search({}).items || [];
+    result.summarySent = sendSummary_(refreshedTasks, result, referenceDate || new Date());
+    result.notifications = JSKOS.TaskNotifications.sendDaily(refreshedTasks, referenceDate || new Date());
     return result;
   }
 
