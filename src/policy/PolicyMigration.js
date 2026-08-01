@@ -281,23 +281,29 @@ function backfillPolicyRenewalStages_(sheet, headerRow) {
     1
   );
   var stages = stageRange.getValues();
-  var changed = 0;
+  var targetA1Ranges = [];
 
   stages.forEach(function (row, index) {
     if (
       String(policyIds[index][0] || '').trim() &&
       !String(row[0] || '').trim()
     ) {
-      row[0] = 'Call Pending';
-      changed += 1;
+      targetA1Ranges.push(
+        sheet.getRange(
+          headerRow + 1 + index,
+          renewalStageIndex + 1
+        ).getA1Notation()
+      );
     }
   });
 
-  if (changed) {
-    stageRange.setValues(stages);
+  if (targetA1Ranges.length) {
+    sheet
+      .getRangeList(targetA1Ranges)
+      .setValue('Call Pending');
   }
 
-  return changed;
+  return targetA1Ranges.length;
 }
 
 /** @private @return {number} */
