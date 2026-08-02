@@ -12,7 +12,8 @@ JSKOS.RouteConfig = Object.freeze({
     people: Object.freeze({ key: 'people', title: 'People', icon: '♟', enabled: true }),
     policies: Object.freeze({ key: 'policies', title: 'Policies', icon: '▤', enabled: true }),
     tasks: Object.freeze({ key: 'tasks', title: 'Tasks', icon: '✓', enabled: true }),
-    meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: true })
+    meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: true }),
+    communications: Object.freeze({ key: 'communications', title: 'Communications', icon: '✉', enabled: true })
   })
 });
 
@@ -90,6 +91,9 @@ JSKOS.Router = Object.freeze({
         case 'meetings':
           return JSKOS.Router.renderMeetings();
 
+        case 'communications':
+          return JSKOS.Router.renderCommunications();
+
         case 'dashboard':
         default:
           return JSKOS.Router.renderDashboard();
@@ -149,6 +153,13 @@ JSKOS.Router = Object.freeze({
     return renderMeetingUi();
   },
 
+  renderCommunications: function () {
+    if (typeof renderCommunicationUi !== 'function') {
+      throw new Error('renderCommunicationUi() is unavailable.');
+    }
+    return renderCommunicationUi();
+  },
+
   /**
    * Returns the deployed Web App URL when available.
    * Editor tests may return an empty string; that is expected.
@@ -184,7 +195,8 @@ JSKOS.Router = Object.freeze({
       people: JSKOS.Router.buildRouteUrl('people'),
       policies: JSKOS.Router.buildRouteUrl('policies'),
       tasks: JSKOS.Router.buildRouteUrl('tasks'),
-      meetings: JSKOS.Router.buildRouteUrl('meetings')
+      meetings: JSKOS.Router.buildRouteUrl('meetings'),
+      communications: JSKOS.Router.buildRouteUrl('communications')
     };
   },
 
@@ -267,7 +279,8 @@ function testAllWebRoutes() {
     { route: 'companies', marker: 'JSK Company CRM' },
     { route: 'people', marker: 'JSK People CRM' },
     { route: 'policies', marker: 'JSK Policy Management' },
-    { route: 'tasks', marker: 'Task Management' }
+    { route: 'tasks', marker: 'Task Management' },
+    { route: 'communications', marker: 'Communication Center' }
   ];
 
   var results = tests.map(function (test) {
