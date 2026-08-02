@@ -35,6 +35,7 @@ function sendQueuedWaLeadWhatsApp(limit) {
   var repository = new CommunicationRepository();
   var now = new Date();
   var candidates = repository.search({ channel: 'WhatsApp' }).items.filter(function (item) {
+    if (String(item.idempotencyKey || '').indexOf('WALEAD-LIVE-TEST-') === 0) return false;
     var provider = String(item.provider || '');
     if (provider && provider !== 'Pending Configuration' && provider !== JSK_WALEAD_WA.PROVIDER) return false;
     var scheduled = item.scheduledAt ? new Date(item.scheduledAt) : now;
@@ -117,6 +118,23 @@ function sendWaLeadWhatsAppLiveTest() {
 }
 
 function processWaLeadWhatsAppOutbox() { return sendQueuedWaLeadWhatsApp(20); }
+
+/** Installable-trigger entry point for queued WhatsApp communications. */
+function runWaLeadCommunicationAutomation() { return sendQueuedWaLeadWhatsApp(20); }
+
+function ensureWaLeadCommunicationAutomation() {
+  var handler = 'runWaLeadCommunicationAutomation';
+  var triggers = ScriptApp.getProjectTriggers().filter(function (trigger) {
+    return trigger.getHandlerFunction() === handler;
+  });
+  if (!triggers.length) {
+    ScriptApp.newTrigger(handler).timeBased().everyMinutes(5).create();
+  }
+  var report = { success: true, handler: handler, intervalMinutes: 5,
+    existingTriggerCount: triggers.length, created: triggers.length === 0 };
+  console.info(JSON.stringify(report));
+  return report;
+}
 
 /** Controlled approved-template test; sends only to the configured test recipient. */
 function triggerWaLeadRenewalTemplateLiveTest() {
