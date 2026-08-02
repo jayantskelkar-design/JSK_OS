@@ -5,7 +5,9 @@ var JSK_WALEAD_WA = Object.freeze({
   API_KEY: 'JSK_OS_WALEAD_API_KEY',
   PHONE_NUMBER_ID: 'JSK_OS_WALEAD_PHONE_NUMBER_ID',
   TEST_RECIPIENT: 'JSK_OS_META_WA_TEST_RECIPIENT',
+  RENEWAL_BOT_FLOW_ID: 'JSK_OS_WALEAD_RENEWAL_BOT_FLOW_ID',
   ENDPOINT: 'https://walead.in/api/v1/whatsapp/send',
+  TRIGGER_BOT_ENDPOINT: 'https://walead.in/api/v1/whatsapp/trigger-bot',
   PROVIDER: 'WA Lead',
   MAX_ATTEMPTS: 3,
   RETRY_MINUTES: Object.freeze([5, 30, 120])
@@ -22,7 +24,8 @@ function getWaLeadWhatsAppConfigStatus() {
     ready: Boolean(values[JSK_WALEAD_WA.API_KEY] && values[JSK_WALEAD_WA.PHONE_NUMBER_ID]),
     apiKeyConfigured: Boolean(values[JSK_WALEAD_WA.API_KEY]),
     phoneNumberIdConfigured: Boolean(values[JSK_WALEAD_WA.PHONE_NUMBER_ID]),
-    testRecipientConfigured: Boolean(values[JSK_WALEAD_WA.TEST_RECIPIENT])
+    testRecipientConfigured: Boolean(values[JSK_WALEAD_WA.TEST_RECIPIENT]),
+    renewalBotFlowConfigured: Boolean(values[JSK_WALEAD_WA.RENEWAL_BOT_FLOW_ID])
   };
 }
 
@@ -68,7 +71,13 @@ function sendWaLeadWhatsAppItem_(repository, item, config) {
     var code = response.getResponseCode();
     var body = parseWaLeadJson_(response.getContentText());
     if (code < 200 || code >= 300 || String(body.status) !== '1' || !body.wa_message_id) {
-      throw new Error('WA Lead HTTP ' + code + ': ' + String(body.message || 'Request failed'));
+      var message = String(body.message || 'Request failed');
+      if (/outside 24 hour window/i.test(message) && config.renewalBotFlowId) {
+        body = triggerWaLeadBotFlow_(config, item.recipient);
+        body.wa_message_id = 'WALEAD-BOT-' + item.communicationId;
+      } else {
+        throw new Error('WA Lead HTTP ' + code + ': ' + message);
+      }
     }
     repository.update(item.communicationId, {
       status: 'Sent', provider: JSK_WALEAD_WA.PROVIDER,
@@ -109,10 +118,37 @@ function sendWaLeadWhatsAppLiveTest() {
 
 function processWaLeadWhatsAppOutbox() { return sendQueuedWaLeadWhatsApp(20); }
 
+/** Controlled approved-template test; sends only to the configured test recipient. */
+function triggerWaLeadRenewalTemplateLiveTest() {
+  var config = getWaLeadWhatsAppConfig_();
+  var recipient = normalizeWaLeadPhone_(PropertiesService.getScriptProperties().getProperty(JSK_WALEAD_WA.TEST_RECIPIENT));
+  var response = triggerWaLeadBotFlow_(config, recipient);
+  var report = { success: String(response.status) === '1', provider: JSK_WALEAD_WA.PROVIDER,
+    flowConfigured: true, recipientConfigured: true };
+  console.info(JSON.stringify(report));
+  return report;
+}
+
+function triggerWaLeadBotFlow_(config, recipient) {
+  if (!config.renewalBotFlowId) throw new Error('JSK_OS_WALEAD_RENEWAL_BOT_FLOW_ID is not configured.');
+  var response = UrlFetchApp.fetch(JSK_WALEAD_WA.TRIGGER_BOT_ENDPOINT, {
+    method: 'post', muteHttpExceptions: true,
+    payload: { apiToken: config.apiKey, phone_number_id: config.phoneNumberId,
+      bot_flow_unique_id: config.renewalBotFlowId, phone_number: normalizeWaLeadPhone_(recipient) }
+  });
+  var code = response.getResponseCode();
+  var body = parseWaLeadJson_(response.getContentText());
+  if (code < 200 || code >= 300 || String(body.status) !== '1') {
+    throw new Error('WA Lead bot trigger HTTP ' + code + ': ' + String(body.message || 'Request failed'));
+  }
+  return body;
+}
+
 function getWaLeadWhatsAppConfig_() {
   var properties = PropertiesService.getScriptProperties();
   var config = { apiKey: String(properties.getProperty(JSK_WALEAD_WA.API_KEY) || '').trim(),
-    phoneNumberId: String(properties.getProperty(JSK_WALEAD_WA.PHONE_NUMBER_ID) || '').trim() };
+    phoneNumberId: String(properties.getProperty(JSK_WALEAD_WA.PHONE_NUMBER_ID) || '').trim(),
+    renewalBotFlowId: String(properties.getProperty(JSK_WALEAD_WA.RENEWAL_BOT_FLOW_ID) || '').trim() };
   if (!config.apiKey || !config.phoneNumberId) throw new Error('WA Lead Script Properties are incomplete.');
   return config;
 }
