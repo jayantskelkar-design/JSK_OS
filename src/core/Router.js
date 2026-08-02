@@ -11,6 +11,7 @@ JSKOS.RouteConfig = Object.freeze({
     companies: Object.freeze({ key: 'companies', title: 'Companies', icon: '▦', enabled: true }),
     people: Object.freeze({ key: 'people', title: 'People', icon: '♟', enabled: true }),
     policies: Object.freeze({ key: 'policies', title: 'Policies', icon: '▤', enabled: true }),
+    claims: Object.freeze({ key: 'claims', title: 'Claims', icon: '◆', enabled: true }),
     tasks: Object.freeze({ key: 'tasks', title: 'Tasks', icon: '✓', enabled: true }),
     meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: true }),
     communications: Object.freeze({ key: 'communications', title: 'Communications', icon: '✉', enabled: true })
@@ -85,6 +86,9 @@ JSKOS.Router = Object.freeze({
         case 'policies':
           return JSKOS.Router.renderPolicies(event);
 
+        case 'claims':
+          return JSKOS.Router.renderClaims();
+
         case 'tasks':
           return JSKOS.Router.renderTasks();
 
@@ -137,6 +141,13 @@ JSKOS.Router = Object.freeze({
         event && event.parameter && event.parameter.mode === 'work'
       )
     });
+  },
+
+  renderClaims: function () {
+    if (typeof renderClaimUi !== 'function') {
+      throw new Error('renderClaimUi() is unavailable.');
+    }
+    return renderClaimUi();
   },
 
   renderTasks: function () {
@@ -194,6 +205,7 @@ JSKOS.Router = Object.freeze({
       companies: JSKOS.Router.buildRouteUrl('companies'),
       people: JSKOS.Router.buildRouteUrl('people'),
       policies: JSKOS.Router.buildRouteUrl('policies'),
+      claims: JSKOS.Router.buildRouteUrl('claims'),
       tasks: JSKOS.Router.buildRouteUrl('tasks'),
       meetings: JSKOS.Router.buildRouteUrl('meetings'),
       communications: JSKOS.Router.buildRouteUrl('communications')
@@ -279,6 +291,7 @@ function testAllWebRoutes() {
     { route: 'companies', marker: 'JSK Company CRM' },
     { route: 'people', marker: 'JSK People CRM' },
     { route: 'policies', marker: 'JSK Policy Management' },
+    { route: 'claims', marker: 'Claim Management' },
     { route: 'tasks', marker: 'Task Management' },
     { route: 'communications', marker: 'Communication Center' }
   ];
