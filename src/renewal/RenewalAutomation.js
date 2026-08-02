@@ -277,6 +277,16 @@ JSKOS.RenewalAutomation = (function () {
   }
 
   function queueWhatsApp_(candidate, contact, message, today) {
+    if (JSKOS.CommunicationService && typeof JSKOS.CommunicationService.queue === 'function') {
+      JSKOS.CommunicationService.queue({
+        channel: 'WhatsApp', templateKey: 'RENEWAL_REMINDER', recipient: contact.whatsapp,
+        recipientName: contact.name, message: message, status: 'Queued',
+        idempotencyKey: [formatDate_(today), 'WHATSAPP', candidate.policy.policyId, candidate.reminderKey].join('|'),
+        personId: candidate.policy.personId || '', policyId: candidate.policy.policyId || '',
+        metadataJson: JSON.stringify({ reminderKey: candidate.reminderKey, renewalDate: formatDate_(candidate.renewalDate) })
+      }, 'Renewal Automation');
+      return;
+    }
     var sheet = getOrCreateSheet_(CONFIG.WHATSAPP_QUEUE_SHEET, [
       'Queued At', 'Policy ID', 'Policy Number', 'Person ID', 'Client',
       'WhatsApp', 'Renewal Date', 'Reminder Key', 'Message', 'Send Link', 'Status'
