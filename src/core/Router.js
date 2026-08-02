@@ -323,3 +323,43 @@ function testAllWebRoutes() {
   console.info(JSON.stringify(result));
   return result;
 }
+
+/**
+ * Verifies the Build 1007 route and shared sidebar model in the exact
+ * Apps Script runtime used by editor tests and deployments.
+ *
+ * @return {Object}
+ */
+function testBuild1007RuntimeNavigation() {
+  var resolvedRoute = JSKOS.Router.resolve({
+    parameter: { page: 'claims' }
+  });
+  var navigation = JSKOS.Router.getNavigation('claims');
+  var model = JSKOS.TemplateService.createModel('claims');
+  var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
+  var navigationKeys = navigation.map(function (item) { return item.key; });
+  var modelNavigationKeys = model.navigation.map(function (item) { return item.key; });
+  var output = doGet({ parameter: { page: 'claims' } });
+  var content = output.getContent();
+  var result = {
+    success:
+      resolvedRoute === 'claims' &&
+      navigationKeys.indexOf('claims') !== -1 &&
+      modelNavigationKeys.indexOf('claims') !== -1 &&
+      content.indexOf('Claim Management') !== -1,
+    version: JSKOS.Config.APP.VERSION,
+    resolvedRoute: resolvedRoute,
+    routeKeys: routeKeys,
+    navigationKeys: navigationKeys,
+    modelNavigationKeys: modelNavigationKeys,
+    claimPageRendered: content.indexOf('Claim Management') !== -1,
+    webAppUrl: JSKOS.Router.getWebAppUrl()
+  };
+
+  if (!result.success) {
+    throw new Error('Build 1007 runtime navigation failed: ' + JSON.stringify(result));
+  }
+
+  console.info(JSON.stringify(result));
+  return result;
+}

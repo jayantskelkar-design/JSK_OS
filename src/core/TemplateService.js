@@ -168,6 +168,35 @@ JSKOS.TemplateService = Object.freeze({
         JSKOS.Router.getNavigation(
           model.activeRoute
         ) || [];
+
+      /*
+       * Claims is a first-class Build 1007 module. Keep it visible even
+       * when an older cached RouteConfig object survives in a long-lived
+       * Apps Script runtime while a new deployment is warming up.
+       */
+      var hasClaims = model.navigation.some(function (item) {
+        return item && item.key === 'claims';
+      });
+
+      if (!hasClaims) {
+        var claimsItem = {
+          key: 'claims',
+          title: 'Claims',
+          icon: '\u25c6',
+          enabled: true,
+          active: model.activeRoute === 'claims',
+          href: JSKOS.Router.buildRouteUrl('claims')
+        };
+        var taskIndex = model.navigation.findIndex(function (item) {
+          return item && item.key === 'tasks';
+        });
+
+        if (taskIndex === -1) {
+          model.navigation.push(claimsItem);
+        } else {
+          model.navigation.splice(taskIndex, 0, claimsItem);
+        }
+      }
     }
 
     if (
