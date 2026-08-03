@@ -1,0 +1,2 @@
+/** JSK OS Build 1010 - Quote Management UI. */
+function renderQuoteUi(){ensureBuild1010Quotes();var t=HtmlService.createTemplateFromFile('Ui/Quote/Quote');t.applicationName=JSKOS.Config.APP.NAME;t.applicationVersion=JSKOS.Config.APP.VERSION;t.currentUser=JSKOS.ConfigService.getCurrentUser();t.routeUrls=JSKOS.Router.getRouteUrls();return t.evaluate().setTitle('Quotes | JSK OS').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL).addMetaTag('viewport','width=device-width, initial-scale=1');}

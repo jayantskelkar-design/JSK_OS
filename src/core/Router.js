@@ -14,6 +14,7 @@ JSKOS.RouteConfig = Object.freeze({
     claims: Object.freeze({ key: 'claims', title: 'Claims', icon: '◆', enabled: true }),
     documents: Object.freeze({ key: 'documents', title: 'Documents', icon: '▣', enabled: true }),
     endorsements: Object.freeze({ key: 'endorsements', title: 'Endorsements', icon: '↺', enabled: true }),
+    quotes: Object.freeze({ key: 'quotes', title: 'Quotes', icon: '≋', enabled: true }),
     tasks: Object.freeze({ key: 'tasks', title: 'Tasks', icon: '✓', enabled: true }),
     meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: true }),
     communications: Object.freeze({ key: 'communications', title: 'Communications', icon: '✉', enabled: true })
@@ -97,6 +98,9 @@ JSKOS.Router = Object.freeze({
         case 'endorsements':
           return JSKOS.Router.renderEndorsements();
 
+        case 'quotes':
+          return JSKOS.Router.renderQuotes();
+
         case 'tasks':
           return JSKOS.Router.renderTasks();
 
@@ -170,6 +174,11 @@ JSKOS.Router = Object.freeze({
     return renderEndorsementUi();
   },
 
+  renderQuotes: function () {
+    if (typeof renderQuoteUi !== 'function') throw new Error('renderQuoteUi() is unavailable.');
+    return renderQuoteUi();
+  },
+
   renderTasks: function () {
     if (typeof renderTaskUi !== 'function') {
       throw new Error('renderTaskUi() is unavailable.');
@@ -228,6 +237,7 @@ JSKOS.Router = Object.freeze({
       claims: JSKOS.Router.buildRouteUrl('claims'),
       documents: JSKOS.Router.buildRouteUrl('documents'),
       endorsements: JSKOS.Router.buildRouteUrl('endorsements'),
+      quotes: JSKOS.Router.buildRouteUrl('quotes'),
       tasks: JSKOS.Router.buildRouteUrl('tasks'),
       meetings: JSKOS.Router.buildRouteUrl('meetings'),
       communications: JSKOS.Router.buildRouteUrl('communications')
@@ -316,6 +326,7 @@ function testAllWebRoutes() {
     { route: 'claims', marker: 'Claim Management' },
     { route: 'documents', marker: 'Document Vault' },
     { route: 'endorsements', marker: 'Endorsement Management' },
+    { route: 'quotes', marker: 'Quote Management' },
     { route: 'tasks', marker: 'Task Management' },
     { route: 'communications', marker: 'Communication Center' }
   ];
