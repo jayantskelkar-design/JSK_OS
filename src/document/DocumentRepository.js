@@ -73,6 +73,30 @@ class DocumentRepository {
     return this.update(documentId, { isDeleted: true, status: 'Archived' }, actor, expectedVersion);
   }
 
+  restore(documentId, actor, expectedVersion) {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    try {
+      var index = this.findRow_(documentId);
+      if (!index) throw new Error('Document not found.');
+      var item = this.fromRow_(this.sheet.getRange(index, 1, 1, this.headers.length).getValues()[0]);
+      if (!item.isDeleted) return item;
+      if (expectedVersion !== undefined && Number(expectedVersion) !== Number(item.recordVersion)) {
+        var conflict = new Error('Document was modified by another user.');
+        conflict.code = 'VERSION_CONFLICT'; conflict.currentVersion = item.recordVersion; throw conflict;
+      }
+      item.isDeleted = false;
+      item.status = 'Draft';
+      item.updatedAt = new Date();
+      item.updatedBy = actor || Session.getActiveUser().getEmail() || 'System';
+      item.recordVersion = Number(item.recordVersion || 0) + 1;
+      this.validate_(item);
+      this.sheet.getRange(index, 1, 1, this.headers.length).setValues([this.toRow_(item)]);
+      SpreadsheetApp.flush();
+      return this.findById(documentId, true);
+    } finally { lock.releaseLock(); }
+  }
+
   search(criteria) {
     criteria = criteria || {};
     var rows = this.sheet.getLastRow() < 2 ? [] : this.sheet.getRange(2, 1, this.sheet.getLastRow() - 1, this.headers.length).getValues();
