@@ -13,6 +13,7 @@ JSKOS.RouteConfig = Object.freeze({
     policies: Object.freeze({ key: 'policies', title: 'Policies', icon: '▤', enabled: true }),
     claims: Object.freeze({ key: 'claims', title: 'Claims', icon: '◆', enabled: true }),
     documents: Object.freeze({ key: 'documents', title: 'Documents', icon: '▣', enabled: true }),
+    endorsements: Object.freeze({ key: 'endorsements', title: 'Endorsements', icon: '↺', enabled: true }),
     tasks: Object.freeze({ key: 'tasks', title: 'Tasks', icon: '✓', enabled: true }),
     meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: true }),
     communications: Object.freeze({ key: 'communications', title: 'Communications', icon: '✉', enabled: true })
@@ -93,6 +94,9 @@ JSKOS.Router = Object.freeze({
         case 'documents':
           return JSKOS.Router.renderDocuments();
 
+        case 'endorsements':
+          return JSKOS.Router.renderEndorsements();
+
         case 'tasks':
           return JSKOS.Router.renderTasks();
 
@@ -161,6 +165,11 @@ JSKOS.Router = Object.freeze({
     return renderDocumentUi();
   },
 
+  renderEndorsements: function () {
+    if (typeof renderEndorsementUi !== 'function') throw new Error('renderEndorsementUi() is unavailable.');
+    return renderEndorsementUi();
+  },
+
   renderTasks: function () {
     if (typeof renderTaskUi !== 'function') {
       throw new Error('renderTaskUi() is unavailable.');
@@ -218,6 +227,7 @@ JSKOS.Router = Object.freeze({
       policies: JSKOS.Router.buildRouteUrl('policies'),
       claims: JSKOS.Router.buildRouteUrl('claims'),
       documents: JSKOS.Router.buildRouteUrl('documents'),
+      endorsements: JSKOS.Router.buildRouteUrl('endorsements'),
       tasks: JSKOS.Router.buildRouteUrl('tasks'),
       meetings: JSKOS.Router.buildRouteUrl('meetings'),
       communications: JSKOS.Router.buildRouteUrl('communications')
@@ -305,6 +315,7 @@ function testAllWebRoutes() {
     { route: 'policies', marker: 'JSK Policy Management' },
     { route: 'claims', marker: 'Claim Management' },
     { route: 'documents', marker: 'Document Vault' },
+    { route: 'endorsements', marker: 'Endorsement Management' },
     { route: 'tasks', marker: 'Task Management' },
     { route: 'communications', marker: 'Communication Center' }
   ];

@@ -1,0 +1,2 @@
+/** JSK OS Build 1009 - Endorsement foundation smoke test. */
+function testEndorsementFoundation(){var migration=ensureBuild1009Endorsements(),search=new EndorsementRepository().search({}),filters=getEndorsementFilters(),result={success:migration.success===true&&Array.isArray(search.items)&&filters.statuses.indexOf('Submitted')!==-1,build:1009,schemaVersion:JSK_ENDORSEMENT_SCHEMA.VERSION,total:search.total};if(!result.success)throw new Error('Build 1009 Endorsement foundation failed.');console.info(JSON.stringify(result));return result;}
