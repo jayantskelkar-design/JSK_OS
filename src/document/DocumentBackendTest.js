@@ -68,3 +68,18 @@ function testArchivedDocumentSearch() {
   }
   return { success: true };
 }
+
+function testDocumentExpirySummary() {
+  var reference = new Date('2026-08-04T00:00:00+05:30');
+  var summary = JSKOS.DocumentAutomation.summarize([
+    { documentId: '1', documentName: 'Expired', expiryDate: '2026-08-03' },
+    { documentId: '2', documentName: '30', expiryDate: '2026-08-20' },
+    { documentId: '3', documentName: '60', expiryDate: '2026-09-20' },
+    { documentId: '4', documentName: '90', expiryDate: '2026-10-20' },
+    { documentId: '5', documentName: 'Missing file' }
+  ], reference);
+  if (summary.expired !== 1 || summary.due30 !== 1 || summary.due60 !== 1 || summary.due90 !== 1 || summary.missingFile !== 5) {
+    throw new Error('Document expiry summary test failed: ' + JSON.stringify(summary));
+  }
+  return { success: true, summary: summary };
+}

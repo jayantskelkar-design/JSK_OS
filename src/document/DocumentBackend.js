@@ -104,6 +104,13 @@ function apiDocumentSearch(payload) {
   return documentApiExecute_('search', function () { return documentRepository_().search(documentRequest_(payload)); });
 }
 
+function apiDocumentExpirySummary() {
+  return documentApiExecute_('expiry-summary', function () {
+    var items = documentRepository_().search({}).items || [];
+    return JSKOS.DocumentAutomation.summarize(items, new Date());
+  });
+}
+
 function getDocumentFilters() {
   return {
     documentTypes: JSK_DOCUMENT_SCHEMA.TYPE_VALUES.slice(),
