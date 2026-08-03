@@ -130,6 +130,7 @@ class DocumentRepository {
   }
 
   findRow_(documentId) {
+    if (!String(documentId || '').trim()) throw new Error('Document ID is required. Refresh the Document Vault and try again.');
     if (this.sheet.getLastRow() < 2) return 0;
     var column = this.headers.indexOf('Document ID') + 1;
     var match = this.sheet.getRange(2, column, this.sheet.getLastRow() - 1, 1)

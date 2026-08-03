@@ -97,7 +97,36 @@ function ensureBuild1008Documents() {
     });
   }
   if (current < JSK_DOCUMENT_SCHEMA.VERSION || !complete) return migrateDocumentDatabase();
+  repairLegacyDocumentRows_(sheet, headers);
   return { success: true, schemaVersion: current, sheetName: JSK_DOCUMENT_SCHEMA.SHEET_NAME };
+}
+
+/** Assigns identifiers and concurrency defaults to pre-fix Build 1008 rows. */
+function repairLegacyDocumentRows_(sheet, headers) {
+  if (!sheet || sheet.getLastRow() < 2) return { repaired: 0 };
+  var idColumn = headers.indexOf('Document ID');
+  var versionColumn = headers.indexOf('Record Version');
+  var deletedColumn = headers.indexOf('Is Deleted');
+  if (idColumn === -1) return { repaired: 0 };
+
+  var range = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length);
+  var rows = range.getValues();
+  var repaired = 0;
+  rows.forEach(function (row) {
+    var hasContent = row.some(function (value, index) {
+      return index !== idColumn && index !== versionColumn && index !== deletedColumn && String(value || '').trim();
+    });
+    if (!hasContent || String(row[idColumn] || '').trim()) return;
+    row[idColumn] = 'DOC-' + Utilities.getUuid().slice(0, 8).toUpperCase();
+    if (versionColumn !== -1 && !Number(row[versionColumn])) row[versionColumn] = 1;
+    if (deletedColumn !== -1 && row[deletedColumn] === '') row[deletedColumn] = false;
+    repaired += 1;
+  });
+  if (repaired) {
+    range.setValues(rows);
+    SpreadsheetApp.flush();
+  }
+  return { repaired: repaired };
 }
 
 function setDocumentValidation_(sheet, header, values) {
