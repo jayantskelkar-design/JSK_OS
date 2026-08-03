@@ -111,3 +111,39 @@ function getDocumentFilters() {
     statuses: JSK_DOCUMENT_SCHEMA.STATUS_VALUES.slice()
   };
 }
+
+function getDocumentLinkOptions() {
+  var spreadsheet = JSKOS.ConfigService.getSpreadsheet();
+  var definitions = {
+    companyId: { sheet: 'Companies', id: 'Company ID', labels: ['Company Name'] },
+    personId: { sheet: 'People', id: 'Person ID', labels: ['Full Name', 'Mobile'] },
+    policyId: { sheet: 'Policies', id: 'Policy ID', labels: ['Policy Number', 'Insured Name'] },
+    claimId: { sheet: 'Claims', id: 'Claim ID', labels: ['Claim Number', 'Claim Type'] },
+    taskId: { sheet: 'Tasks', id: 'Task ID', labels: ['Title'] },
+    meetingId: { sheet: 'Meetings', id: 'Meeting ID', labels: ['Title'] }
+  };
+  var result = {};
+  Object.keys(definitions).forEach(function (key) {
+    result[key] = documentLinkOptionsFromSheet_(spreadsheet, definitions[key]);
+  });
+  return result;
+}
+
+function documentLinkOptionsFromSheet_(spreadsheet, definition) {
+  var sheet = spreadsheet.getSheetByName(definition.sheet);
+  if (!sheet || sheet.getLastRow() < 2 || !sheet.getLastColumn()) return [];
+  var values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getDisplayValues();
+  var headers = values.shift();
+  var idIndex = headers.indexOf(definition.id);
+  var deletedIndex = headers.indexOf('Is Deleted');
+  var labelIndexes = definition.labels.map(function (header) { return headers.indexOf(header); });
+  if (idIndex === -1) return [];
+  return values.filter(function (row) {
+    return String(row[idIndex] || '').trim() &&
+      (deletedIndex === -1 || String(row[deletedIndex] || '').toLowerCase() !== 'true');
+  }).slice(0, 500).map(function (row) {
+    var details = labelIndexes.filter(function (index) { return index !== -1 && row[index]; })
+      .map(function (index) { return row[index]; }).join(' · ');
+    return { id: row[idIndex], label: details || row[idIndex] };
+  });
+}
