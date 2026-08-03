@@ -30,3 +30,20 @@ function testDocumentApiSerialization() {
   if (!success) throw new Error('Document API date serialization test failed.');
   return { success: true, serialized: serialized };
 }
+
+function testDocumentHeaderMapping() {
+  var repository = Object.create(DocumentRepository.prototype);
+  var expected = {
+    'Document ID': 'documentId',
+    'File URL': 'fileUrl',
+    'Drive File ID': 'driveFileId',
+    'Company ID': 'companyId',
+    'Policy ID': 'policyId'
+  };
+  Object.keys(expected).forEach(function (header) {
+    if (repository.keyForHeader_(header) !== expected[header]) {
+      throw new Error('Incorrect Document header mapping: ' + header);
+    }
+  });
+  return { success: true, mappings: expected };
+}

@@ -157,6 +157,18 @@ class DocumentRepository {
   valueForHeader_(item, header) { return item[this.keyForHeader_(header)] === undefined ? '' : item[this.keyForHeader_(header)]; }
 
   keyForHeader_(header) {
+    var canonicalKeys = {
+      'Document ID': 'documentId',
+      'File URL': 'fileUrl',
+      'Drive File ID': 'driveFileId',
+      'Company ID': 'companyId',
+      'Person ID': 'personId',
+      'Policy ID': 'policyId',
+      'Claim ID': 'claimId',
+      'Task ID': 'taskId',
+      'Meeting ID': 'meetingId'
+    };
+    if (canonicalKeys[header]) return canonicalKeys[header];
     return header.replace(/[^A-Za-z0-9]+(.)/g, function (_, chr) { return chr.toUpperCase(); }).replace(/^./, function (chr) { return chr.toLowerCase(); });
   }
 }
