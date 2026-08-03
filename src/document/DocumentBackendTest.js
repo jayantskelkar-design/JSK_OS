@@ -47,3 +47,24 @@ function testDocumentHeaderMapping() {
   });
   return { success: true, mappings: expected };
 }
+
+function testArchivedDocumentSearch() {
+  var repository = Object.create(DocumentRepository.prototype);
+  repository.headers = JSK_DOCUMENT_SCHEMA.HEADERS.slice();
+  var archived = {
+    documentId: 'DOC-ARCHIVED-TEST', documentName: 'Archived Test',
+    documentType: 'Other', category: 'Other', status: 'Archived',
+    companyId: 'COMPANY-TEST', recordVersion: 2, isDeleted: true
+  };
+  var row = repository.toRow_(archived);
+  repository.sheet = {
+    getLastRow: function () { return 2; },
+    getRange: function () { return { getValues: function () { return [row]; } }; }
+  };
+  var visible = repository.search({ status: 'Archived' });
+  var hidden = repository.search({});
+  if (visible.total !== 1 || hidden.total !== 0) {
+    throw new Error('Archived Document search behavior failed.');
+  }
+  return { success: true };
+}

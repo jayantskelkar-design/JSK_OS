@@ -78,7 +78,7 @@ class DocumentRepository {
     var rows = this.sheet.getLastRow() < 2 ? [] : this.sheet.getRange(2, 1, this.sheet.getLastRow() - 1, this.headers.length).getValues();
     var query = String(criteria.query || '').trim().toLowerCase();
     var items = rows.map(this.fromRow_.bind(this)).filter(function (item) {
-      if (!criteria.includeDeleted && item.isDeleted) return false;
+      if (!criteria.includeDeleted && criteria.status !== 'Archived' && item.isDeleted) return false;
       if (criteria.documentType && item.documentType !== criteria.documentType) return false;
       if (criteria.category && item.category !== criteria.category) return false;
       if (criteria.status && item.status !== criteria.status) return false;
