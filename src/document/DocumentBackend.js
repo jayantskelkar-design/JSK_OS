@@ -2,7 +2,7 @@
 
 function documentApiExecute_(operation, callback) {
   try {
-    return { success: true, data: callback(), error: null, meta: { operation: operation, timestamp: new Date().toISOString() } };
+    return { success: true, data: documentApiSerialize_(callback()), error: null, meta: { operation: operation, timestamp: new Date().toISOString() } };
   } catch (error) {
     console.error('Document API ' + operation + ' failed: ' + (error.stack || error));
     return {
@@ -17,6 +17,20 @@ function documentApiExecute_(operation, callback) {
       meta: { operation: operation, timestamp: new Date().toISOString() }
     };
   }
+}
+
+/** Converts Apps Script Date values into browser-safe ISO strings. */
+function documentApiSerialize_(value) {
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(documentApiSerialize_);
+  if (value && typeof value === 'object') {
+    var result = {};
+    Object.keys(value).forEach(function (key) {
+      result[key] = documentApiSerialize_(value[key]);
+    });
+    return result;
+  }
+  return value;
 }
 
 function documentRequest_(payload) { return payload && typeof payload === 'object' ? payload : {}; }
