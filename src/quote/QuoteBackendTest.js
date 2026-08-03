@@ -1,3 +1,4 @@
 /** JSK OS Build 1010 foundation smoke test. */
 function testQuoteFoundation(){var migration=ensureBuild1010Quotes(),search=new QuoteRepository().search({}),filters=getQuoteFilters(),result={success:migration.success===true&&Array.isArray(search.items)&&filters.statuses.indexOf('Shortlisted')!==-1,build:1010,schemaVersion:JSK_QUOTE_SCHEMA.VERSION,total:search.total};if(!result.success)throw new Error('Build 1010 Quote foundation failed.');console.info(JSON.stringify(result));return result;}
 function testQuoteComparisonApi(){var response=apiQuoteComparison({});if(!response.success||!Array.isArray(response.data.items))throw new Error('Quote comparison API failed.');return response;}
+function testQuoteAutomaticTotals(){var repo=Object.create(QuoteRepository.prototype),x=repo.norm_({premium:1000});if(x.gstAmount!==180||x.totalPremium!==1180)throw new Error('Quote automatic totals failed.');return{success:true,totals:x};}
