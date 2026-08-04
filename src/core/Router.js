@@ -35,7 +35,7 @@ function doGet(event) {
   }
   bootstrapBuild1002Automation_();
   var route = JSKOS.Router.resolve(event);
-  return applyJSKOSBranding_(JSKOS.Router.render(route, event));
+  return applyJSKOSBranding_(JSKOS.Router.render(route, event), route);
 }
 
 /**
@@ -46,7 +46,7 @@ function doGet(event) {
  * @return {GoogleAppsScript.HTML.HtmlOutput}
  * @private
  */
-function applyJSKOSBranding_(output) {
+function applyJSKOSBranding_(output, activeRoute) {
   if (!output || typeof output.getContent !== 'function') return output;
   var brandMark = HtmlService
     .createHtmlOutputFromFile('Ui/Core/BrandMark')
@@ -55,19 +55,32 @@ function applyJSKOSBranding_(output) {
     /<div class="brand-mark"[^>]*>\s*JSK\s*<\/div>/g,
     brandMark
   );
-  var hasReportsLink =
-    /<a\b[^>]*href=["'][^"']*page=reports(?:&[^"']*)?["'][^>]*>/i
-      .test(brandedContent);
-  if (!hasReportsLink && brandedContent.indexOf('</nav>') !== -1) {
+  if (
+    brandedContent.indexOf('class="sidebar"') !== -1 &&
+    /<nav\b[^>]*>[\s\S]*?<\/nav>/i.test(brandedContent)
+  ) {
     brandedContent = brandedContent.replace(
-      '</nav>',
-      '<a href="' +
-        escapeRouterHtml_(JSKOS.Router.buildRouteUrl('reports')) +
-        '"># Reports</a></nav>'
+      /<nav\b[^>]*>[\s\S]*?<\/nav>/i,
+      buildJSKOSNavigationHtml_(activeRoute)
     );
   }
   output.setContent(brandedContent);
   return output;
+}
+
+function buildJSKOSNavigationHtml_(activeRoute) {
+  var links = Object.keys(JSKOS.RouteConfig.ROUTES).map(function (key) {
+    var route = JSKOS.RouteConfig.ROUTES[key];
+    var active = route.key === activeRoute;
+    return '<a class="nav-item' + (active ? ' active' : '') +
+      '" href="' + escapeRouterHtml_(JSKOS.Router.buildRouteUrl(route.key)) +
+      '"' + (active ? ' aria-current="page"' : '') + '>' +
+      '<span class="nav-icon" aria-hidden="true">' +
+      escapeRouterHtml_(route.icon) + '</span>' +
+      '<span>' + escapeRouterHtml_(route.title) + '</span></a>';
+  });
+  return '<nav class="navigation" aria-label="JSK OS modules">' +
+    links.join('') + '</nav>';
 }
 
 /** Meta WhatsApp webhook entry point. */
@@ -381,6 +394,7 @@ function testAllWebRoutes() {
     { route: 'revenue', marker: 'Revenue & Commission' },
     { route: 'reports', marker: 'Reports & Analytics' },
     { route: 'tasks', marker: 'Task Management' },
+    { route: 'meetings', marker: 'Meeting Management' },
     { route: 'communications', marker: 'Communication Center' }
   ];
 
