@@ -1,0 +1,1 @@
+function testRevenueFoundation(){var m=ensureBuild1011Revenue(),s=apiRevenueSummary(),i=apiRevenueIntelligence();if(!m.success||!s.success||!i.success)throw new Error('Revenue foundation test failed.');return{success:true,schemaVersion:JSK_REVENUE_SCHEMA.VERSION};}
