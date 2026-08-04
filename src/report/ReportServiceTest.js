@@ -1,5 +1,12 @@
 /** JSK OS Build 1012 - Reports foundation smoke test. */
 function testReportFoundation() {
+  var paginationContract = reportTotal_({
+    success: true,
+    data: { items: [{}], pagination: { totalItems: 2 } }
+  }, 'Test');
+  if (paginationContract !== 2) {
+    throw new Error('Build 1012 pagination total contract failed.');
+  }
   var response = apiReportExecutiveSummary();
   var filters = getReportFilters();
   if (!response.success) {

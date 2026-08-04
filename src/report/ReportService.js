@@ -42,7 +42,15 @@ function reportData_(response, moduleName) {
 function reportTotal_(response, moduleName) {
   var data = reportData_(response, moduleName);
   if (typeof data.total === 'number') return data.total;
+  if (
+    data.pagination &&
+    typeof data.pagination.totalItems === 'number'
+  ) {
+    return data.pagination.totalItems;
+  }
+  if (typeof data.totalCount === 'number') return data.totalCount;
   if (Array.isArray(data.items)) return data.items.length;
+  if (Array.isArray(data.records)) return data.records.length;
   throw new Error(moduleName + ' report source has no total.');
 }
 
