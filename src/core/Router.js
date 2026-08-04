@@ -55,10 +55,10 @@ function applyJSKOSBranding_(output) {
     /<div class="brand-mark"[^>]*>\s*JSK\s*<\/div>/g,
     brandMark
   );
-  if (
-    brandedContent.indexOf('page=reports') === -1 &&
-    brandedContent.indexOf('</nav>') !== -1
-  ) {
+  var hasReportsLink =
+    /<a\b[^>]*href=["'][^"']*page=reports(?:&[^"']*)?["'][^>]*>/i
+      .test(brandedContent);
+  if (!hasReportsLink && brandedContent.indexOf('</nav>') !== -1) {
     brandedContent = brandedContent.replace(
       '</nav>',
       '<a href="' +
