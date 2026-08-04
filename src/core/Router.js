@@ -34,7 +34,28 @@ function doGet(event) {
   }
   bootstrapBuild1002Automation_();
   var route = JSKOS.Router.resolve(event);
-  return JSKOS.Router.render(route, event);
+  return applyJSKOSBranding_(JSKOS.Router.render(route, event));
+}
+
+/**
+ * Replaces the legacy text badge with the company logo on every rendered page.
+ * Keeping this at the router boundary also covers modules with their own sidebar.
+ *
+ * @param {GoogleAppsScript.HTML.HtmlOutput} output Rendered application page.
+ * @return {GoogleAppsScript.HTML.HtmlOutput}
+ * @private
+ */
+function applyJSKOSBranding_(output) {
+  if (!output || typeof output.getContent !== 'function') return output;
+  var brandMark = HtmlService
+    .createHtmlOutputFromFile('Ui/Core/BrandMark')
+    .getContent();
+  var brandedContent = output.getContent().replace(
+    /<div class="brand-mark"[^>]*>\s*JSK\s*<\/div>/g,
+    brandMark
+  );
+  output.setContent(brandedContent);
+  return output;
 }
 
 /** Meta WhatsApp webhook entry point. */
