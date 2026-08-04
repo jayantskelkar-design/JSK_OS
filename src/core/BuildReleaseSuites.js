@@ -148,6 +148,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Core configuration', run: testJskOsCoreConfig },
     { name: 'Core framework', run: testCoreFramework },
     { name: 'Core UI integration', run: testCoreUiIntegration },
+    { name: 'Release operations plan', run: testReleaseOperationsPlan },
     { name: 'Build 1002', run: testBuild1002ReleaseCandidate },
     { name: 'Build 1003', run: testBuild1003ReleaseCandidate },
     { name: 'Build 1004', run: testBuild1004ReleaseCandidate },
