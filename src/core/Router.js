@@ -15,6 +15,7 @@ JSKOS.RouteConfig = Object.freeze({
     documents: Object.freeze({ key: 'documents', title: 'Documents', icon: '▣', enabled: true }),
     endorsements: Object.freeze({ key: 'endorsements', title: 'Endorsements', icon: '↺', enabled: true }),
     quotes: Object.freeze({ key: 'quotes', title: 'Quotes', icon: '≋', enabled: true }),
+    revenue: Object.freeze({ key: 'revenue', title: 'Revenue', icon: '₹', enabled: true }),
     tasks: Object.freeze({ key: 'tasks', title: 'Tasks', icon: '✓', enabled: true }),
     meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: true }),
     communications: Object.freeze({ key: 'communications', title: 'Communications', icon: '✉', enabled: true })
@@ -101,6 +102,9 @@ JSKOS.Router = Object.freeze({
         case 'quotes':
           return JSKOS.Router.renderQuotes();
 
+        case 'revenue':
+          return JSKOS.Router.renderRevenue();
+
         case 'tasks':
           return JSKOS.Router.renderTasks();
 
@@ -179,6 +183,8 @@ JSKOS.Router = Object.freeze({
     return renderQuoteUi();
   },
 
+  renderRevenue: function () { if(typeof renderRevenueUi!=='function')throw new Error('renderRevenueUi() is unavailable.');return renderRevenueUi(); },
+
   renderTasks: function () {
     if (typeof renderTaskUi !== 'function') {
       throw new Error('renderTaskUi() is unavailable.');
@@ -238,6 +244,7 @@ JSKOS.Router = Object.freeze({
       documents: JSKOS.Router.buildRouteUrl('documents'),
       endorsements: JSKOS.Router.buildRouteUrl('endorsements'),
       quotes: JSKOS.Router.buildRouteUrl('quotes'),
+      revenue: JSKOS.Router.buildRouteUrl('revenue'),
       tasks: JSKOS.Router.buildRouteUrl('tasks'),
       meetings: JSKOS.Router.buildRouteUrl('meetings'),
       communications: JSKOS.Router.buildRouteUrl('communications')
@@ -327,6 +334,7 @@ function testAllWebRoutes() {
     { route: 'documents', marker: 'Document Vault' },
     { route: 'endorsements', marker: 'Endorsement Management' },
     { route: 'quotes', marker: 'Quote Management' },
+    { route: 'revenue', marker: 'Revenue & Commission' },
     { route: 'tasks', marker: 'Task Management' },
     { route: 'communications', marker: 'Communication Center' }
   ];
