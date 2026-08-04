@@ -16,6 +16,7 @@ JSKOS.RouteConfig = Object.freeze({
     endorsements: Object.freeze({ key: 'endorsements', title: 'Endorsements', icon: '↺', enabled: true }),
     quotes: Object.freeze({ key: 'quotes', title: 'Quotes', icon: '≋', enabled: true }),
     revenue: Object.freeze({ key: 'revenue', title: 'Revenue', icon: '₹', enabled: true }),
+    reports: Object.freeze({ key: 'reports', title: 'Reports', icon: '#', enabled: true }),
     tasks: Object.freeze({ key: 'tasks', title: 'Tasks', icon: '✓', enabled: true }),
     meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: true }),
     communications: Object.freeze({ key: 'communications', title: 'Communications', icon: '✉', enabled: true })
@@ -54,6 +55,17 @@ function applyJSKOSBranding_(output) {
     /<div class="brand-mark"[^>]*>\s*JSK\s*<\/div>/g,
     brandMark
   );
+  if (
+    brandedContent.indexOf('page=reports') === -1 &&
+    brandedContent.indexOf('</nav>') !== -1
+  ) {
+    brandedContent = brandedContent.replace(
+      '</nav>',
+      '<a href="' +
+        escapeRouterHtml_(JSKOS.Router.buildRouteUrl('reports')) +
+        '"># Reports</a></nav>'
+    );
+  }
   output.setContent(brandedContent);
   return output;
 }
@@ -125,6 +137,9 @@ JSKOS.Router = Object.freeze({
 
         case 'revenue':
           return JSKOS.Router.renderRevenue();
+
+        case 'reports':
+          return JSKOS.Router.renderReports();
 
         case 'tasks':
           return JSKOS.Router.renderTasks();
@@ -206,6 +221,13 @@ JSKOS.Router = Object.freeze({
 
   renderRevenue: function () { if(typeof renderRevenueUi!=='function')throw new Error('renderRevenueUi() is unavailable.');return renderRevenueUi(); },
 
+  renderReports: function () {
+    if (typeof renderReportUi !== 'function') {
+      throw new Error('renderReportUi() is unavailable.');
+    }
+    return renderReportUi();
+  },
+
   renderTasks: function () {
     if (typeof renderTaskUi !== 'function') {
       throw new Error('renderTaskUi() is unavailable.');
@@ -266,6 +288,7 @@ JSKOS.Router = Object.freeze({
       endorsements: JSKOS.Router.buildRouteUrl('endorsements'),
       quotes: JSKOS.Router.buildRouteUrl('quotes'),
       revenue: JSKOS.Router.buildRouteUrl('revenue'),
+      reports: JSKOS.Router.buildRouteUrl('reports'),
       tasks: JSKOS.Router.buildRouteUrl('tasks'),
       meetings: JSKOS.Router.buildRouteUrl('meetings'),
       communications: JSKOS.Router.buildRouteUrl('communications')
@@ -356,6 +379,7 @@ function testAllWebRoutes() {
     { route: 'endorsements', marker: 'Endorsement Management' },
     { route: 'quotes', marker: 'Quote Management' },
     { route: 'revenue', marker: 'Revenue & Commission' },
+    { route: 'reports', marker: 'Reports & Analytics' },
     { route: 'tasks', marker: 'Task Management' },
     { route: 'communications', marker: 'Communication Center' }
   ];

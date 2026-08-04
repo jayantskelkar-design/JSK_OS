@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <?!= include('Ui/Document/DocumentStyles'); ?>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">JSK</div>
+      <div><strong><?= applicationName ?></strong><span>Version <?= applicationVersion ?></span></div>
+    </div>
+    <nav>
+      <a href="<?= routeUrls.dashboard ?>">Dashboard</a>
+      <a href="<?= routeUrls.companies ?>">Companies</a>
+      <a href="<?= routeUrls.people ?>">People</a>
+      <a href="<?= routeUrls.policies ?>">Policies</a>
+      <a href="<?= routeUrls.claims ?>">Claims</a>
+      <a href="<?= routeUrls.documents ?>">Documents</a>
+      <a href="<?= routeUrls.endorsements ?>">Endorsements</a>
+      <a href="<?= routeUrls.quotes ?>">Quotes</a>
+      <a href="<?= routeUrls.revenue ?>">Revenue</a>
+      <a class="active" href="<?= routeUrls.reports ?>">Reports</a>
+    </nav>
+    <div class="motto"><strong>First Assurance...</strong><span>Then Insurance.</span></div>
+  </aside>
+  <main>
+    <header class="topbar">
+      <div>
+        <h1>Reports & Analytics</h1>
+        <p>Consolidated management view across clients, business, servicing and finance.</p>
+      </div>
+      <div class="user"><strong><?= currentUser ?></strong><span>Administrator</span></div>
+    </header>
+    <section class="content">
+      <div class="panel-header" style="padding:0 0 20px">
+        <div><h2>Executive Summary</h2><p id="generatedAt">Loading current business position...</p></div>
+        <button class="button" id="refreshButton">Refresh</button>
+      </div>
+      <div class="summary-grid">
+        <article><span>Companies</span><strong id="companies">0</strong></article>
+        <article><span>People</span><strong id="people">0</strong></article>
+        <article><span>Policies</span><strong id="policies">0</strong></article>
+        <article><span>Claims</span><strong id="claims">0</strong></article>
+      </div>
+      <div class="summary-grid">
+        <article><span>Quotes</span><strong id="quotes">0</strong></article>
+        <article><span>Open Endorsements</span><strong id="endorsementsOpen">0</strong></article>
+        <article><span>Documents</span><strong id="documents">0</strong></article>
+        <article class="danger"><span>Expired Documents</span><strong id="documentsExpired">0</strong></article>
+      </div>
+      <section class="panel" style="margin-bottom:24px">
+        <div class="panel-header"><div><h2>Finance Position</h2><p>Expected, received and outstanding commission.</p></div></div>
+        <div class="summary-grid" style="padding:0 24px 24px;margin:0">
+          <article><span>Expected</span><strong id="expected">₹0</strong></article>
+          <article><span>Received</span><strong id="received">₹0</strong></article>
+          <article><span>Outstanding</span><strong id="outstanding">₹0</strong></article>
+          <article class="danger"><span>Overdue Records</span><strong id="overdue">0</strong></article>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-header"><div><h2>Attention Required</h2><p>Operational items requiring prompt follow-up.</p></div></div>
+        <div class="summary-grid" style="padding:0 24px 24px;margin:0">
+          <article><span>Endorsements Overdue</span><strong id="endorsementsOverdue">0</strong></article>
+          <article><span>Quotes Expiring in 7 Days</span><strong id="quotesExpiring7Days">0</strong></article>
+        </div>
+      </section>
+    </section>
+  </main>
+  <div id="toast" class="toast hidden"></div>
+  <?!= include('Ui/Report/ReportScripts'); ?>
+</body>
+</html>
