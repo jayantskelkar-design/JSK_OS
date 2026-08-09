@@ -66,7 +66,7 @@ function testClient360AuthorizationContract() {
 }
 
 function testClient360UiRendering() {
-  var content=renderClient360Ui({companyId:'COM-1'}).getContent(),markers=['Client 360','clientLookup','apiClient360Get','Financial summary','Recent activity'];
+  var content=renderClient360Ui({companyId:'COM-1'}).getContent(),markers=['Client 360','clientLookup','apiClient360Get','Financial summary','Recent activity','Needs Attention','healthBanner'];
   var missing=markers.filter(function(x){return content.indexOf(x)===-1;});
   if(missing.length)throw new Error('Client 360 UI markers missing: '+missing.join(', '));
   return {success:true,markersChecked:markers.length};
@@ -162,6 +162,7 @@ function testBuild1014Client360IntelligenceReleaseCandidate() {
     {name:'Partial-source resilience',run:testBuild1014PartialFailureAndDiagnostics},
     {name:'Authorization isolation',run:testBuild1014AuthorizationIsolation},
     {name:'Deep-link context',run:testBuild1014DeepLinkContext},
+    {name:'Operational UI rendering',run:testClient360UiRendering},
     {name:'Pagination, limits and stale states',run:testBuild1014LimitsAndStaleStates},
     {name:'Backward compatibility',run:testBuild1014BackwardCompatibility},
     {name:'Read-only enforcement',run:testBuild1014ReadOnlyEnforcement}

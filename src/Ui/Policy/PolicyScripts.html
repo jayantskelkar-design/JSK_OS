@@ -4,6 +4,7 @@
 
     var RENEWAL_WARNING_DAYS = 30;
 
+    var clientContext = new URLSearchParams(window.location.search);
     var state = {
       page: 1,
       pageSize: 25,
@@ -265,6 +266,8 @@
       setLoading(true);
 
       callServer('apiPolicySearch', {
+        companyId: clientContext.get('companyId') || '',
+        personId: clientContext.get('personId') || '',
         query: elements.searchInput.value.trim(),
         policyStatus: elements.statusFilter.value,
         renewalStage: elements.renewalStageFilter.value,
