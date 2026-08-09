@@ -230,6 +230,38 @@ function testBuild1018ReleaseCandidate(){return runJSKOSReleaseSuite_(1018,[
   {name:'Confirmation receipt UI',run:testBuild1018Ui}
 ],null);}
 
+/** Build 1019 controlled Quote Draft execution. */
+function testBuild1019ReleaseCandidate(){return runJSKOSReleaseSuite_(1019,[
+  {name:'Valid controlled execution',run:testBuild1019ValidExecution},
+  {name:'Preview remains non-mutating',run:testBuild1019PreviewNoMutation},
+  {name:'Actor, action and destination isolation',run:testBuild1019ActorActionDestination},
+  {name:'Permission and relationship revalidation',run:testBuild1019PermissionAndRelationship},
+  {name:'Expiry and lifecycle isolation',run:testBuild1019ExpiryAndLifecycle},
+  {name:'Strict zero-or-one Policy context',run:testBuild1019PolicyBounds},
+  {name:'Mass assignment isolation',run:testBuild1019MassAssignment},
+  {name:'Malformed payload isolation',run:testBuild1019MalformedPayload},
+  {name:'Idempotent retry',run:testBuild1019IdempotentRetry},
+  {name:'Changed retry payload isolation',run:testBuild1019ChangedRetryPayload},
+  {name:'Duplicate destination evidence isolation',run:testBuild1019DuplicateDestination},
+  {name:'Post-write audit reconciliation',run:testBuild1019AuditRecovery},
+  {name:'Write failure retry',run:testBuild1019WriteFailureRetry},
+  {name:'Authoritative lock coverage',run:testBuild1019LockCoverage},
+  {name:'Client 360 ownership isolation',run:testBuild1019Client360Isolation},
+  {name:'Additive Quote schema contract',run:testBuild1019SchemaContract},
+  {name:'Execution audit lifecycle contract',run:testBuild1019AuditLifecycleContract},
+  {name:'Completed receipt metadata',run:testBuild1019ReceiptCompletionMetadata},
+  {name:'Authoritative fingerprint revalidation',run:testBuild1019AuthoritativeFingerprintRevalidation},
+  {name:'Post-expiry audit-only reconciliation',run:testBuild1019PostExpiryAuditOnlyReconciliation},
+  {name:'Reconciliation failure isolation',run:testBuild1019ReconciliationFailsClosed},
+  {name:'Execution timestamp rules',run:testBuild1019ExecutionTimestampRules},
+  {name:'Deterministic execution contenders',run:testBuild1019DeterministicConcurrentContenders},
+  {name:'Fresh expiry mutation boundaries',run:testBuild1019FreshExpiryMutationBoundaries},
+  {name:'Persistence-boundary expiry race',run:testBuild1019PersistenceBoundaryExpiry},
+  {name:'Integrity errors are not audit pending',run:testBuild1019IntegrityErrorsNotAuditPending},
+  {name:'Uncertain destination never recreates',run:testBuild1019UncertainDestinationNeverRecreates},
+  {name:'Quote v1-v2 migration fixtures',run:testBuild1019QuoteMigrationFixtures}
+],null);}
+
 function testCompleteNavigation() {
   var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
   var results = routeKeys.map(function (routeKey) {
@@ -275,6 +307,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Build 1016', run: testBuild1016ReleaseCandidate },
     { name: 'Build 1017', run: testBuild1017ReleaseCandidate },
     { name: 'Build 1018', run: testBuild1018ReleaseCandidate },
+    { name: 'Build 1019', run: testBuild1019ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);
