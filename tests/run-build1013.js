@@ -38,7 +38,7 @@ global.HtmlService = {
   createTemplateFromFile: function (name) { var template={};template.evaluate=function(){return output(render(name));};return template; }
 };
 global.JSKOS = {
-  Config: { APP: { NAME: 'JSK OS', VERSION: '1.5.5' } },
+  Config: { APP: { NAME: 'JSK OS', VERSION: '1.5.6' } },
   ConfigService: {
     getCurrentUser: function () { return 'owner@example.com'; },
     getSpreadsheet: function () { return { getSheetByName: function () { return { appendRow: function () {} }; } }; },
@@ -46,7 +46,7 @@ global.JSKOS = {
   },
   TemplateService: {
     include: include,
-    createModel: function () { return { applicationName:'JSK OS',applicationVersion:'1.5.5',currentUser:'owner@example.com',routeUrls:{} }; }
+    createModel: function () { return { applicationName:'JSK OS',applicationVersion:'1.5.6',currentUser:'owner@example.com',routeUrls:{} }; }
   }
 };
 global.bootstrapBuild1002Automation_ = function () {};

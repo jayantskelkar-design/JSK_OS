@@ -194,6 +194,19 @@ function testBuild1017ReleaseCandidate(){return runJSKOSReleaseSuite_(1017,[
   {name:'Workflow intent UI',run:testBuild1017UiRendering}
 ],null);}
 
+/** Build 1018 Workflow Confirmation and audit receipt foundation. */
+function testBuild1018ReleaseCandidate(){return runJSKOSReleaseSuite_(1018,[
+  {name:'Confirmation normalization and receipt',run:testBuild1018Confirmation},
+  {name:'Tampering and blocked isolation',run:testBuild1018TamperingAndBlocked},
+  {name:'Server-derived actor',run:testBuild1018ActorAndBounds},
+  {name:'Replay and append-only behavior',run:testBuild1018ReplayAndAppendOnly},
+  {name:'Receipt validation and handoff',run:testBuild1018ReceiptAndHandoff},
+  {name:'Audit failure fails closed',run:testBuild1018AuditFailure},
+  {name:'Receipt expiry',run:testBuild1018Expiry},
+  {name:'No destination writes',run:testBuild1018NoWrites},
+  {name:'Confirmation receipt UI',run:testBuild1018Ui}
+],null);}
+
 function testCompleteNavigation() {
   var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
   var results = routeKeys.map(function (routeKey) {
@@ -238,6 +251,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Build 1015', run: testBuild1015ReleaseCandidate },
     { name: 'Build 1016', run: testBuild1016ReleaseCandidate },
     { name: 'Build 1017', run: testBuild1017ReleaseCandidate },
+    { name: 'Build 1018', run: testBuild1018ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);
