@@ -1,6 +1,6 @@
 # JSK OS Build 1014 - Client 360 Operational Intelligence and Hardening
 
-Version: `1.5.2`  
+Version: `1.5.2`
 Status: feature validation; no release, tag, deployment, or database migration
 
 ## Objective
