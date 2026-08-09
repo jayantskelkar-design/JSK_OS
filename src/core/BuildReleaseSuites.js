@@ -146,6 +146,11 @@ function testBuild1013ReleaseCandidate() {
   ], 1);
 }
 
+/** Build 1014 Client 360 operational intelligence and hardening. */
+function testBuild1014ReleaseCandidate() {
+  return testBuild1014Client360IntelligenceReleaseCandidate();
+}
+
 function testCompleteNavigation() {
   var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
   var results = routeKeys.map(function (routeKey) {
@@ -186,6 +191,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Build 1012', run: testBuild1012ReleaseCandidate },
     { name: 'Build 1013', run: testBuild1013ReleaseCandidate },
     { name: 'Client 360 v0.1', run: testClient360V01ReleaseCandidate },
+    { name: 'Build 1014', run: testBuild1014ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);
