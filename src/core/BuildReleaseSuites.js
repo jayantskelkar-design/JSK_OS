@@ -225,6 +225,7 @@ function testBuild1018ReleaseCandidate(){return runJSKOSReleaseSuite_(1018,[
   {name:'Canonical persisted authority fields',run:testBuild1018CanonicalPersistedFields},
   {name:'Global workflow receipt uniqueness',run:testBuild1018GlobalReceiptUniqueness},
   {name:'Generic repository policy write bound',run:testBuild1018GenericPolicyWriteBound},
+  {name:'Generic authority append path closed',run:testBuild1018GenericAuthorityAppendClosed},
   {name:'Confirmation receipt UI',run:testBuild1018Ui}
 ],null);}
 
