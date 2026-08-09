@@ -128,6 +128,12 @@ function testBuild1014AuthorizationIsolation() {
   return{success:true};
 }
 
+function testBuild1014PersonQuoteIsolation() {
+  var result=client360TestService_({company:null,people:[{personId:'PER-X',fullName:'Independent'}],quotes:[{quoteId:'Q-X',personId:'PER-X'},{quoteId:'Q-OTHER',personId:'PER-OTHER'}]},'',{referenceDate:'2026-08-09'}).getClient360({personId:'PER-X'});
+  if(result.sections.quotes.total!==1||result.sections.quotes.items[0].quoteId!=='Q-X')throw new Error('Person quote isolation failed.');
+  return{success:true};
+}
+
 function testBuild1014DeepLinkContext() {
   var result=client360TestService_({},'',{referenceDate:'2026-08-09'}).getClient360({companyId:'com-1',personId:'per-1'});
   if(result.navigation.claims!=='?page=claims&companyId=COM-1&personId=PER-1'||result.sections.claims.links!==result.navigation.claims)throw new Error('Deep-link context was not preserved.');
@@ -161,6 +167,7 @@ function testBuild1014Client360IntelligenceReleaseCandidate() {
     {name:'Company and Person aggregation',run:testClient360PersonResolution},
     {name:'Partial-source resilience',run:testBuild1014PartialFailureAndDiagnostics},
     {name:'Authorization isolation',run:testBuild1014AuthorizationIsolation},
+    {name:'Person quote isolation',run:testBuild1014PersonQuoteIsolation},
     {name:'Deep-link context',run:testBuild1014DeepLinkContext},
     {name:'Operational UI rendering',run:testClient360UiRendering},
     {name:'Pagination, limits and stale states',run:testBuild1014LimitsAndStaleStates},

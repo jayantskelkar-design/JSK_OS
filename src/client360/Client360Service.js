@@ -37,7 +37,7 @@ class Client360Service {
     s.meetings=this.linkedSource_('meetings','meeting',MeetingRepository,links);
     s.communications=this.linkedSource_('communications','communication',CommunicationRepository,links);
     s.documents=this.linkedSource_('documents','document',DocumentRepository,links);
-    s.quotes=this.linkedSource_('quotes','quote',QuoteRepository,links);
+    s.quotes=this.source_('quotes',function(){return this.collectQuotes_(this.repository_('quote',QuoteRepository),links);});
     s.endorsements=this.source_('endorsements',function(){return this.collectByValues_(this.repository_('endorsement',EndorsementRepository),'policyId',policyIds);});
     s.revenue=this.source_('revenue',function(){return this.collectRevenue_(this.repository_('revenue',RevenueRepository),links,policyIds);});
     var attention=this.attention_(s),sourceHealth=this.sourceHealth_(s);
@@ -99,6 +99,13 @@ class Client360Service {
     var items=[],queryCount=0;
     if(links.companyId){items=this.items_(repo.search({companyId:links.companyId}));queryCount++;}
     else if(policyIds.length){items=this.items_(repo.search({})).filter(function(x){return policyIds.indexOf(x.policyId)!==-1;});queryCount++;}
+    return {items:this.unique_(items),meta:{queryCount:queryCount,totalAvailable:items.length}};
+  }
+
+  collectQuotes_(repo,links) {
+    var items=[],queryCount=0;
+    if(links.companyId){items=items.concat(this.items_(repo.search({companyId:links.companyId})));queryCount++;}
+    if(links.personId){items=items.concat(this.items_(repo.search({})).filter(function(x){return this.id_(x.personId)===links.personId;},this));queryCount++;}
     return {items:this.unique_(items),meta:{queryCount:queryCount,totalAvailable:items.length}};
   }
 
