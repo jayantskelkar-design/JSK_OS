@@ -177,6 +177,7 @@ JSKOS.AccessControl = (function () {
 
   function actionForOperation_(operation) {
     var value = String(operation || '').toLowerCase();
+    if (value === 'reconcile') return 'reconcile';
     if (['create', 'queue', 'upload'].indexOf(value) !== -1) return 'create';
     if (['delete', 'archive', 'remove'].indexOf(value) !== -1) return 'archive';
     if (['update', 'restore', 'complete', 'retry', 'decision', 'convert-policy',

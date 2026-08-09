@@ -321,6 +321,13 @@ function testBuild1013SecurityAudit() {
       JSKOS.AccessControl.hasRolePermission(roles.MANAGER, 'policies.update') &&
       JSKOS.AccessControl.hasRolePermission(roles.MANAGER, 'claims.archive') &&
       !JSKOS.AccessControl.hasRolePermission(roles.MANAGER, 'access.manage'),
+    quoteReconciliationLeastPrivilege:
+      JSKOS.AccessControl.hasRolePermission(roles.ADMINISTRATOR, 'quotes.reconcile') &&
+      !JSKOS.AccessControl.hasRolePermission(roles.MANAGER, 'quotes.reconcile') &&
+      !JSKOS.AccessControl.hasRolePermission(roles.EXECUTIVE, 'quotes.reconcile') &&
+      !JSKOS.AccessControl.hasRolePermission(roles.STAFF, 'quotes.reconcile') &&
+      !JSKOS.AccessControl.hasRolePermission(roles.READ_ONLY, 'quotes.reconcile') &&
+      JSKOS.AccessControl.getOperationPermission('quotes', 'reconcile') === 'quotes.reconcile',
     administratorHasEveryRoute:
       adminRoutes.length === Object.keys(JSK_ACCESS.ROUTE_PERMISSIONS).length,
     protectedWrappersAvailable:
