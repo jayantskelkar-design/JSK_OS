@@ -185,5 +185,5 @@ class Client360Service {
   text_(value){return String(value||'').trim();}
 }
 
-function client360ApiExecute_(callback){try{JSKOS.AccessControl.requireModuleOperation('client360','view');return{success:true,data:JSON.parse(JSON.stringify(callback())),error:null,meta:{version:'0.2.0',build:1014,timestamp:new Date().toISOString(),readOnly:true}};}catch(error){return{success:false,data:null,error:{name:error.name||'Error',code:error.code||'CLIENT_360_ERROR',message:error.message||String(error)},meta:{version:'0.2.0',build:1014,timestamp:new Date().toISOString(),readOnly:true}};}}
+function client360ApiExecute_(callback){try{JSKOS.AccessControl.requireModuleOperation('client360','view');return{success:true,data:JSON.parse(JSON.stringify(callback())),error:null,meta:{version:'0.3.0',build:1015,timestamp:new Date().toISOString(),readOnly:true}};}catch(error){return{success:false,data:null,error:{name:error.name||'Error',code:error.code||'CLIENT_360_ERROR',message:error.message||String(error)},meta:{version:'0.3.0',build:1015,timestamp:new Date().toISOString(),readOnly:true}};}}
 function apiClient360Get(payload){return client360ApiExecute_(function(){return new Client360Service().getClient360(payload||{});});}
