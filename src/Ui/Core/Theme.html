@@ -82,6 +82,17 @@
     margin-top: 24px;
     display: grid;
     gap: 7px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+  }
+
+  .navigation::-webkit-scrollbar { width: 6px; }
+  .navigation::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.2);
+    border-radius: 999px;
   }
 
   .nav-item {
@@ -117,7 +128,8 @@
   }
 
   .sidebar-footer {
-    margin-top: auto;
+    flex: 0 0 auto;
+    margin-top: 12px;
     padding: 18px 12px 0;
     border-top: 1px solid rgba(255,255,255,.12);
   }

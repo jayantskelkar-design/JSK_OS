@@ -2,6 +2,7 @@
 
 function documentApiExecute_(operation, callback) {
   try {
+    JSKOS.AccessControl.requireModuleOperation('documents', operation);
     return { success: true, data: documentApiSerialize_(callback()), error: null, meta: { operation: operation, timestamp: new Date().toISOString() } };
   } catch (error) {
     console.error('Document API ' + operation + ' failed: ' + (error.stack || error));
@@ -112,6 +113,7 @@ function apiDocumentExpirySummary() {
 }
 
 function getDocumentFilters() {
+  JSKOS.AccessControl.requireModuleOperation('documents', 'filters');
   return {
     documentTypes: JSK_DOCUMENT_SCHEMA.TYPE_VALUES.slice(),
     categories: JSK_DOCUMENT_SCHEMA.CATEGORY_VALUES.slice(),
@@ -120,6 +122,7 @@ function getDocumentFilters() {
 }
 
 function getDocumentLinkOptions() {
+  JSKOS.AccessControl.requireModuleOperation('documents', 'link-options');
   var spreadsheet = JSKOS.ConfigService.getSpreadsheet();
   var definitions = {
     companyId: { sheet: 'Companies', id: 'Company ID', labels: ['Company Name'] },

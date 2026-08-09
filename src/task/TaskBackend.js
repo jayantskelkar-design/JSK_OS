@@ -2,6 +2,7 @@
 
 function taskApiExecute_(operation, callback) {
   try {
+    JSKOS.AccessControl.requireModuleOperation('tasks', operation);
     return { success: true, data: callback(), error: null, meta: { operation: operation, timestamp: new Date().toISOString() } };
   } catch (error) {
     console.error('Task API ' + operation + ' failed: ' + (error.stack || error));

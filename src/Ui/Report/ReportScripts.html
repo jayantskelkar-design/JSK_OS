@@ -1,0 +1,60 @@
+<script>
+(function () {
+  var byId = function (id) { return document.getElementById(id); };
+  document.addEventListener('DOMContentLoaded', function () {
+    byId('refreshButton').addEventListener('click', load);
+    byId('exportButton').addEventListener('click', exportCsv);
+    load();
+  });
+  function load() {
+    byId('refreshButton').disabled = true;
+    google.script.run.withSuccessHandler(render).withFailureHandler(showError)
+      .apiReportExecutiveSummary();
+  }
+  function render(response) {
+    byId('refreshButton').disabled = false;
+    if (!response || !response.success) {
+      return showError(new Error(response && response.error ? response.error.message : 'Reports API error'));
+    }
+    var data = response.data || {}, clients = data.clients || {};
+    var business = data.business || {}, servicing = data.servicing || {};
+    var finance = data.finance || {};
+    set('companies', clients.companies); set('people', clients.people);
+    set('policies', business.policies); set('claims', business.claims);
+    set('quotes', business.quotes); set('endorsementsOpen', business.endorsementsOpen);
+    set('documents', servicing.documents); set('documentsExpired', servicing.documentsExpired);
+    set('endorsementsOverdue', servicing.endorsementsOverdue);
+    set('quotesExpiring7Days', servicing.quotesExpiring7Days);
+    set('expected', money(finance.expected)); set('received', money(finance.received));
+    set('outstanding', money(finance.outstanding)); set('overdue', finance.overdue);
+    byId('generatedAt').textContent = 'Updated ' + new Date(response.meta.generatedAt).toLocaleString('en-IN');
+  }
+  function set(id, value) { byId(id).textContent = value == null ? 0 : value; }
+  function money(value) { return '₹' + Number(value || 0).toLocaleString('en-IN'); }
+  function exportCsv() {
+    byId('exportButton').disabled = true;
+    google.script.run.withSuccessHandler(function (response) {
+      byId('exportButton').disabled = false;
+      if (!response || !response.success) {
+        return showError(new Error(response && response.error ? response.error.message : 'Export failed'));
+      }
+      var data = response.data;
+      var link = document.createElement('a');
+      link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(data.csv);
+      link.download = data.fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }).withFailureHandler(function (error) {
+      byId('exportButton').disabled = false;
+      showError(error);
+    }).apiReportExport();
+  }
+  function showError(error) {
+    byId('refreshButton').disabled = false;
+    var toast = byId('toast');
+    toast.textContent = error.message || String(error);
+    toast.className = 'toast error';
+  }
+})();
+</script>

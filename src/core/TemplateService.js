@@ -41,12 +41,13 @@ function getJSKOSDefaultTemplateModel_() {
     applicationName: 'JSK OS',
     applicationVersion:
       (JSKOS.Config && JSKOS.Config.APP && JSKOS.Config.APP.VERSION) ||
-      '1.5.0-beta',
+      '1.5.0',
     currentUser: 'SYSTEM',
     activeRoute: 'dashboard',
     webAppUrl: getJSKOSWebAppUrl_(),
     navigation: [],
-    routeUrls: {}
+    routeUrls: {},
+    accessContext: { email: '', role: 'Unassigned', permissions: {} }
   };
 }
 
@@ -206,6 +207,13 @@ JSKOS.TemplateService = Object.freeze({
     ) {
       model.routeUrls =
         JSKOS.Router.getRouteUrls() || {};
+    }
+
+    if (
+      JSKOS.AccessControl &&
+      typeof JSKOS.AccessControl.getContext === 'function'
+    ) {
+      model.accessContext = JSKOS.AccessControl.getContext();
     }
 
     model.webAppUrl =

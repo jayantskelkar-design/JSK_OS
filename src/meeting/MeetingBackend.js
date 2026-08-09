@@ -2,6 +2,7 @@
 
 function meetingApiExecute_(operation, callback) {
   try {
+    JSKOS.AccessControl.requireModuleOperation('meetings', operation);
     return { success: true, data: callback(), error: null, meta: { operation: operation, timestamp: new Date().toISOString() } };
   } catch (error) {
     console.error('Meeting API ' + operation + ' failed: ' + (error.stack || error));
@@ -31,5 +32,6 @@ function apiMeetingComplete(payload) {
 }
 
 function getMeetingFilters() {
+  JSKOS.AccessControl.requireModuleOperation('meetings', 'filters');
   return { types: JSK_MEETING_SCHEMA.TYPE_VALUES.slice(), statuses: JSK_MEETING_SCHEMA.STATUS_VALUES.slice() };
 }

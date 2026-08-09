@@ -43,7 +43,7 @@ function searchCompanyById(companyId) {
  * GSTIN lookup.
  */
 function searchCompanyByGstin(gstin) {
-  return companyApiExecute_(function () {
+  return companyApiExecute_('get-by-gstin', function () {
     var normalizedGstin = String(
       gstin || ''
     )
@@ -91,7 +91,7 @@ function searchCompanyByGstin(gstin) {
  * Returns small records suitable for dropdowns.
  */
 function searchCompanySuggestions(payload) {
-  return companyApiExecute_(function () {
+  return companyApiExecute_('suggestions', function () {
     payload = companyNormalizeRequest_(
       payload || {}
     );
@@ -142,7 +142,7 @@ function searchCompanySuggestions(payload) {
  * Returns distinct filter values from active records.
  */
 function getCompanySearchFilters() {
-  return companyApiExecute_(function () {
+  return companyApiExecute_('filters', function () {
     var result =
       new CompanyRepository().search({
         includeDeleted: false,
@@ -226,4 +226,3 @@ function companyUniqueSorted_(values) {
       return left.localeCompare(right);
     });
 }
-

@@ -20,7 +20,7 @@ JSKOS.CommunicationService=Object.freeze({
     return repository.update(communicationId,{status:'Queued',attemptCount:0,nextRetryAt:'',lastError:''},actor,expectedVersion);
   }
 });
-function communicationApiExecute_(operation,callback){try{return{success:true,data:callback(),error:null,meta:{operation:operation,timestamp:new Date().toISOString()}};}catch(error){console.error('Communication API '+operation+' failed: '+(error.stack||error));return{success:false,data:null,error:{name:error.name||'Error',message:error.message||String(error),code:error.code||'',details:error.currentVersion?{currentVersion:error.currentVersion}:{} }};}}
+function communicationApiExecute_(operation,callback){try{JSKOS.AccessControl.requireModuleOperation('communications',operation);return{success:true,data:callback(),error:null,meta:{operation:operation,timestamp:new Date().toISOString()}};}catch(error){console.error('Communication API '+operation+' failed: '+(error.stack||error));return{success:false,data:null,error:{name:error.name||'Error',message:error.message||String(error),code:error.code||'',details:error.currentVersion?{currentVersion:error.currentVersion}:{} }};}}
 function apiCommunicationQueue(payload){return communicationApiExecute_('queue',function(){var request=payload&&typeof payload==='object'?payload:{};return JSKOS.CommunicationService.queue(request.data||{},request.actor);});}
 function apiCommunicationSearch(payload){return communicationApiExecute_('search',function(){return JSKOS.CommunicationService.search(payload||{});});}
 function apiCommunicationSummary(payload){return communicationApiExecute_('summary',function(){return JSKOS.CommunicationService.summary(payload||{});});}
