@@ -159,6 +159,7 @@ class Client360Service {
     var query=['page='+encodeURIComponent(moduleName)];
     if(links.companyId)query.push('companyId='+encodeURIComponent(links.companyId));
     if(links.personId)query.push('personId='+encodeURIComponent(links.personId));
+    if(links.policyIds&&links.policyIds.length)query.push('policyIds='+encodeURIComponent(links.policyIds.slice(0,50).join(',')));
     return '?'+query.join('&');
   }
 
