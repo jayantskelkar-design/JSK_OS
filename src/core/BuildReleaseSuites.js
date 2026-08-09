@@ -218,6 +218,10 @@ function testBuild1018ReleaseCandidate(){return runJSKOSReleaseSuite_(1018,[
   {name:'Interleaved confirmation race',run:testBuild1018InterleavedConfirmationRace},
   {name:'Interleaved handoff race',run:testBuild1018InterleavedHandoffRace},
   {name:'Interleaved initialization race',run:testBuild1018InterleavedInitializationRace},
+  {name:'Valid complete correlated lifecycle',run:testBuild1018ValidCorrelatedLifecycle},
+  {name:'Malformed correlated lifecycle isolation',run:testBuild1018MalformedCorrelatedLifecycle},
+  {name:'Distant malformed lifecycle isolation',run:testBuild1018DistantMalformedLifecycle},
+  {name:'Policy evidence bounds',run:testBuild1018PolicyEvidenceBounds},
   {name:'Confirmation receipt UI',run:testBuild1018Ui}
 ],null);}
 
