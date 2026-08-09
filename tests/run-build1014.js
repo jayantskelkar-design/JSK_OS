@@ -11,7 +11,7 @@ global.JSKOS = {
     requireModuleOperation: function () {},
     getOperationPermission: function (moduleName, operation) { return moduleName + '.' + operation; }
   },
-  Config: { APP: { VERSION: '1.5.2' } },
+  Config: { APP: { VERSION: '1.5.3' } },
   Router: { resolve: function (event) { return event.parameter.page; } }
 };
 global.JSK_ACCESS = { ROUTE_PERMISSIONS: { client360: 'client360.view' } };

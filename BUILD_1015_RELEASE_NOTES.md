@@ -53,4 +53,4 @@ Read-only diagnostics detect orphaned Person-to-Company links, Persons without a
 
 ## Exact diff statistics
 
-`17 files changed, 351 insertions(+), 23 deletions(-)`
+`18 files changed, 355 insertions(+), 27 deletions(-)`
