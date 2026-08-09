@@ -222,6 +222,9 @@ function testBuild1018ReleaseCandidate(){return runJSKOSReleaseSuite_(1018,[
   {name:'Malformed correlated lifecycle isolation',run:testBuild1018MalformedCorrelatedLifecycle},
   {name:'Distant malformed lifecycle isolation',run:testBuild1018DistantMalformedLifecycle},
   {name:'Policy evidence bounds',run:testBuild1018PolicyEvidenceBounds},
+  {name:'Canonical persisted authority fields',run:testBuild1018CanonicalPersistedFields},
+  {name:'Global workflow receipt uniqueness',run:testBuild1018GlobalReceiptUniqueness},
+  {name:'Generic repository policy write bound',run:testBuild1018GenericPolicyWriteBound},
   {name:'Confirmation receipt UI',run:testBuild1018Ui}
 ],null);}
 
