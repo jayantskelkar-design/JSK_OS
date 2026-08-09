@@ -26,6 +26,8 @@ Complete correlation histories now validate every `HANDED_OFF` event against exa
 
 Persisted authority fields now retain their raw sheet types and must match their canonical production formats: `WFR-` plus 24 uppercase hexadecimal receipt characters, lowercase 64-character hashes, millisecond UTC ISO timestamps, canonical actor/action/module and Company/Person identifiers, exact lifecycle states, and validated Policy IDs. Receipt IDs are globally unique across the complete audit sheet; correlated history rejects duplicate receipt authorities, and the locked confirmation append path fails closed on any cross-correlation or candidate receipt collision.
 
+The repository's generic `append()` entry point now rejects all workflow authority events. `CONFIRMED` evidence can only reach the internal append primitive through the locked `appendConfirmedUnique()` transition, and `HANDED_OFF` evidence can only reach it through the locked `appendHandoffUnique()` transition.
+
 ## UX
 
 Client 360 now guides Prepare → Review → Confirm → Receipt → Continue. Confirmation controls are disabled during requests, and the UI clearly states that no destination business record has been created.
