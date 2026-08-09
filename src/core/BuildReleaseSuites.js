@@ -255,6 +255,9 @@ function testBuild1019ReleaseCandidate(){return runJSKOSReleaseSuite_(1019,[
   {name:'Reconciliation failure isolation',run:testBuild1019ReconciliationFailsClosed},
   {name:'Execution timestamp rules',run:testBuild1019ExecutionTimestampRules},
   {name:'Deterministic execution contenders',run:testBuild1019DeterministicConcurrentContenders},
+  {name:'Fresh expiry mutation boundaries',run:testBuild1019FreshExpiryMutationBoundaries},
+  {name:'Integrity errors are not audit pending',run:testBuild1019IntegrityErrorsNotAuditPending},
+  {name:'Uncertain destination never recreates',run:testBuild1019UncertainDestinationNeverRecreates},
   {name:'Quote v1-v2 migration fixtures',run:testBuild1019QuoteMigrationFixtures}
 ],null);}
 
