@@ -18,6 +18,8 @@ The explicitly approved additive `Workflow_Audit` sheet stores workflow-control 
 
 Confirmation uses locking, deterministic actor/action/context/draft correlation, bounded reverse lookup, duplicate receipt reuse, ambiguity rejection, 30-minute expiry, explicit state allowlists, and maximum 50 Policy IDs. Audit-write failure prevents confirmation success.
 
+The corrective validation pass makes correlation check-and-append and the `CONFIRMED` → `HANDED_OFF` lifecycle transition atomic repository operations. Both re-read evidence while holding one bounded script lock, append at most one authoritative event, reuse an existing safe event, and fail closed on ambiguous or contradictory history. Existing `Workflow_Audit` sheets must match the complete canonical header exactly; initialization is locked, creates the additive sheet once, and never repairs or overwrites incompatible schemas.
+
 ## UX
 
 Client 360 now guides Prepare → Review → Confirm → Receipt → Continue. Confirmation controls are disabled during requests, and the UI clearly states that no destination business record has been created.
