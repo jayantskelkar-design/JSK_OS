@@ -177,7 +177,7 @@ function testBuild1015EndorsementBatching() {
 
 function testBuild1015UnifiedContextMetadata() {
   var result=client360TestService_({},'',{referenceDate:'2026-08-09'}).getClient360({companyId:' com-1 ',personId:'per-1',policyIds:['POL-1','POL-1','bad id']});
-  if(result.meta.build!==1015||result.meta.clientContext.companyId!=='COM-1'||result.meta.clientContext.policyIds.length!==1||!result.meta.clientContext.malformed)throw new Error('Unified Client 360 context metadata failed.');
+  if(result.meta.build!==1016||result.meta.clientContext.companyId!=='COM-1'||result.meta.clientContext.policyIds.length!==1||!result.meta.clientContext.malformed)throw new Error('Unified Client 360 context metadata failed.');
   if(result.meta.readOnly!==true||typeof apiClient360Create==='function')throw new Error('Build 1015 changed Client 360 read-only boundary.');
   return{success:true};
 }

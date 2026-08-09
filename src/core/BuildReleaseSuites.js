@@ -166,6 +166,21 @@ function testBuild1015ReleaseCandidate() {
   ],null);
 }
 
+/** Build 1016 Action Readiness and Workflow Foundation. */
+function testBuild1016ReleaseCandidate() {
+  return runJSKOSReleaseSuite_(1016,[
+    {name:'Bounded action catalog',run:testBuild1016ActionCatalog},
+    {name:'Readiness statuses and permissions',run:testBuild1016ReadinessStatuses},
+    {name:'Missing prerequisites',run:testBuild1016MissingPrerequisites},
+    {name:'Company/Person/Policy isolation',run:testBuild1016ContextIsolation},
+    {name:'Route and deep-link safety',run:testBuild1016DeepLinkSafety},
+    {name:'Read-only source ownership',run:testBuild1016ReadOnlyOwnership},
+    {name:'Bounded Policy handoff',run:testBuild1016PolicyBounds},
+    {name:'No unauthorized data leakage',run:testBuild1016NoPermissionLeakage},
+    {name:'Client 360 action UI',run:testBuild1016UiRendering}
+  ],null);
+}
+
 function testCompleteNavigation() {
   var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
   var results = routeKeys.map(function (routeKey) {
@@ -208,6 +223,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Client 360 v0.1', run: testClient360V01ReleaseCandidate },
     { name: 'Build 1014', run: testBuild1014ReleaseCandidate },
     { name: 'Build 1015', run: testBuild1015ReleaseCandidate },
+    { name: 'Build 1016', run: testBuild1016ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);
