@@ -211,6 +211,7 @@ function testBuild1018ReleaseCandidate(){return runJSKOSReleaseSuite_(1018,[
   {name:'Concurrent Workflow_Audit initialization',run:testBuild1018ConcurrentInitializationContract},
   {name:'Atomic Workflow_Audit repository evidence',run:testBuild1018AtomicRepositoryEvidence},
   {name:'Malformed confirmation evidence fails closed',run:testBuild1018MalformedConfirmationFailsClosed},
+  {name:'Receipt expiry window has one active authority',run:testBuild1018ExpiryWindowAuthority},
   {name:'Confirmation receipt UI',run:testBuild1018Ui}
 ],null);}
 
