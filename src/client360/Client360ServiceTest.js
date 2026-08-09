@@ -110,7 +110,7 @@ function testBuild1014DuplicatePreventionAndQueryBounds() {
   var counts={},options={queryCounts:counts,claims:[{claimId:'CL-1',companyId:'COM-1',personId:'PER-1'},{claimId:'CL-1',companyId:'COM-1',personId:'PER-1'}]};
   var result=client360TestService_(options,'',{referenceDate:'2026-08-09'}).getClient360({companyId:'COM-1',personId:'PER-1'});
   if(result.sections.claims.total!==1)throw new Error('Duplicate claim was not removed.');
-  if(counts.claims!==2||result.sections.claims.pagination.queryCount!==2)throw new Error('Linked query bound failed.');
+  if(counts.claims!==1||result.sections.claims.pagination.queryCount!==1)throw new Error('Linked query bound failed.');
   return{success:true,queryCount:counts.claims};
 }
 
@@ -157,6 +157,28 @@ function testBuild1014BackwardCompatibility() {
   var result=client360TestService_({},'',{referenceDate:'2026-08-09'}).getClient360({companyId:'COM-1'});
   if(!result.identity||!result.relationships||!result.sections||!result.summary||!result.timeline||result.meta.readOnly!==true)throw new Error('Client 360 v0.1 response contract changed incompatibly.');
   if(typeof apiCompanyGet!=='function'||typeof apiPeopleGet!=='function')throw new Error('Existing Company/People APIs unavailable.');
+  return{success:true};
+}
+
+function testBuild1015RelationshipIntegrity() {
+  var result=client360TestService_({people:[{personId:'PER-1',companyId:'COM-1',fullName:'Asha'},{personId:'PER-1',companyId:'COM-1',fullName:'Duplicate'}]},'',{referenceDate:'2026-08-09'}).getClient360({companyId:'COM-1'});
+  var integrity=result.relationships.integrity;
+  if(integrity.count!==1||integrity.items[0].code!=='DUPLICATE_PERSON_REFERENCE'||integrity.readOnly!==true)throw new Error('Duplicate relationship detection failed.');
+  var orphan=client360TestService_({company:null,people:[{personId:'PER-X',companyId:'COM-X',fullName:'Orphan'}]},'',{referenceDate:'2026-08-09'}).getClient360({personId:'PER-X'});
+  if(!orphan.relationships.integrity.items.some(function(x){return x.code==='ORPHANED_PERSON_COMPANY';}))throw new Error('Orphan relationship detection failed.');
+  return{success:true};
+}
+
+function testBuild1015EndorsementBatching() {
+  var counts={},result=client360TestService_({queryCounts:counts,policies:[{policyId:'POL-1',companyId:'COM-1'},{policyId:'POL-2',companyId:'COM-1'}],endorsements:[{endorsementId:'END-1',companyId:'COM-1',policyId:'POL-1'}]},'',{referenceDate:'2026-08-09'}).getClient360({companyId:'COM-1'});
+  if(counts.endorsements!==1||result.sections.endorsements.pagination.queryCount!==1)throw new Error('Endorsement batching failed.');
+  return{success:true};
+}
+
+function testBuild1015UnifiedContextMetadata() {
+  var result=client360TestService_({},'',{referenceDate:'2026-08-09'}).getClient360({companyId:' com-1 ',personId:'per-1',policyIds:['POL-1','POL-1','bad id']});
+  if(result.meta.build!==1015||result.meta.clientContext.companyId!=='COM-1'||result.meta.clientContext.policyIds.length!==1||!result.meta.clientContext.malformed)throw new Error('Unified Client 360 context metadata failed.');
+  if(result.meta.readOnly!==true||typeof apiClient360Create==='function')throw new Error('Build 1015 changed Client 360 read-only boundary.');
   return{success:true};
 }
 

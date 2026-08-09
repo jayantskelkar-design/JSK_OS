@@ -59,14 +59,19 @@ function load(relativePath) {
   vm.runInThisContext(fs.readFileSync(path.join(root, relativePath), 'utf8'), { filename: relativePath });
 }
 
+load('src/core/ClientContext.js');
+load('src/core/ClientContextApi.js');
+load('src/core/ClientContextTest.js');
 load('src/client360/Client360Service.js');
 load('src/client360/Client360ServiceTest.js');
+load('src/core/BuildReleaseSuites.js');
 
 var reports = {
   client360V01: testClient360V01ReleaseCandidate(),
-  build1014: testBuild1014Client360IntelligenceReleaseCandidate()
+  build1014: testBuild1014Client360IntelligenceReleaseCandidate(),
+  build1015: testBuild1015ReleaseCandidate()
 };
-if (reports.client360V01.failed || reports.build1014.failed) {
+if (reports.client360V01.failed || reports.build1014.failed || reports.build1015.failed) {
   console.error(JSON.stringify(reports, null, 2));
   process.exit(1);
 }
