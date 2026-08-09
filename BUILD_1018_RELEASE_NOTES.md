@@ -22,6 +22,8 @@ The corrective validation pass makes correlation check-and-append and the `CONFI
 
 Final hardening treats `expiry <= trusted server time` as expired everywhere and replaces the former 500-row evidence assumption with case-sensitive exact-key searches across the complete Correlation ID or Receipt ID column while the transaction lock is held. Lookup cost therefore grows with `Workflow_Audit` size; only matching rows are materialized in full, prioritizing correctness without scanning unrelated data columns. Deterministic barrier tests exercise contenders at the locked lookup boundary for confirmation, handoff, and first-time initialization.
 
+Complete correlation histories now validate every `HANDED_OFF` event against exactly one structurally consistent `CONFIRMED` parent before new authority can be created. Audit policy context is validated without truncation: canonical unique Policy IDs are limited to 50, malformed or over-bounded stored evidence fails closed, and all repository write paths reject invalid policy lists.
+
 ## UX
 
 Client 360 now guides Prepare → Review → Confirm → Receipt → Continue. Confirmation controls are disabled during requests, and the UI clearly states that no destination business record has been created.
