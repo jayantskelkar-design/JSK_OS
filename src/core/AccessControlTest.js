@@ -45,6 +45,8 @@ function testBuild1013AccessControlFoundation() {
       JSKOS.AccessControl.getOperationPermission('tasks', 'complete') === 'tasks.update',
     searchMapsToView:
       JSKOS.AccessControl.getOperationPermission('people', 'search') === 'people.view',
+    client360MapsToView:
+      JSKOS.AccessControl.getOperationPermission('client360', 'view') === 'client360.view',
     filterReadsMapToView:
       JSKOS.AccessControl.getOperationPermission('companies', 'filters') === 'companies.view' &&
       JSKOS.AccessControl.getOperationPermission('documents', 'link-options') === 'documents.view'

@@ -185,6 +185,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Build 1011', run: testBuild1011ReleaseCandidate },
     { name: 'Build 1012', run: testBuild1012ReleaseCandidate },
     { name: 'Build 1013', run: testBuild1013ReleaseCandidate },
+    { name: 'Client 360 v0.1', run: testClient360V01ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);

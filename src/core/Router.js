@@ -20,6 +20,7 @@ JSKOS.RouteConfig = Object.freeze({
     tasks: Object.freeze({ key: 'tasks', title: 'Tasks', icon: '✓', enabled: true }),
     meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: true }),
     communications: Object.freeze({ key: 'communications', title: 'Communications', icon: '✉', enabled: true }),
+    client360: Object.freeze({ key: 'client360', title: 'Client 360', icon: '360', enabled: true }),
     access: Object.freeze({ key: 'access', title: 'User Access', icon: '@', enabled: true })
   })
 });
@@ -175,6 +176,9 @@ JSKOS.Router = Object.freeze({
         case 'communications':
           return JSKOS.Router.renderCommunications();
 
+        case 'client360':
+          return JSKOS.Router.renderClient360(event);
+
         case 'access':
           return JSKOS.Router.renderAccess();
 
@@ -284,6 +288,17 @@ JSKOS.Router = Object.freeze({
     return renderAccessUi();
   },
 
+  renderClient360: function (event) {
+    if (typeof renderClient360Ui !== 'function') {
+      throw new Error('renderClient360Ui() is unavailable.');
+    }
+    var parameters = event && event.parameter ? event.parameter : {};
+    return renderClient360Ui({
+      companyId: parameters.companyId || '',
+      personId: parameters.personId || ''
+    });
+  },
+
   /**
    * Returns the deployed Web App URL when available.
    * Editor tests may return an empty string; that is expected.
@@ -327,6 +342,7 @@ JSKOS.Router = Object.freeze({
       tasks: JSKOS.Router.buildRouteUrl('tasks'),
       meetings: JSKOS.Router.buildRouteUrl('meetings'),
       communications: JSKOS.Router.buildRouteUrl('communications'),
+      client360: JSKOS.Router.buildRouteUrl('client360'),
       access: JSKOS.Router.buildRouteUrl('access')
     };
   },
@@ -440,6 +456,7 @@ function testAllWebRoutes() {
     { route: 'tasks', marker: 'Task Management' },
     { route: 'meetings', marker: 'Meeting Management' },
     { route: 'communications', marker: 'Communication Center' },
+    { route: 'client360', marker: 'Client 360' },
     { route: 'access', marker: 'User Access & Security' }
   ];
 
