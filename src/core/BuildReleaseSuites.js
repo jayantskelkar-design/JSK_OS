@@ -248,7 +248,8 @@ function testBuild1019ReleaseCandidate(){return runJSKOSReleaseSuite_(1019,[
   {name:'Authoritative lock coverage',run:testBuild1019LockCoverage},
   {name:'Client 360 ownership isolation',run:testBuild1019Client360Isolation},
   {name:'Additive Quote schema contract',run:testBuild1019SchemaContract},
-  {name:'Execution audit lifecycle contract',run:testBuild1019AuditLifecycleContract}
+  {name:'Execution audit lifecycle contract',run:testBuild1019AuditLifecycleContract},
+  {name:'Completed receipt metadata',run:testBuild1019ReceiptCompletionMetadata}
 ],null);}
 
 function testCompleteNavigation() {
