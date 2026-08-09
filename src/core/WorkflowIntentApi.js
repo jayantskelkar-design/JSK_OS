@@ -1,0 +1,6 @@
+/** Build 1017 permission-protected, read-only Workflow Intent API. */
+function workflowIntentRelationship_(context){var person=new PeopleRepository().findById(context.personId);return{safe:Boolean(person)&&String(person.companyId||'').trim().toUpperCase()===context.companyId};}
+function workflowIntentExecute_(callback){try{JSKOS.AccessControl.requireModuleOperation('client360','view');return{success:true,data:JSON.parse(JSON.stringify(callback())),error:null,meta:{build:1017,version:'1.5.5',readOnly:true}};}catch(error){return{success:false,data:null,error:{code:'WORKFLOW_INTENT_UNAVAILABLE',message:'Workflow intent is unavailable.'},meta:{build:1017,version:'1.5.5',readOnly:true}};}}
+function workflowIntentOptions_(){return{accessControl:JSKOS.AccessControl,relationshipValidator:workflowIntentRelationship_};}
+function apiWorkflowIntentPrepare(payload){payload=payload||{};return workflowIntentExecute_(function(){return JSKOS.WorkflowIntent.prepare(payload.actionId,payload.context||{},workflowIntentOptions_());});}
+function apiWorkflowIntentHandoff(payload){payload=payload||{};return workflowIntentExecute_(function(){return JSKOS.WorkflowIntent.handoff(payload.actionId,payload.context||{},workflowIntentOptions_());});}
