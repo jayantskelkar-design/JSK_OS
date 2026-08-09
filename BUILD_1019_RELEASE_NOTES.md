@@ -41,7 +41,7 @@ Normal Quote CRUD remains independent and backward-compatible. Builds 1013–101
 
 ## Tests
 
-Build 1019 includes 27 core and 27 integrated checks covering authorization, authoritative fingerprint tampering, lifecycle integrity, fresh exact-expiry mutation boundaries, post-expiry audit-only reconciliation, integrity-versus-storage error handling, uncertain-write recovery, policy bounds, mass assignment, idempotency, deterministic post-lookup lock contenders, duplicate evidence, and faithful Quote v1-v2 migration plus runtime CRUD fixtures.
+Build 1019 includes 28 core and 28 integrated checks covering authorization, authoritative fingerprint tampering, lifecycle integrity, fresh exact-expiry mutation and final persistence-boundary races, post-expiry audit-only reconciliation, integrity-versus-storage error handling, uncertain-write recovery, policy bounds, mass assignment, idempotency, deterministic post-lookup lock contenders, duplicate evidence, and faithful Quote v1-v2 migration plus runtime CRUD fixtures.
 
 ## Known limitations
 
