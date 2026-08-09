@@ -249,7 +249,13 @@ function testBuild1019ReleaseCandidate(){return runJSKOSReleaseSuite_(1019,[
   {name:'Client 360 ownership isolation',run:testBuild1019Client360Isolation},
   {name:'Additive Quote schema contract',run:testBuild1019SchemaContract},
   {name:'Execution audit lifecycle contract',run:testBuild1019AuditLifecycleContract},
-  {name:'Completed receipt metadata',run:testBuild1019ReceiptCompletionMetadata}
+  {name:'Completed receipt metadata',run:testBuild1019ReceiptCompletionMetadata},
+  {name:'Authoritative fingerprint revalidation',run:testBuild1019AuthoritativeFingerprintRevalidation},
+  {name:'Post-expiry audit-only reconciliation',run:testBuild1019PostExpiryAuditOnlyReconciliation},
+  {name:'Reconciliation failure isolation',run:testBuild1019ReconciliationFailsClosed},
+  {name:'Execution timestamp rules',run:testBuild1019ExecutionTimestampRules},
+  {name:'Deterministic execution contenders',run:testBuild1019DeterministicConcurrentContenders},
+  {name:'Quote v1-v2 migration fixtures',run:testBuild1019QuoteMigrationFixtures}
 ],null);}
 
 function testCompleteNavigation() {

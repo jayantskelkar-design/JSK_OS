@@ -72,6 +72,7 @@ load('src/core/WorkflowAuditRepositoryTest.js');
 load('src/quote/QuoteModule.js');
 load('src/quote/QuoteWorkflowExecution.js');
 load('src/quote/QuoteWorkflowExecutionTest.js');
+load('src/quote/QuoteMigrationTest.js');
 load('src/core/ClientContextApi.js');
 load('src/core/ClientContextTest.js');
 load('src/client360/Client360Service.js');

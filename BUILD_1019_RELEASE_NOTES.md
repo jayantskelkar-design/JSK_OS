@@ -10,15 +10,17 @@ Introduce the first narrowly controlled post-confirmation business action: creat
 
 - Keeps Client 360 orchestration-only and Quote CRUD destination-owned.
 - Revalidates actor, permissions, receipt lifecycle, action, destination, relationships, context, and payload on the server.
+- Recomputes the Workflow Intent plus context, draft, and destination-bound correlation fingerprints inside the execution lock before any Quote lookup or write.
 - Forces `Draft` status and `Pending` client decision.
 - Accepts zero or one Policy ID and fails closed for lossy or multi-policy context.
 - Adds destination-owned workflow receipt idempotency.
 - Adds precise `EXECUTION_STARTED` and `DESTINATION_COMMITTED` audit evidence.
 - Supports safe reconciliation when the Quote write succeeds but final audit append fails.
+- Permits audit-only reconciliation at or after receipt expiry only when a valid pre-expiry execution start and exactly one matching immutable Quote already exist.
 
 ## Schema
 
-Quotes schema version 2 additively appends `Workflow Receipt ID`. Existing rows and CRUD behavior are preserved. No column is deleted, reordered, or rewritten.
+Quotes schema version 2 additively appends `Workflow Receipt ID`. Migration now recognizes only the exact v1 or v2 layout, preserves every business row, rejects missing, duplicate, reordered, and partial incompatible headers, and is lock-protected and idempotent. No column is deleted, reordered, or rewritten.
 
 ## Security guarantees
 
@@ -36,7 +38,7 @@ Normal Quote CRUD remains independent and backward-compatible. Builds 1013–101
 
 ## Tests
 
-Build 1019 includes core and integrated coverage for authorization, lifecycle integrity, policy bounds, mass assignment, idempotency, concurrency lock coverage, duplicate evidence, write failure, and audit reconciliation.
+Build 1019 includes 24 core and 24 integrated checks covering authorization, authoritative fingerprint tampering, lifecycle integrity, exact-expiry and post-expiry audit-only reconciliation, policy bounds, mass assignment, idempotency, deterministic lock contenders, duplicate evidence, write failure, and faithful Quote v1-v2 migration fixtures.
 
 ## Known limitations
 
