@@ -203,6 +203,7 @@ function testBuild1018ReleaseCandidate(){return runJSKOSReleaseSuite_(1018,[
   {name:'Receipt validation and handoff',run:testBuild1018ReceiptAndHandoff},
   {name:'Audit failure fails closed',run:testBuild1018AuditFailure},
   {name:'Receipt expiry',run:testBuild1018Expiry},
+  {name:'Exact receipt expiry boundaries',run:testBuild1018ExactExpiryBoundaries},
   {name:'No destination writes',run:testBuild1018NoWrites},
   {name:'Atomic confirmation and handoff',run:testBuild1018AtomicConcurrency},
   {name:'Valid Workflow_Audit schema',run:testBuild1018ValidAuditSchema},
@@ -212,6 +213,11 @@ function testBuild1018ReleaseCandidate(){return runJSKOSReleaseSuite_(1018,[
   {name:'Atomic Workflow_Audit repository evidence',run:testBuild1018AtomicRepositoryEvidence},
   {name:'Malformed confirmation evidence fails closed',run:testBuild1018MalformedConfirmationFailsClosed},
   {name:'Receipt expiry window has one active authority',run:testBuild1018ExpiryWindowAuthority},
+  {name:'Complete Workflow_Audit evidence lookup',run:testBuild1018CompleteEvidenceLookup},
+  {name:'Repository exact-expiry handoff boundary',run:testBuild1018RepositoryExpiryBoundary},
+  {name:'Interleaved confirmation race',run:testBuild1018InterleavedConfirmationRace},
+  {name:'Interleaved handoff race',run:testBuild1018InterleavedHandoffRace},
+  {name:'Interleaved initialization race',run:testBuild1018InterleavedInitializationRace},
   {name:'Confirmation receipt UI',run:testBuild1018Ui}
 ],null);}
 
