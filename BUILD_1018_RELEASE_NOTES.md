@@ -28,6 +28,8 @@ Persisted authority fields now retain their raw sheet types and must match their
 
 The repository's generic `append()` entry point now rejects all workflow authority events. `CONFIRMED` evidence can only reach the internal append primitive through the locked `appendConfirmedUnique()` transition, and `HANDED_OFF` evidence can only reach it through the locked `appendHandoffUnique()` transition.
 
+Authority-sensitive policy context is now validated losslessly before normalization. Zero through 50 canonical unique Policy IDs are accepted exactly as supplied; over-bound, duplicate, malformed, null, mixed-type, truncated, or otherwise lossy policy selections fail closed during intent preparation, confirmation, receipt validation, and handoff.
+
 ## UX
 
 Client 360 now guides Prepare → Review → Confirm → Receipt → Continue. Confirmation controls are disabled during requests, and the UI clearly states that no destination business record has been created.
