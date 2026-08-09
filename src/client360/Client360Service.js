@@ -14,7 +14,7 @@ class Client360Service {
 
   getClient360(request) {
     request=request&&typeof request==='object'?request:{};
-    var companyId=this.id_(request.companyId),personId=this.id_(request.personId);
+    var normalizedContext=JSKOS.ClientContext.normalize(request),companyId=normalizedContext.companyId,personId=normalizedContext.personId;
     if(!companyId&&!personId)throw new Client360ValidationError();
     var companyRepo=this.repository_('company',CompanyRepository),peopleRepo=this.repository_('people',PeopleRepository);
     var person=personId?peopleRepo.findById(personId):null;
@@ -24,32 +24,33 @@ class Client360Service {
     companyId=companyId||linkedCompanyId;
     var company=companyId?companyRepo.findById(companyId,{includeDeleted:false}):null;
     if(request.companyId&&!company)throw new Client360NotFoundError('Company not found: '+companyId);
-    var relatedPeople=companyId?peopleRepo.findByCompanyId(companyId,false):(person?[person]:[]);
-    relatedPeople=this.uniqueBy_(relatedPeople,'personId');
+    var rawRelatedPeople=companyId?peopleRepo.findByCompanyId(companyId,false):(person?[person]:[]),duplicatePeople=this.duplicates_(rawRelatedPeople,'personId');
+    var relatedPeople=this.uniqueBy_(rawRelatedPeople,'personId');
     if(person&&!relatedPeople.some(function(x){return this.id_(x.personId)===personId;},this))relatedPeople.unshift(person);
-    var links={companyId:companyId||'',personId:personId||''};
+    var links={companyId:companyId||'',personId:personId||'',policyIds:normalizedContext.policyIds.slice()};
     this.currentLinks_=links;
     var s={};
     s.policies=this.source_('policies',function(){return this.collectPaged_(this.repository_('policy',PolicyRepository),links);});
-    var policyIds=s.policies.items.map(function(x){return x.policyId;}).filter(Boolean).slice(0,this.limit);
+    var policyIds=this.uniqueIds_(normalizedContext.policyIds.concat(s.policies.items.map(function(x){return x.policyId;}))).slice(0,this.limit);links.policyIds=policyIds;this.currentLinks_=links;
     s.claims=this.linkedSource_('claims','claim',ClaimRepository,links);
     s.tasks=this.linkedSource_('tasks','task',TaskRepository,links);
     s.meetings=this.linkedSource_('meetings','meeting',MeetingRepository,links);
     s.communications=this.linkedSource_('communications','communication',CommunicationRepository,links);
     s.documents=this.linkedSource_('documents','document',DocumentRepository,links);
     s.quotes=this.source_('quotes',function(){return this.collectQuotes_(this.repository_('quote',QuoteRepository),links);});
-    s.endorsements=this.source_('endorsements',function(){return this.collectByValues_(this.repository_('endorsement',EndorsementRepository),'policyId',policyIds);});
+    s.endorsements=this.source_('endorsements',function(){return this.collectEndorsements_(this.repository_('endorsement',EndorsementRepository),links,policyIds);});
     s.revenue=this.source_('revenue',function(){return this.collectRevenue_(this.repository_('revenue',RevenueRepository),links,policyIds);});
-    var attention=this.attention_(s),sourceHealth=this.sourceHealth_(s);
+    var attention=this.attention_(s),sourceHealth=this.sourceHealth_(s),integrity=this.integrity_(company,person,rawRelatedPeople,duplicatePeople,s,links),resolvedContext=JSKOS.ClientContext.normalize(links);
+    var clientContext={companyId:resolvedContext.companyId,personId:resolvedContext.personId,policyIds:resolvedContext.policyIds,active:resolvedContext.active,malformed:normalizedContext.malformed||resolvedContext.malformed,meta:{limit:resolvedContext.meta.limit,returned:resolvedContext.meta.returned,available:resolvedContext.meta.available,truncated:resolvedContext.meta.truncated,invalidIgnored:normalizedContext.meta.invalidIgnored}};
     return {
       identity:this.identity_(company,person),
-      relationships:{company:company,people:relatedPeople},
+      relationships:{company:company,people:relatedPeople,integrity:integrity},
       sections:s,
       summary:this.summary_(s),
       attention:attention,
       timeline:this.timeline_(s),
       navigation:this.navigation_(links),
-      meta:{version:'0.2.0',build:1014,readOnly:true,generatedAt:new Date().toISOString(),referenceDate:this.isoDay_(this.referenceDate),sourceHealth:sourceHealth,requestedCompanyId:this.text_(request.companyId),requestedPersonId:this.text_(request.personId)}
+      meta:{version:'0.3.0',build:1015,readOnly:true,generatedAt:new Date().toISOString(),referenceDate:this.isoDay_(this.referenceDate),sourceHealth:sourceHealth,clientContext:clientContext,requestedCompanyId:this.text_(request.companyId),requestedPersonId:this.text_(request.personId)}
     };
   }
 
@@ -76,8 +77,8 @@ class Client360Service {
 
   collectLinked_(repo,links) {
     var items=[],queryCount=0;
-    if(links.companyId){items=items.concat(this.items_(repo.search({companyId:links.companyId})));queryCount++;}
-    if(links.personId){items=items.concat(this.items_(repo.search({personId:links.personId})));queryCount++;}
+    if(links.companyId){items=items.concat(this.items_(repo.search({companyId:links.companyId})));queryCount++;if(links.personId)items=items.filter(function(item){return!item.personId||this.id_(item.personId)===links.personId;},this);}
+    else if(links.personId){items=items.concat(this.items_(repo.search({personId:links.personId})));queryCount++;}
     return {items:this.unique_(items),meta:{queryCount:queryCount,totalAvailable:items.length}};
   }
 
@@ -98,15 +99,36 @@ class Client360Service {
   collectRevenue_(repo,links,policyIds) {
     var items=[],queryCount=0;
     if(links.companyId){items=this.items_(repo.search({companyId:links.companyId}));queryCount++;}
-    else if(policyIds.length){items=this.items_(repo.search({})).filter(function(x){return policyIds.indexOf(x.policyId)!==-1;});queryCount++;}
+    else if(policyIds.length){policyIds.slice(0,25).forEach(function(policyId){items=items.concat(this.items_(repo.search({policyId:policyId})));queryCount++;},this);}
     return {items:this.unique_(items),meta:{queryCount:queryCount,totalAvailable:items.length}};
   }
 
   collectQuotes_(repo,links) {
     var items=[],queryCount=0;
     if(links.companyId){items=items.concat(this.items_(repo.search({companyId:links.companyId})));queryCount++;}
-    if(links.personId){items=items.concat(this.items_(repo.search({})).filter(function(x){return this.id_(x.personId)===links.personId;},this));queryCount++;}
+    if(links.personId&&links.companyId)items=items.filter(function(x){return this.id_(x.personId)===links.personId;},this);
+    else if(links.personId){items=this.items_(repo.search({personId:links.personId})).filter(function(x){return this.id_(x.personId)===links.personId;},this);queryCount++;}
     return {items:this.unique_(items),meta:{queryCount:queryCount,totalAvailable:items.length}};
+  }
+
+  collectEndorsements_(repo,links,policyIds) {
+    if(!policyIds.length)return{items:[],meta:{queryCount:0,totalAvailable:0}};
+    try {
+      var result=repo.search({companyId:links.companyId,personId:links.personId,policyIds:policyIds,limit:this.limit});
+      return{items:this.items_(result),meta:{queryCount:1,totalAvailable:Number(result.total)||this.items_(result).length,truncated:Boolean(result.meta&&result.meta.truncated)}};
+    } catch(error) {
+      console.warn('Client 360 endorsement batch unavailable; using bounded fallback.');
+      return this.collectByValues_(repo,'policyId',policyIds.slice(0,25));
+    }
+  }
+
+  integrity_(company,person,rawPeople,duplicatePeople,sections,links) {
+    var anomalies=[],self=this;
+    if(person&&person.companyId&&!company)anomalies.push({code:'ORPHANED_PERSON_COMPANY',severity:'warning',module:'people'});
+    if(person&&!person.companyId)anomalies.push({code:'PERSON_WITHOUT_COMPANY',severity:'info',module:'people'});
+    duplicatePeople.forEach(function(){anomalies.push({code:'DUPLICATE_PERSON_REFERENCE',severity:'warning',module:'people'});});
+    Object.keys(sections).forEach(function(moduleName){var section=sections[moduleName];if(!section.authorized)return;section.items.forEach(function(item){var itemCompany=self.id_(item.companyId),itemPerson=self.id_(item.personId);if(links.companyId&&itemCompany&&itemCompany!==links.companyId)anomalies.push({code:'MISMATCHED_COMPANY_LINK',severity:'warning',module:moduleName,entityId:self.entityId_(item)});if(links.personId&&itemPerson&&itemPerson!==links.personId)anomalies.push({code:'MISMATCHED_PERSON_LINK',severity:'warning',module:moduleName,entityId:self.entityId_(item)});});});
+    return{state:anomalies.length?'attention':'clean',count:anomalies.length,items:anomalies.slice(0,50),readOnly:true,truncated:anomalies.length>50};
   }
 
   attention_(s) {
@@ -137,6 +159,7 @@ class Client360Service {
     var query=['page='+encodeURIComponent(moduleName)];
     if(links.companyId)query.push('companyId='+encodeURIComponent(links.companyId));
     if(links.personId)query.push('personId='+encodeURIComponent(links.personId));
+    if(links.policyIds&&links.policyIds.length)query.push('policyIds='+encodeURIComponent(links.policyIds.slice(0,50).join(',')));
     return '?'+query.join('&');
   }
 
@@ -152,6 +175,8 @@ class Client360Service {
   items_(result){if(Array.isArray(result))return result;return result&&Array.isArray(result.items)?result.items:[];}
   unique_(items){var seen={};return items.filter(function(x){var id=this.entityId_(x)||JSON.stringify(x);id=String(id).toUpperCase();if(seen[id])return false;seen[id]=true;return true;},this);}
   uniqueBy_(items,key){var seen={};return(items||[]).filter(function(x){var id=this.id_(x&&x[key]);if(!id||seen[id])return false;seen[id]=true;return true;},this);}
+  uniqueIds_(items){var seen={};return(items||[]).map(this.id_.bind(this)).filter(function(id){if(!id||seen[id])return false;seen[id]=true;return true;});}
+  duplicates_(items,key){var seen={},duplicates=[];(items||[]).forEach(function(item){var id=this.id_(item&&item[key]);if(id&&seen[id])duplicates.push(id);else if(id)seen[id]=true;},this);return duplicates;}
   day_(value){if(!value)return null;var date=value instanceof Date?new Date(value.getTime()):new Date(String(value).length===10?String(value)+'T00:00:00':value);if(isNaN(date.getTime()))return null;date.setHours(0,0,0,0);return date;}
   days_(date){return Math.round((date.getTime()-this.referenceDate.getTime())/86400000);}
   dateValue_(value){var d=this.day_(value);return d?d.getTime():8640000000000000;}
@@ -160,5 +185,5 @@ class Client360Service {
   text_(value){return String(value||'').trim();}
 }
 
-function client360ApiExecute_(callback){try{JSKOS.AccessControl.requireModuleOperation('client360','view');return{success:true,data:JSON.parse(JSON.stringify(callback())),error:null,meta:{version:'0.2.0',build:1014,timestamp:new Date().toISOString(),readOnly:true}};}catch(error){return{success:false,data:null,error:{name:error.name||'Error',code:error.code||'CLIENT_360_ERROR',message:error.message||String(error)},meta:{version:'0.2.0',build:1014,timestamp:new Date().toISOString(),readOnly:true}};}}
+function client360ApiExecute_(callback){try{JSKOS.AccessControl.requireModuleOperation('client360','view');return{success:true,data:JSON.parse(JSON.stringify(callback())),error:null,meta:{version:'0.3.0',build:1015,timestamp:new Date().toISOString(),readOnly:true}};}catch(error){return{success:false,data:null,error:{name:error.name||'Error',code:error.code||'CLIENT_360_ERROR',message:error.message||String(error)},meta:{version:'0.3.0',build:1015,timestamp:new Date().toISOString(),readOnly:true}};}}
 function apiClient360Get(payload){return client360ApiExecute_(function(){return new Client360Service().getClient360(payload||{});});}

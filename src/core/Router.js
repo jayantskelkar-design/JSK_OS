@@ -64,6 +64,10 @@ function applyJSKOSBranding_(output, activeRoute) {
     /<div class="brand-mark"[^>]*>\s*JSK\s*<\/div>/g,
     brandMark
   );
+  if (brandedContent.indexOf('</body>') !== -1) {
+    brandedContent = brandedContent.replace('</body>',
+      HtmlService.createHtmlOutputFromFile('Ui/Core/ClientContextBanner').getContent() + '</body>');
+  }
   if (
     brandedContent.indexOf('class="sidebar"') !== -1 &&
     /<nav\b[^>]*>[\s\S]*?<\/nav>/i.test(brandedContent)

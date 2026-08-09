@@ -1,0 +1,16 @@
+<script>
+(function(){'use strict';
+  var params=new URLSearchParams(window.location.search),companyId=params.get('companyId')||'',personId=params.get('personId')||'',policyIds=params.get('policyIds')||'';
+  if(!companyId&&!personId&&!policyIds)return;
+  document.addEventListener('DOMContentLoaded',function(){
+    var host=document.querySelector('.content,.c360-page');if(!host)return;
+    var banner=document.createElement('section');banner.id='clientContextBanner';banner.setAttribute('role','status');
+    banner.style.cssText='margin:0 0 16px;padding:12px 16px;border:1px solid #9db2cc;border-radius:10px;background:#f3f7fc;display:flex;justify-content:space-between;gap:12px;align-items:center';
+    var labels=[];if(companyId)labels.push('Company '+companyId);if(personId)labels.push('Person '+personId);if(policyIds)labels.push('Policies '+policyIds);
+    banner.innerHTML='<div><strong>Client context active</strong><br><small></small></div><button type="button">Clear context</button>';
+    banner.querySelector('small').textContent=labels.join(' · ');
+    banner.querySelector('button').onclick=function(){var url=new URL(window.location.href);['companyId','personId','policyIds'].forEach(function(key){url.searchParams.delete(key);});window.location.href=url.pathname+(url.search||'');};
+    host.insertBefore(banner,host.firstChild);
+  });
+})();
+</script>
