@@ -53,7 +53,7 @@ class Client360Service {
       workflow:workflow,
       timeline:this.timeline_(s),
       navigation:this.navigation_(links),
-      meta:{version:'0.5.0',build:1017,readOnly:true,generatedAt:new Date().toISOString(),referenceDate:this.isoDay_(this.referenceDate),sourceHealth:sourceHealth,clientContext:clientContext,requestedCompanyId:this.text_(request.companyId),requestedPersonId:this.text_(request.personId)}
+      meta:{version:'0.6.0',build:1018,readOnly:true,generatedAt:new Date().toISOString(),referenceDate:this.isoDay_(this.referenceDate),sourceHealth:sourceHealth,clientContext:clientContext,requestedCompanyId:this.text_(request.companyId),requestedPersonId:this.text_(request.personId)}
     };
   }
 
@@ -188,5 +188,5 @@ class Client360Service {
   text_(value){return String(value||'').trim();}
 }
 
-function client360ApiExecute_(callback){try{JSKOS.AccessControl.requireModuleOperation('client360','view');return{success:true,data:JSON.parse(JSON.stringify(callback())),error:null,meta:{version:'0.5.0',build:1017,timestamp:new Date().toISOString(),readOnly:true}};}catch(error){return{success:false,data:null,error:{name:error.name||'Error',code:error.code||'CLIENT_360_ERROR',message:error.message||String(error)},meta:{version:'0.5.0',build:1017,timestamp:new Date().toISOString(),readOnly:true}};}}
+function client360ApiExecute_(callback){try{JSKOS.AccessControl.requireModuleOperation('client360','view');return{success:true,data:JSON.parse(JSON.stringify(callback())),error:null,meta:{version:'0.6.0',build:1018,timestamp:new Date().toISOString(),readOnly:true}};}catch(error){return{success:false,data:null,error:{name:error.name||'Error',code:error.code||'CLIENT_360_ERROR',message:error.message||String(error)},meta:{version:'0.6.0',build:1018,timestamp:new Date().toISOString(),readOnly:true}};}}
 function apiClient360Get(payload){return client360ApiExecute_(function(){return new Client360Service().getClient360(payload||{});});}
