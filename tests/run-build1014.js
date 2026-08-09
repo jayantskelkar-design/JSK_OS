@@ -11,7 +11,7 @@ global.JSKOS = {
     requireModuleOperation: function () {},
     getOperationPermission: function (moduleName, operation) { return moduleName + '.' + operation; }
   },
-  Config: { APP: { VERSION: '1.5.4' } },
+  Config: { APP: { VERSION: '1.5.5' } },
   Router: { resolve: function (event) { return event.parameter.page; } }
 };
 global.JSK_ACCESS = { ROUTE_PERMISSIONS: { client360: 'client360.view' } };
@@ -62,6 +62,8 @@ function load(relativePath) {
 load('src/core/ClientContext.js');
 load('src/core/ClientAction.js');
 load('src/core/ClientActionTest.js');
+load('src/core/WorkflowIntent.js');
+load('src/core/WorkflowIntentTest.js');
 load('src/core/ClientContextApi.js');
 load('src/core/ClientContextTest.js');
 load('src/client360/Client360Service.js');
@@ -72,9 +74,10 @@ var reports = {
   client360V01: testClient360V01ReleaseCandidate(),
   build1014: testBuild1014Client360IntelligenceReleaseCandidate(),
   build1015: testBuild1015ReleaseCandidate(),
-  build1016: testBuild1016ReleaseCandidate()
+  build1016: testBuild1016ReleaseCandidate(),
+  build1017: testBuild1017ReleaseCandidate()
 };
-if (reports.client360V01.failed || reports.build1014.failed || reports.build1015.failed || reports.build1016.failed) {
+if (reports.client360V01.failed || reports.build1014.failed || reports.build1015.failed || reports.build1016.failed || reports.build1017.failed) {
   console.error(JSON.stringify(reports, null, 2));
   process.exit(1);
 }

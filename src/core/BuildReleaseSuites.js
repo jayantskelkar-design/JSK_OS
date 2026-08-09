@@ -181,6 +181,19 @@ function testBuild1016ReleaseCandidate() {
   ],null);
 }
 
+/** Build 1017 non-persistent Workflow Intent and draft handoff. */
+function testBuild1017ReleaseCandidate(){return runJSKOSReleaseSuite_(1017,[
+  {name:'Intent normalization',run:testBuild1017IntentNormalization},
+  {name:'Unsupported and malformed isolation',run:testBuild1017UnsupportedAndMalformed},
+  {name:'Destination permission isolation',run:testBuild1017PermissionIsolation},
+  {name:'Incomplete intent',run:testBuild1017IncompleteIntent},
+  {name:'Allowlisted draft payload',run:testBuild1017AllowlistedDraft},
+  {name:'Policy bounds and relationship integrity',run:testBuild1017BoundsAndRelationship},
+  {name:'Handoff permission revalidation',run:testBuild1017HandoffRevalidation},
+  {name:'Read-only non-persistence',run:testBuild1017ReadOnly},
+  {name:'Workflow intent UI',run:testBuild1017UiRendering}
+],null);}
+
 function testCompleteNavigation() {
   var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
   var results = routeKeys.map(function (routeKey) {
@@ -224,6 +237,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Build 1014', run: testBuild1014ReleaseCandidate },
     { name: 'Build 1015', run: testBuild1015ReleaseCandidate },
     { name: 'Build 1016', run: testBuild1016ReleaseCandidate },
+    { name: 'Build 1017', run: testBuild1017ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);
