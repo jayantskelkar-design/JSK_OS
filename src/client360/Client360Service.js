@@ -41,6 +41,7 @@ class Client360Service {
     s.endorsements=this.source_('endorsements',function(){return this.collectEndorsements_(this.repository_('endorsement',EndorsementRepository),links,policyIds);});
     s.revenue=this.source_('revenue',function(){return this.collectRevenue_(this.repository_('revenue',RevenueRepository),links,policyIds);});
     var attention=this.attention_(s),sourceHealth=this.sourceHealth_(s),integrity=this.integrity_(company,person,rawRelatedPeople,duplicatePeople,s,links),resolvedContext=JSKOS.ClientContext.normalize(links);
+    var workflow=JSKOS.ClientAction.evaluate(resolvedContext,{accessControl:this.accessControl});
     var clientContext={companyId:resolvedContext.companyId,personId:resolvedContext.personId,policyIds:resolvedContext.policyIds,active:resolvedContext.active,malformed:normalizedContext.malformed||resolvedContext.malformed,meta:{limit:resolvedContext.meta.limit,returned:resolvedContext.meta.returned,available:resolvedContext.meta.available,truncated:resolvedContext.meta.truncated,invalidIgnored:normalizedContext.meta.invalidIgnored}};
     return {
       identity:this.identity_(company,person),
@@ -48,9 +49,11 @@ class Client360Service {
       sections:s,
       summary:this.summary_(s),
       attention:attention,
+      actions:workflow.actions,
+      workflow:workflow,
       timeline:this.timeline_(s),
       navigation:this.navigation_(links),
-      meta:{version:'0.3.0',build:1015,readOnly:true,generatedAt:new Date().toISOString(),referenceDate:this.isoDay_(this.referenceDate),sourceHealth:sourceHealth,clientContext:clientContext,requestedCompanyId:this.text_(request.companyId),requestedPersonId:this.text_(request.personId)}
+      meta:{version:'0.4.0',build:1016,readOnly:true,generatedAt:new Date().toISOString(),referenceDate:this.isoDay_(this.referenceDate),sourceHealth:sourceHealth,clientContext:clientContext,requestedCompanyId:this.text_(request.companyId),requestedPersonId:this.text_(request.personId)}
     };
   }
 
@@ -185,5 +188,5 @@ class Client360Service {
   text_(value){return String(value||'').trim();}
 }
 
-function client360ApiExecute_(callback){try{JSKOS.AccessControl.requireModuleOperation('client360','view');return{success:true,data:JSON.parse(JSON.stringify(callback())),error:null,meta:{version:'0.3.0',build:1015,timestamp:new Date().toISOString(),readOnly:true}};}catch(error){return{success:false,data:null,error:{name:error.name||'Error',code:error.code||'CLIENT_360_ERROR',message:error.message||String(error)},meta:{version:'0.3.0',build:1015,timestamp:new Date().toISOString(),readOnly:true}};}}
+function client360ApiExecute_(callback){try{JSKOS.AccessControl.requireModuleOperation('client360','view');return{success:true,data:JSON.parse(JSON.stringify(callback())),error:null,meta:{version:'0.4.0',build:1016,timestamp:new Date().toISOString(),readOnly:true}};}catch(error){return{success:false,data:null,error:{name:error.name||'Error',code:error.code||'CLIENT_360_ERROR',message:error.message||String(error)},meta:{version:'0.4.0',build:1016,timestamp:new Date().toISOString(),readOnly:true}};}}
 function apiClient360Get(payload){return client360ApiExecute_(function(){return new Client360Service().getClient360(payload||{});});}
