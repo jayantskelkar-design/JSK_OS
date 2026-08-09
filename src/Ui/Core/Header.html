@@ -134,7 +134,7 @@
       </strong>
 
       <span>
-        Administrator
+        <?= accessContext && accessContext.role ? accessContext.role : 'Unassigned' ?>
       </span>
     </div>
   </div>

@@ -1,4 +1,4 @@
-/** JSK OS Builds 1007-1012 release regression and stable-readiness suites. */
+/** JSK OS Builds 1007-1013 release regression and stable-readiness suites. */
 
 function runJSKOSReleaseSuite_(build, tests, schemaVersion) {
   var results = tests.map(function (test) {
@@ -122,6 +122,30 @@ function testBuild1012ReleaseCandidate() {
   ], JSK_REPORT_SCHEMA.VERSION);
 }
 
+/** Build 1013 dropdown entry point kept in the central release-suite file. */
+function testBuild1013ReleaseCandidate() {
+  return runJSKOSReleaseSuite_(1013, [
+    { name: 'Access-control foundation', run: testBuild1013AccessControlFoundation },
+    { name: 'Access bootstrap contract', run: testBuild1013AccessBootstrap },
+    { name: 'Access role contract', run: testBuild1013AccessRoleContract },
+    { name: 'Access permission error contract', run: testBuild1013AccessPermissionErrors },
+    { name: 'System user access context', run: testBuild1013AccessContextSystemUser },
+    { name: 'Access API context contract', run: testBuild1013AccessApiContext },
+    { name: 'Access list users API contract', run: testBuild1013AccessListUsersApi },
+    { name: 'Access set user role API contract', run: testBuild1013AccessSetUserRoleApi },
+    { name: 'Access remove user role API contract', run: testBuild1013AccessRemoveUserRoleApi },
+    { name: 'Access cleanup test user API contract', run: testBuild1013AccessCleanupTestUserApi },
+    { name: 'Access invalid set-user-role payload', run: testBuild1013AccessSetUserRoleInvalidEmailApi },
+    { name: 'Access invalid role payload contract', run: testBuild1013AccessSetUserRoleInvalidRoleApi },
+    { name: 'Access remove self-role protection', run: testBuild1013AccessRemoveSelfRoleApi },
+    { name: 'Access navigation model contract', run: testBuild1013AccessNavigationModel },
+    { name: 'Access sidebar navigation contract', run: testBuild1013AccessSidebarNavigation },
+    { name: 'Access route rendering contract', run: testBuild1013AccessRouteRendering },
+    { name: 'Administrator access UI', run: testBuild1013AccessUiRendering },
+    { name: 'Role isolation and API security audit', run: testBuild1013SecurityAudit }
+  ], 1);
+}
+
 function testCompleteNavigation() {
   var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
   var results = routeKeys.map(function (routeKey) {
@@ -160,6 +184,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Build 1010', run: testBuild1010ReleaseCandidate },
     { name: 'Build 1011', run: testBuild1011ReleaseCandidate },
     { name: 'Build 1012', run: testBuild1012ReleaseCandidate },
+    { name: 'Build 1013', run: testBuild1013ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);

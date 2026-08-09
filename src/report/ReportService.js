@@ -6,6 +6,7 @@ var JSK_REPORT_SCHEMA = Object.freeze({
 
 function reportApi_(callback) {
   try {
+    JSKOS.AccessControl.requireModuleOperation('reports', 'view');
     return {
       success: true,
       data: JSON.parse(JSON.stringify(callback())),
@@ -96,6 +97,7 @@ function apiReportExecutiveSummary() {
 }
 
 function getReportFilters() {
+  JSKOS.AccessControl.requireModuleOperation('reports', 'filters');
   return {
     periods: ['Today', 'This Week', 'This Month', 'This Quarter', 'This Year'],
     modules: [

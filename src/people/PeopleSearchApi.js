@@ -33,7 +33,7 @@ function searchPersonById(personId) {
  * @return {Object}
  */
 function searchPeopleSuggestions(payload) {
-  return peopleApiExecute_(function () {
+  return peopleApiExecute_('suggestions', function () {
     var request = peopleNormalizeRequest_(payload || {});
     var query = String(request.query || '').trim();
 
@@ -75,7 +75,7 @@ function searchPeopleSuggestions(payload) {
  * @return {Object}
  */
 function getPeopleSearchFilters() {
-  return peopleApiExecute_(function () {
+  return peopleApiExecute_('filters', function () {
     var repository = new PeopleRepository();
     var firstPage = repository.search({
       includeArchived: false,

@@ -111,7 +111,7 @@ class PeopleService {
  * @return {Object}
  */
 function apiPeopleCreate(payload) {
-  return peopleApiExecute_(function () {
+  return peopleApiExecute_('create', function () {
     var request = peopleNormalizeRequest_(payload);
 
     return new PeopleService().create(
@@ -128,7 +128,7 @@ function apiPeopleCreate(payload) {
  * @return {Object}
  */
 function apiPeopleGet(payload) {
-  return peopleApiExecute_(function () {
+  return peopleApiExecute_('get', function () {
     var request = peopleNormalizeRequest_(payload);
 
     peopleRequireText_(
@@ -148,7 +148,7 @@ function apiPeopleGet(payload) {
  * @return {Object}
  */
 function apiPeopleUpdate(payload) {
-  return peopleApiExecute_(function () {
+  return peopleApiExecute_('update', function () {
     var request = peopleNormalizeRequest_(payload);
 
     peopleRequireText_(
@@ -172,7 +172,7 @@ function apiPeopleUpdate(payload) {
  * @return {Object}
  */
 function apiPeopleArchive(payload) {
-  return peopleApiExecute_(function () {
+  return peopleApiExecute_('archive', function () {
     var request = peopleNormalizeRequest_(payload);
 
     peopleRequireText_(
@@ -195,7 +195,7 @@ function apiPeopleArchive(payload) {
  * @return {Object}
  */
 function apiPeopleRestore(payload) {
-  return peopleApiExecute_(function () {
+  return peopleApiExecute_('restore', function () {
     var request = peopleNormalizeRequest_(payload);
 
     peopleRequireText_(
@@ -218,7 +218,7 @@ function apiPeopleRestore(payload) {
  * @return {Object}
  */
 function apiPeopleSearch(payload) {
-  return peopleApiExecute_(function () {
+  return peopleApiExecute_('search', function () {
     var request = peopleNormalizeRequest_(payload || {});
 
     return new PeopleService().search({
@@ -245,7 +245,7 @@ function apiPeopleSearch(payload) {
  * @return {Object}
  */
 function apiPeopleByCompany(payload) {
-  return peopleApiExecute_(function () {
+  return peopleApiExecute_('by-company', function () {
     var request = peopleNormalizeRequest_(payload);
 
     peopleRequireText_(
@@ -268,7 +268,7 @@ function apiPeopleByCompany(payload) {
  * @return {Object}
  */
 function apiPeopleFollowupsDue(payload) {
-  return peopleApiExecute_(function () {
+  return peopleApiExecute_('followups-due', function () {
     var request = peopleNormalizeRequest_(payload || {});
 
     return new PeopleService().findFollowupsDue(
@@ -283,7 +283,7 @@ function apiPeopleFollowupsDue(payload) {
  * @return {Object}
  */
 function apiPeopleHealth() {
-  return peopleApiExecute_(function () {
+  return peopleApiExecute_('health', function () {
     var repository = new PeopleRepository();
 
     return {
@@ -368,10 +368,11 @@ function peopleRequireText_(value, field, message) {
  * @param {Function} callback Callback.
  * @return {Object}
  */
-function peopleApiExecute_(callback) {
+function peopleApiExecute_(operation, callback) {
   var requestId = Utilities.getUuid();
 
   try {
+    JSKOS.AccessControl.requireModuleOperation('people', operation);
     return {
       success: true,
       data: callback(),

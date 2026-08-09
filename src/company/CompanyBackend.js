@@ -67,7 +67,7 @@ class CompanyService {
  *   .apiCompanyCreate(payload);
  */
 function apiCompanyCreate(payload) {
-  return companyApiExecute_(function () {
+  return companyApiExecute_('create', function () {
     var request = companyNormalizeRequest_(payload);
 console.log("API GET REQUEST");
 console.log(JSON.stringify(request));
@@ -83,7 +83,7 @@ console.log(JSON.stringify(request));
  * READ
  */
 function apiCompanyGet(payload) {
-  return companyApiExecute_(function () {
+  return companyApiExecute_('get', function () {
     var request = companyNormalizeRequest_(payload);
 
     return new CompanyService().get(
@@ -100,7 +100,7 @@ function apiCompanyGet(payload) {
  * UPDATE
  */
 function apiCompanyUpdate(payload) {
-  return companyApiExecute_(function () {
+  return companyApiExecute_('update', function () {
     var request = companyNormalizeRequest_(payload);
 
     return new CompanyService().update(
@@ -117,7 +117,7 @@ function apiCompanyUpdate(payload) {
  * ARCHIVE / SOFT DELETE
  */
 function apiCompanyArchive(payload) {
-  return companyApiExecute_(function () {
+  return companyApiExecute_('archive', function () {
     var request = companyNormalizeRequest_(payload);
 
     return new CompanyService().archive(
@@ -133,7 +133,7 @@ function apiCompanyArchive(payload) {
  * RESTORE
  */
 function apiCompanyRestore(payload) {
-  return companyApiExecute_(function () {
+  return companyApiExecute_('restore', function () {
     var request = companyNormalizeRequest_(payload);
 
     return new CompanyService().restore(
@@ -148,7 +148,7 @@ function apiCompanyRestore(payload) {
  * SEARCH
  */
 function apiCompanySearch(payload) {
-  return companyApiExecute_(function () {
+  return companyApiExecute_('search', function () {
     var request = companyNormalizeRequest_(payload);
 
     return new CompanyService().search({
@@ -170,7 +170,7 @@ function apiCompanySearch(payload) {
  * Lightweight API health check.
  */
 function apiCompanyHealth() {
-  return companyApiExecute_(function () {
+  return companyApiExecute_('health', function () {
     var repository = new CompanyRepository();
 
     return {
@@ -227,8 +227,9 @@ function companyNormalizeRequest_(payload) {
 /**
  * Standard API response envelope.
  */
-function companyApiExecute_(callback) {
+function companyApiExecute_(operation, callback) {
   try {
+    JSKOS.AccessControl.requireModuleOperation('companies', operation);
     var result = callback();
 
     return {

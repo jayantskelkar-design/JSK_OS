@@ -19,7 +19,8 @@ JSKOS.RouteConfig = Object.freeze({
     reports: Object.freeze({ key: 'reports', title: 'Reports', icon: '#', enabled: true }),
     tasks: Object.freeze({ key: 'tasks', title: 'Tasks', icon: '✓', enabled: true }),
     meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: true }),
-    communications: Object.freeze({ key: 'communications', title: 'Communications', icon: '✉', enabled: true })
+    communications: Object.freeze({ key: 'communications', title: 'Communications', icon: '✉', enabled: true }),
+    access: Object.freeze({ key: 'access', title: 'User Access', icon: '@', enabled: true })
   })
 });
 
@@ -35,6 +36,13 @@ function doGet(event) {
   }
   bootstrapBuild1002Automation_();
   var route = JSKOS.Router.resolve(event);
+  if (
+    JSKOS.AccessControl &&
+    typeof JSKOS.AccessControl.canAccessRoute === 'function' &&
+    !JSKOS.AccessControl.canAccessRoute(route)
+  ) {
+    return JSKOS.Router.renderAccessDenied(route);
+  }
   return applyJSKOSBranding_(JSKOS.Router.render(route, event), route);
 }
 
@@ -69,7 +77,11 @@ function applyJSKOSBranding_(output, activeRoute) {
 }
 
 function buildJSKOSNavigationHtml_(activeRoute) {
-  var links = Object.keys(JSKOS.RouteConfig.ROUTES).map(function (key) {
+  var links = Object.keys(JSKOS.RouteConfig.ROUTES).filter(function (key) {
+    return !JSKOS.AccessControl ||
+      typeof JSKOS.AccessControl.canAccessRoute !== 'function' ||
+      JSKOS.AccessControl.canAccessRoute(key);
+  }).map(function (key) {
     var route = JSKOS.RouteConfig.ROUTES[key];
     var active = route.key === activeRoute;
     return '<a class="nav-item' + (active ? ' active' : '') +
@@ -162,6 +174,9 @@ JSKOS.Router = Object.freeze({
 
         case 'communications':
           return JSKOS.Router.renderCommunications();
+
+        case 'access':
+          return JSKOS.Router.renderAccess();
 
         case 'dashboard':
         default:
@@ -262,6 +277,13 @@ JSKOS.Router = Object.freeze({
     return renderCommunicationUi();
   },
 
+  renderAccess: function () {
+    if (typeof renderAccessUi !== 'function') {
+      throw new Error('renderAccessUi() is unavailable.');
+    }
+    return renderAccessUi();
+  },
+
   /**
    * Returns the deployed Web App URL when available.
    * Editor tests may return an empty string; that is expected.
@@ -304,12 +326,17 @@ JSKOS.Router = Object.freeze({
       reports: JSKOS.Router.buildRouteUrl('reports'),
       tasks: JSKOS.Router.buildRouteUrl('tasks'),
       meetings: JSKOS.Router.buildRouteUrl('meetings'),
-      communications: JSKOS.Router.buildRouteUrl('communications')
+      communications: JSKOS.Router.buildRouteUrl('communications'),
+      access: JSKOS.Router.buildRouteUrl('access')
     };
   },
 
   getNavigation: function (activeRoute) {
-    return Object.keys(JSKOS.RouteConfig.ROUTES).map(function (key) {
+    return Object.keys(JSKOS.RouteConfig.ROUTES).filter(function (key) {
+      return !JSKOS.AccessControl ||
+        typeof JSKOS.AccessControl.canAccessRoute !== 'function' ||
+        JSKOS.AccessControl.canAccessRoute(key);
+    }).map(function (key) {
       var route = JSKOS.RouteConfig.ROUTES[key];
 
       return {
@@ -323,6 +350,23 @@ JSKOS.Router = Object.freeze({
           : '#'
       };
     });
+  },
+
+  renderAccessDenied: function (route) {
+    var context = JSKOS.AccessControl.getContext();
+    var dashboardUrl = JSKOS.Router.buildRouteUrl('dashboard');
+    var html = '<!DOCTYPE html><html><head><base target="_top">' +
+      '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<style>body{font-family:Arial,sans-serif;background:#f4f6f9;padding:32px;color:#142033}.card{max-width:680px;margin:60px auto;background:#fff;border:1px solid #dfe4eb;border-radius:16px;padding:28px}h1{color:#b42318}a{display:inline-block;margin-top:16px;padding:10px 14px;background:#0b1f3a;color:#fff;text-decoration:none;border-radius:8px}</style>' +
+      '</head><body><div class="card"><h1>Access denied</h1>' +
+      '<p>You do not have permission to open <strong>' + escapeRouterHtml_(route) + '</strong>.</p>' +
+      '<p>Signed in as ' + escapeRouterHtml_(context.email || 'Unknown user') +
+      ' (' + escapeRouterHtml_(context.role) + ').</p>' +
+      '<a href="' + escapeRouterHtml_(dashboardUrl) + '">Return to Dashboard</a>' +
+      '</div></body></html>';
+    return HtmlService.createHtmlOutput(html)
+      .setTitle('Access denied | JSK OS')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   },
 
   renderError: function (route, error) {
@@ -395,7 +439,8 @@ function testAllWebRoutes() {
     { route: 'reports', marker: 'Reports & Analytics' },
     { route: 'tasks', marker: 'Task Management' },
     { route: 'meetings', marker: 'Meeting Management' },
-    { route: 'communications', marker: 'Communication Center' }
+    { route: 'communications', marker: 'Communication Center' },
+    { route: 'access', marker: 'User Access & Security' }
   ];
 
   var results = tests.map(function (test) {

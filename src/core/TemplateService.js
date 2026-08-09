@@ -46,7 +46,8 @@ function getJSKOSDefaultTemplateModel_() {
     activeRoute: 'dashboard',
     webAppUrl: getJSKOSWebAppUrl_(),
     navigation: [],
-    routeUrls: {}
+    routeUrls: {},
+    accessContext: { email: '', role: 'Unassigned', permissions: {} }
   };
 }
 
@@ -206,6 +207,13 @@ JSKOS.TemplateService = Object.freeze({
     ) {
       model.routeUrls =
         JSKOS.Router.getRouteUrls() || {};
+    }
+
+    if (
+      JSKOS.AccessControl &&
+      typeof JSKOS.AccessControl.getContext === 'function'
+    ) {
+      model.accessContext = JSKOS.AccessControl.getContext();
     }
 
     model.webAppUrl =

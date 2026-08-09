@@ -479,6 +479,7 @@ function policyApiExecute_(operation, callback) {
   var logger = policyCreateLogger_(requestId, operation);
 
   try {
+    JSKOS.AccessControl.requireModuleOperation('policies', operation);
     var result = callback();
     var durationMs = new Date().getTime() - startedAt;
 
