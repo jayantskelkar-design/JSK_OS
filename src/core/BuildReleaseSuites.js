@@ -151,6 +151,21 @@ function testBuild1014ReleaseCandidate() {
   return testBuild1014Client360IntelligenceReleaseCandidate();
 }
 
+/** Build 1015 unified Client Context and relationship integrity. */
+function testBuild1015ReleaseCandidate() {
+  return runJSKOSReleaseSuite_(1015,[
+    {name:'Client context normalization',run:testBuild1015ClientContextNormalization},
+    {name:'Bounded policy IDs',run:testBuild1015PolicyIdBounds},
+    {name:'Context matching and isolation',run:testBuild1015ContextMatching},
+    {name:'Context preservation and clear',run:testBuild1015ContextPreservationAndClear},
+    {name:'Contextual repository isolation',run:testBuild1015ContextualRepositoryIsolation},
+    {name:'Policy context fallback',run:testBuild1015PolicyContextFallback},
+    {name:'Relationship integrity',run:testBuild1015RelationshipIntegrity},
+    {name:'Endorsement batching',run:testBuild1015EndorsementBatching},
+    {name:'Unified Client 360 metadata',run:testBuild1015UnifiedContextMetadata}
+  ],null);
+}
+
 function testCompleteNavigation() {
   var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
   var results = routeKeys.map(function (routeKey) {
@@ -192,6 +207,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Build 1013', run: testBuild1013ReleaseCandidate },
     { name: 'Client 360 v0.1', run: testClient360V01ReleaseCandidate },
     { name: 'Build 1014', run: testBuild1014ReleaseCandidate },
+    { name: 'Build 1015', run: testBuild1015ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);
