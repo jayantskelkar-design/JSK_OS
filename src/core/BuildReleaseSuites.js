@@ -194,6 +194,42 @@ function testBuild1017ReleaseCandidate(){return runJSKOSReleaseSuite_(1017,[
   {name:'Workflow intent UI',run:testBuild1017UiRendering}
 ],null);}
 
+/** Build 1018 Workflow Confirmation and audit receipt foundation. */
+function testBuild1018ReleaseCandidate(){return runJSKOSReleaseSuite_(1018,[
+  {name:'Confirmation normalization and receipt',run:testBuild1018Confirmation},
+  {name:'Tampering and blocked isolation',run:testBuild1018TamperingAndBlocked},
+  {name:'Server-derived actor',run:testBuild1018ActorAndBounds},
+  {name:'Replay and append-only behavior',run:testBuild1018ReplayAndAppendOnly},
+  {name:'Receipt validation and handoff',run:testBuild1018ReceiptAndHandoff},
+  {name:'Audit failure fails closed',run:testBuild1018AuditFailure},
+  {name:'Receipt expiry',run:testBuild1018Expiry},
+  {name:'Exact receipt expiry boundaries',run:testBuild1018ExactExpiryBoundaries},
+  {name:'No destination writes',run:testBuild1018NoWrites},
+  {name:'Atomic confirmation and handoff',run:testBuild1018AtomicConcurrency},
+  {name:'Valid Workflow_Audit schema',run:testBuild1018ValidAuditSchema},
+  {name:'Invalid Workflow_Audit schemas fail closed',run:testBuild1018InvalidAuditSchemas},
+  {name:'First-time Workflow_Audit initialization',run:testBuild1018FirstInitialization},
+  {name:'Concurrent Workflow_Audit initialization',run:testBuild1018ConcurrentInitializationContract},
+  {name:'Atomic Workflow_Audit repository evidence',run:testBuild1018AtomicRepositoryEvidence},
+  {name:'Malformed confirmation evidence fails closed',run:testBuild1018MalformedConfirmationFailsClosed},
+  {name:'Receipt expiry window has one active authority',run:testBuild1018ExpiryWindowAuthority},
+  {name:'Complete Workflow_Audit evidence lookup',run:testBuild1018CompleteEvidenceLookup},
+  {name:'Repository exact-expiry handoff boundary',run:testBuild1018RepositoryExpiryBoundary},
+  {name:'Interleaved confirmation race',run:testBuild1018InterleavedConfirmationRace},
+  {name:'Interleaved handoff race',run:testBuild1018InterleavedHandoffRace},
+  {name:'Interleaved initialization race',run:testBuild1018InterleavedInitializationRace},
+  {name:'Valid complete correlated lifecycle',run:testBuild1018ValidCorrelatedLifecycle},
+  {name:'Malformed correlated lifecycle isolation',run:testBuild1018MalformedCorrelatedLifecycle},
+  {name:'Distant malformed lifecycle isolation',run:testBuild1018DistantMalformedLifecycle},
+  {name:'Policy evidence bounds',run:testBuild1018PolicyEvidenceBounds},
+  {name:'Canonical persisted authority fields',run:testBuild1018CanonicalPersistedFields},
+  {name:'Global workflow receipt uniqueness',run:testBuild1018GlobalReceiptUniqueness},
+  {name:'Generic repository policy write bound',run:testBuild1018GenericPolicyWriteBound},
+  {name:'Generic authority append path closed',run:testBuild1018GenericAuthorityAppendClosed},
+  {name:'Strict authority policy context',run:testBuild1018StrictPolicyContext},
+  {name:'Confirmation receipt UI',run:testBuild1018Ui}
+],null);}
+
 function testCompleteNavigation() {
   var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
   var results = routeKeys.map(function (routeKey) {
@@ -238,6 +274,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Build 1015', run: testBuild1015ReleaseCandidate },
     { name: 'Build 1016', run: testBuild1016ReleaseCandidate },
     { name: 'Build 1017', run: testBuild1017ReleaseCandidate },
+    { name: 'Build 1018', run: testBuild1018ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);

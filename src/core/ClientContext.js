@@ -23,6 +23,19 @@ JSKOS.ClientContext = Object.freeze((function () {
     return { values: valid.slice(0, limit), available: valid.length, invalid: invalid, truncated: valid.length > limit };
   }
 
+  function validatePolicyIdsStrict(value, limit) {
+    limit = Number(limit) || DEFAULT_POLICY_LIMIT;
+    if (value === undefined || value === '') return Object.freeze({ valid:true, values:Object.freeze([]), count:0 });
+    var values = Array.isArray(value) ? value.slice() : typeof value === 'string' ? value.split(',') : null;
+    if (!values || values.length > limit) return Object.freeze({ valid:false, values:Object.freeze([]), count:values ? values.length : 0 });
+    var seen = {}, valid = values.every(function (id) {
+      if (typeof id !== 'string' || !/^[A-Z0-9][A-Z0-9._:-]{0,99}$/.test(id) || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+    return Object.freeze({ valid:valid, values:Object.freeze(valid ? values : []), count:values.length });
+  }
+
   function normalize(input, options) {
     input = input && typeof input === 'object' ? input : {};
     options = options || {};
@@ -68,5 +81,5 @@ JSKOS.ClientContext = Object.freeze((function () {
     return values.join('&');
   }
 
-  return { normalize:normalize, matches:matches, filter:filter, query:query, DEFAULT_POLICY_LIMIT:DEFAULT_POLICY_LIMIT, MAX_POLICY_LIMIT:MAX_POLICY_LIMIT };
+  return { normalize:normalize, validatePolicyIdsStrict:validatePolicyIdsStrict, matches:matches, filter:filter, query:query, DEFAULT_POLICY_LIMIT:DEFAULT_POLICY_LIMIT, MAX_POLICY_LIMIT:MAX_POLICY_LIMIT };
 })());
