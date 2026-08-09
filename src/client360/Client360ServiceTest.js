@@ -4,7 +4,7 @@ function client360TestFactories_(options) {
   var company = options.company === undefined ? { companyId: 'COM-1', companyName: 'Acme', status: 'Active', area: 'Central' } : options.company;
   var people = options.people === undefined ? [{ personId: 'PER-1', companyId: 'COM-1', fullName: 'Asha', mobile: '9999999999' }] : options.people;
   function records(name) { return options[name] || []; }
-  function searchable(name) { return function () { return { search: function () { return { items: records(name), total: records(name).length }; } }; }; }
+  function searchable(name) { return function () { return { search: function (criteria) { if(options.failSource===name)throw new Error('private repository failure');if(options.queryCounts)options.queryCounts[name]=(options.queryCounts[name]||0)+1;var items=records(name).filter(function(x){return(!criteria.companyId||x.companyId===criteria.companyId)&&(!criteria.personId||x.personId===criteria.personId);});return { items: items, total: items.length }; } }; }; }
   return {
     company: function () { return { findById: function (id) { return company && id === company.companyId ? company : null; } }; },
     people: function () { return {
@@ -18,10 +18,14 @@ function client360TestFactories_(options) {
   };
 }
 
-function client360TestService_(options, deniedModule) {
+function client360TestService_(options, deniedModule, serviceOptions) {
+  options=options||{};
   return new Client360Service({
     factories: client360TestFactories_(options),
-    accessControl: { hasPermission: function (permission) { return permission !== deniedModule + '.view'; } }
+    accessControl: { hasPermission: function (permission) { return permission !== deniedModule + '.view'; } },
+    referenceDate: serviceOptions&&serviceOptions.referenceDate,
+    limit: serviceOptions&&serviceOptions.limit,
+    staleDays: serviceOptions&&serviceOptions.staleDays
   });
 }
 
@@ -82,6 +86,86 @@ function testClient360FilterRegressionSafety() {
   var allRevenue=revenue.search({}).items,linkedRevenue=revenue.search({companyId:'COM-1',policyId:'P1'}).items;
   if(allCommunications.length!==2||linkedCommunications.length!==1||allRevenue.length!==2||linkedRevenue.length!==1)throw new Error('Backward-compatible linked filter regression failed.');
   return{success:true};
+}
+
+function testBuild1014AttentionRankingAndDateBoundaries() {
+  var result=client360TestService_({
+    policies:[
+      {policyId:'P30',companyId:'COM-1',policyNumber:'P30',renewalDate:'2026-09-08'},
+      {policyId:'P60',companyId:'COM-1',policyNumber:'P60',renewalDate:'2026-10-08'},
+      {policyId:'P90',companyId:'COM-1',policyNumber:'P90',renewalDate:'2026-11-07'},
+      {policyId:'P91',companyId:'COM-1',renewalDate:'2026-11-08'},
+      {policyId:'BAD',companyId:'COM-1',renewalDate:'not-a-date'}
+    ],
+    tasks:[{taskId:'T-OVER',companyId:'COM-1',title:'Overdue',status:'Open',dueDate:'2026-08-08'}],
+    claims:[{claimId:'C-OPEN',companyId:'COM-1',status:'Open'}]
+  },'',{referenceDate:'2026-08-09'}).getClient360({companyId:'COM-1'});
+  var renewals=result.attention.filter(function(x){return x.kind==='renewal';});
+  if(renewals.length!==3||renewals[0].daysUntil!==30||renewals[1].daysUntil!==60||renewals[2].daysUntil!==90)throw new Error('30/60/90 renewal boundaries failed.');
+  if(result.attention[0].kind!=='overdue-task'||result.attention[0].priority!==1)throw new Error('Deterministic attention priority failed.');
+  return{success:true,attention:result.attention.length};
+}
+
+function testBuild1014DuplicatePreventionAndQueryBounds() {
+  var counts={},options={queryCounts:counts,claims:[{claimId:'CL-1',companyId:'COM-1',personId:'PER-1'},{claimId:'CL-1',companyId:'COM-1',personId:'PER-1'}]};
+  var result=client360TestService_(options,'',{referenceDate:'2026-08-09'}).getClient360({companyId:'COM-1',personId:'PER-1'});
+  if(result.sections.claims.total!==1)throw new Error('Duplicate claim was not removed.');
+  if(counts.claims!==2||result.sections.claims.pagination.queryCount!==2)throw new Error('Linked query bound failed.');
+  return{success:true,queryCount:counts.claims};
+}
+
+function testBuild1014PartialFailureAndDiagnostics() {
+  var result=client360TestService_({failSource:'claims',tasks:[{taskId:'T1',companyId:'COM-1',status:'Open'}]},'',{referenceDate:'2026-08-09'}).getClient360({companyId:'COM-1'});
+  if(result.meta.sourceHealth.state!=='partial'||result.sections.claims.state!=='failed'||result.sections.tasks.total!==1)throw new Error('Partial-source resilience failed.');
+  if(result.sections.claims.error!=='Source unavailable.'||JSON.stringify(result).indexOf('private repository failure')!==-1)throw new Error('Diagnostics exposed repository information.');
+  return{success:true};
+}
+
+function testBuild1014AuthorizationIsolation() {
+  var result=client360TestService_({revenue:[{revenueId:'SECRET',companyId:'COM-1',outstandingAmount:999}]},'revenue',{referenceDate:'2026-08-09'}).getClient360({companyId:'COM-1'});
+  if(result.sections.revenue.state!=='unauthorized'||result.sections.revenue.items.length||result.summary.financial.outstanding!==0)throw new Error('Unauthorized revenue leaked into Client 360.');
+  if(result.attention.some(function(x){return x.module==='revenue';}))throw new Error('Unauthorized revenue leaked into attention intelligence.');
+  return{success:true};
+}
+
+function testBuild1014DeepLinkContext() {
+  var result=client360TestService_({},'',{referenceDate:'2026-08-09'}).getClient360({companyId:'com-1',personId:'per-1'});
+  if(result.navigation.claims!=='?page=claims&companyId=COM-1&personId=PER-1'||result.sections.claims.links!==result.navigation.claims)throw new Error('Deep-link context was not preserved.');
+  return{success:true};
+}
+
+function testBuild1014LimitsAndStaleStates() {
+  var tasks=[];for(var i=0;i<20;i++)tasks.push({taskId:'T'+i,companyId:'COM-1',status:'Completed',updatedAt:'2025-01-01'});
+  var result=client360TestService_({tasks:tasks},'',{referenceDate:'2026-08-09',limit:10,staleDays:90}).getClient360({companyId:'COM-1'});
+  if(result.sections.tasks.total!==10||!result.sections.tasks.pagination.truncated||result.sections.tasks.state!=='stale')throw new Error('Limit, pagination, or stale-state contract failed.');
+  return{success:true};
+}
+
+function testBuild1014ReadOnlyEnforcement() {
+  ['create','update','remove','delete','archive'].forEach(function(name){if(typeof Client360Service.prototype[name]==='function')throw new Error('Client 360 exposes mutating method: '+name);});
+  if(typeof apiClient360Get!=='function'||typeof apiClient360Create==='function'||typeof apiClient360Update==='function')throw new Error('Client 360 API read-only boundary failed.');
+  return{success:true};
+}
+
+function testBuild1014BackwardCompatibility() {
+  var result=client360TestService_({},'',{referenceDate:'2026-08-09'}).getClient360({companyId:'COM-1'});
+  if(!result.identity||!result.relationships||!result.sections||!result.summary||!result.timeline||result.meta.readOnly!==true)throw new Error('Client 360 v0.1 response contract changed incompatibly.');
+  if(typeof apiCompanyGet!=='function'||typeof apiPeopleGet!=='function')throw new Error('Existing Company/People APIs unavailable.');
+  return{success:true};
+}
+
+function testBuild1014Client360IntelligenceReleaseCandidate() {
+  return runJSKOSReleaseSuite_(1014,[
+    {name:'Attention ranking and date boundaries',run:testBuild1014AttentionRankingAndDateBoundaries},
+    {name:'Duplicate prevention and query bounds',run:testBuild1014DuplicatePreventionAndQueryBounds},
+    {name:'Company and Person aggregation',run:testClient360PersonResolution},
+    {name:'Partial-source resilience',run:testBuild1014PartialFailureAndDiagnostics},
+    {name:'Authorization isolation',run:testBuild1014AuthorizationIsolation},
+    {name:'Deep-link context',run:testBuild1014DeepLinkContext},
+    {name:'Pagination, limits and stale states',run:testBuild1014LimitsAndStaleStates},
+    {name:'Backward compatibility',run:testBuild1014BackwardCompatibility},
+    {name:'Read-only enforcement',run:testBuild1014ReadOnlyEnforcement}
+  ],null);
 }
 
 function testClient360V01ReleaseCandidate() {
