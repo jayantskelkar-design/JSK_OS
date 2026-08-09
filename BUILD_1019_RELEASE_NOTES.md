@@ -17,6 +17,9 @@ Introduce the first narrowly controlled post-confirmation business action: creat
 - Adds precise `EXECUTION_STARTED` and `DESTINATION_COMMITTED` audit evidence.
 - Supports safe reconciliation when the Quote write succeeds but final audit append fails.
 - Permits audit-only reconciliation at or after receipt expiry only when a valid pre-expiry execution start and exactly one matching immutable Quote already exist.
+- Rechecks trusted server time before execution-start evidence and again inside the destination-owned append boundary; exact expiry never permits a new Quote.
+- Returns `EXECUTION_UNCERTAIN` after an indeterminate write or read-back and never treats an absent row as permission to create again.
+- Distinguishes explicitly classified audit-storage failures from integrity failures; contradictory evidence always fails closed.
 
 ## Schema
 
@@ -38,11 +41,12 @@ Normal Quote CRUD remains independent and backward-compatible. Builds 1013–101
 
 ## Tests
 
-Build 1019 includes 24 core and 24 integrated checks covering authorization, authoritative fingerprint tampering, lifecycle integrity, exact-expiry and post-expiry audit-only reconciliation, policy bounds, mass assignment, idempotency, deterministic lock contenders, duplicate evidence, write failure, and faithful Quote v1-v2 migration fixtures.
+Build 1019 includes 27 core and 27 integrated checks covering authorization, authoritative fingerprint tampering, lifecycle integrity, fresh exact-expiry mutation boundaries, post-expiry audit-only reconciliation, integrity-versus-storage error handling, uncertain-write recovery, policy bounds, mass assignment, idempotency, deterministic post-lookup lock contenders, duplicate evidence, and faithful Quote v1-v2 migration plus runtime CRUD fixtures.
 
 ## Known limitations
 
 - Only `initiate-quote` can execute.
 - Only one Draft Quote can be created per receipt.
 - Automated background reconciliation is not included.
+- An uncertain execution with no visible destination remains fail-closed and requires later visibility or manual investigation; it never creates another Quote automatically.
 - Google Sheets cannot provide cross-sheet transactions; the immutable destination receipt enables deterministic recovery.
