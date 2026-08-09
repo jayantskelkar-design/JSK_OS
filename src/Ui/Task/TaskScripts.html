@@ -1,6 +1,6 @@
 <script>
 (function(){'use strict';
-  var state={items:[],timer:null};
+  var state={items:[],timer:null},clientContext=new URLSearchParams(window.location.search);
   var $=function(id){return document.getElementById(id);};
   document.addEventListener('DOMContentLoaded',function(){
     $('menuButton').onclick=function(){$('sidebar').classList.toggle('open');};
@@ -17,7 +17,7 @@
   function assertResponse(response){if(!response||response.success!==true){var e=response&&response.error||{};var error=new Error(e.message||'Task API error.');error.details=e.details||{};throw error;}return response.data;}
   function loadTasks(){
     $('loadingState').classList.remove('hidden');$('emptyState').classList.add('hidden');
-    call('apiTaskSearch',{query:$('searchInput').value,status:$('statusFilter').value,priority:$('priorityFilter').value,dateView:$('dateFilter').value,owner:$('ownerFilter').value})
+    call('apiTaskSearch',{query:$('searchInput').value,status:$('statusFilter').value,priority:$('priorityFilter').value,dateView:$('dateFilter').value,owner:$('ownerFilter').value,companyId:clientContext.get('companyId')||'',personId:clientContext.get('personId')||''})
       .then(function(r){var d=assertResponse(r);state.items=d.items||[];render();})
       .catch(function(e){show(e.message,'error');state.items=[];render();});
   }
