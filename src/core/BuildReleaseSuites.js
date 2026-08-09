@@ -204,6 +204,13 @@ function testBuild1018ReleaseCandidate(){return runJSKOSReleaseSuite_(1018,[
   {name:'Audit failure fails closed',run:testBuild1018AuditFailure},
   {name:'Receipt expiry',run:testBuild1018Expiry},
   {name:'No destination writes',run:testBuild1018NoWrites},
+  {name:'Atomic confirmation and handoff',run:testBuild1018AtomicConcurrency},
+  {name:'Valid Workflow_Audit schema',run:testBuild1018ValidAuditSchema},
+  {name:'Invalid Workflow_Audit schemas fail closed',run:testBuild1018InvalidAuditSchemas},
+  {name:'First-time Workflow_Audit initialization',run:testBuild1018FirstInitialization},
+  {name:'Concurrent Workflow_Audit initialization',run:testBuild1018ConcurrentInitializationContract},
+  {name:'Atomic Workflow_Audit repository evidence',run:testBuild1018AtomicRepositoryEvidence},
+  {name:'Malformed confirmation evidence fails closed',run:testBuild1018MalformedConfirmationFailsClosed},
   {name:'Confirmation receipt UI',run:testBuild1018Ui}
 ],null);}
 
