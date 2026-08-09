@@ -363,6 +363,12 @@
                     escapeAttribute(company.companyId) +
                     '">Restore</button>'
                   : '<button class="action-button" ' +
+                    'data-action="client360" ' +
+                    'data-company-id="' +
+                    escapeAttribute(company.companyId) +
+                    '">View 360</button>' +
+
+                    '<button class="action-button" ' +
                     'data-action="edit" ' +
                     'data-company-id="' +
                     escapeAttribute(company.companyId) +
@@ -446,6 +452,11 @@
 
       var action = button.dataset.action;
       var companyId = button.dataset.companyId;
+
+      if (action === 'client360') {
+        window.location.href = '?page=client360&companyId=' +
+          encodeURIComponent(companyId);
+      }
 
       if (action === 'edit') {
         loadCompanyForEdit(companyId);

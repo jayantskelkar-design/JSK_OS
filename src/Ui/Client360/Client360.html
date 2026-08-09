@@ -1,0 +1,10 @@
+<!DOCTYPE html><html><head><base target="_top"><meta charset="UTF-8">
+<?!= JSKOS.TemplateService.include('Ui/Core/Theme'); ?>
+<?!= JSKOS.TemplateService.include('Ui/Client360/Client360Styles'); ?></head><body>
+<div class="app-shell"><?!= JSKOS.TemplateService.include('Ui/Core/Sidebar'); ?>
+<main class="main-content"><header class="c360-header"><div><p class="eyebrow">READ-ONLY CONSOLIDATED VIEW</p><h1>Client 360</h1><p>Company, people, servicing, portfolio and financial context in one place.</p></div><a class="back-link" href="<?= routeUrls.companies ?>">Back to Companies</a></header>
+<section class="c360-page"><form id="clientLookup" class="lookup-card"><label>Company ID<input id="companyIdInput" value="<?= initialCompanyId ?>" placeholder="COM-..."></label><span>or</span><label>Person ID<input id="personIdInput" value="<?= initialPersonId ?>" placeholder="PER-..."></label><button type="submit">Open Client 360</button></form>
+<div id="loadingState" class="state-card hidden">Loading client relationships...</div><div id="errorState" class="state-card error hidden"></div>
+<div id="emptyState" class="state-card <?= initialCompanyId || initialPersonId ? 'hidden' : '' ?>"><h2>Select a client</h2><p>Enter an existing Company ID or Person ID, or use View 360 from Companies or People.</p></div>
+<div id="clientContent" class="hidden"><section id="identityCard" class="identity-card"></section><section id="metricGrid" class="metric-grid"></section><section class="content-grid"><div><section class="panel"><div class="panel-title"><h2>Relationships</h2><span id="relationshipCount"></span></div><div id="relationships"></div></section><div id="moduleSections"></div></div><aside><section class="panel"><div class="panel-title"><h2>Financial summary</h2></div><div id="financialSummary"></div></section><section class="panel"><div class="panel-title"><h2>Recent activity</h2></div><div id="timeline"></div></section></aside></section></div></section></main></div>
+<?!= JSKOS.TemplateService.include('Ui/Client360/Client360Scripts'); ?></body></html>

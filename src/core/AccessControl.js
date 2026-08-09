@@ -19,7 +19,8 @@ var JSK_ACCESS = Object.freeze({
     documents: 'documents.view', endorsements: 'endorsements.view',
     quotes: 'quotes.view', revenue: 'revenue.view', reports: 'reports.view',
     tasks: 'tasks.view', meetings: 'meetings.view',
-    communications: 'communications.view', access: 'access.manage'
+    communications: 'communications.view', client360: 'client360.view',
+    access: 'access.manage'
   })
 });
 
@@ -29,7 +30,7 @@ JSKOS.AccessControl = (function () {
   var ALL_MODULES = [
     'dashboard', 'companies', 'people', 'policies', 'claims', 'documents',
     'endorsements', 'quotes', 'revenue', 'reports', 'tasks', 'meetings',
-    'communications'
+    'communications', 'client360'
   ];
 
   function permissionsForRole_(role) {
@@ -55,13 +56,15 @@ JSKOS.AccessControl = (function () {
     }
     if (role === JSK_ACCESS.ROLES.EXECUTIVE) {
       ['dashboard', 'companies', 'people', 'policies', 'claims', 'documents',
-        'endorsements', 'quotes', 'revenue', 'reports', 'tasks', 'meetings']
+        'endorsements', 'quotes', 'revenue', 'reports', 'tasks', 'meetings',
+        'client360']
         .forEach(function (moduleName) { allow(moduleName, ['view']); });
       return permissions;
     }
     if (role === JSK_ACCESS.ROLES.STAFF) {
       ['dashboard', 'companies', 'people', 'policies', 'claims', 'documents',
-        'endorsements', 'quotes', 'tasks', 'meetings', 'communications']
+        'endorsements', 'quotes', 'tasks', 'meetings', 'communications',
+        'client360']
         .forEach(function (moduleName) { allow(moduleName, ['view']); });
       ['claims', 'documents', 'endorsements', 'quotes', 'tasks', 'meetings',
         'communications'].forEach(function (moduleName) {
