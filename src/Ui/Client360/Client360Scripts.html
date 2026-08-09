@@ -4,7 +4,7 @@ var $=function(id){return document.getElementById(id);};
 var labels={policies:'Policies & renewals',claims:'Claims',tasks:'Tasks & follow-ups',meetings:'Meetings',communications:'Communications',documents:'Documents',quotes:'Quotes',endorsements:'Endorsements',revenue:'Revenue'};
 var currentIntent=null;
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function safeHref(value){value=String(value||'');return /^\?page=[a-z0-9-]+(?:&clientAction=[a-z0-9-]+)?(?:&(?:companyId|personId)=[A-Za-z0-9_.-]+)*(?:&policyIds=[A-Za-z0-9_.%2C-]+)?$/.test(value)?value:'#';}
+function safeHref(value){value=String(value||'');return /^\?page=[a-z0-9-]+(?:&clientAction=[a-z0-9-]+)?(?:&(?:companyId|personId)=[A-Za-z0-9_.-]+)*(?:&policyIds=[A-Za-z0-9_.%2C-]+)?(?:&receiptId=WFR-[A-F0-9]{24})?$/.test(value)?value:'#';}
 function call(payload){return new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).apiClient360Get(payload);});}
 function show(id,visible){$(id).classList.toggle('hidden',!visible);}
 function load(){var companyId=$('companyIdInput').value.trim(),personId=$('personIdInput').value.trim();show('errorState',false);show('emptyState',false);show('clientContent',false);show('loadingState',true);call({companyId:companyId,personId:personId}).then(function(response){if(!response||!response.success)throw new Error(response&&response.error?response.error.message:'Client 360 failed.');render(response.data);}).catch(function(error){$('errorState').textContent=error.message||String(error);show('errorState',true);}).finally(function(){show('loadingState',false);});}
