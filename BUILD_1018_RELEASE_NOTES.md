@@ -20,6 +20,8 @@ Confirmation uses locking, deterministic actor/action/context/draft correlation,
 
 The corrective validation pass makes correlation check-and-append and the `CONFIRMED` → `HANDED_OFF` lifecycle transition atomic repository operations. Both re-read evidence while holding one bounded script lock, append at most one authoritative event, reuse an existing safe event, and fail closed on ambiguous or contradictory history. Existing `Workflow_Audit` sheets must match the complete canonical header exactly; initialization is locked, creates the additive sheet once, and never repairs or overwrites incompatible schemas.
 
+Final hardening treats `expiry <= trusted server time` as expired everywhere and replaces the former 500-row evidence assumption with case-sensitive exact-key searches across the complete Correlation ID or Receipt ID column while the transaction lock is held. Lookup cost therefore grows with `Workflow_Audit` size; only matching rows are materialized in full, prioritizing correctness without scanning unrelated data columns. Deterministic barrier tests exercise contenders at the locked lookup boundary for confirmation, handoff, and first-time initialization.
+
 ## UX
 
 Client 360 now guides Prepare → Review → Confirm → Receipt → Continue. Confirmation controls are disabled during requests, and the UI clearly states that no destination business record has been created.
