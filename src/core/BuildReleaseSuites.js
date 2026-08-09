@@ -283,6 +283,8 @@ function testBuild1020ReleaseCandidate(){return runJSKOSReleaseSuite_(1020,[
   {name:'Least-privilege reconciliation permission',run:testBuild1020LeastPrivilegeContract},
   {name:'Bounded authoritative audit lookup',run:testBuild1020BoundedAuditLookupContract},
   {name:'Large audit history and lifecycle bounds',run:testBuild1020LargeAuditAndLifecycleBounds},
+  {name:'Audit sheet-read failure classification',run:testBuild1020SheetReadFailureClassification},
+  {name:'Read-only inspection construction',run:testBuild1020ReadOnlyInspectionConstruction},
   {name:'Quote reconciliation recovery UI',run:function(){return testUiMarker_(renderQuoteUi,['workflowReconcileButton','apiQuoteWorkflowReconciliationInspect','apiQuoteWorkflowReconcile','RECONCILIATION REQUIRED','EXECUTION UNCERTAIN']);}}
 ],null);}
 
