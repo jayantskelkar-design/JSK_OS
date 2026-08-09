@@ -24,6 +24,8 @@ Final hardening treats `expiry <= trusted server time` as expired everywhere and
 
 Complete correlation histories now validate every `HANDED_OFF` event against exactly one structurally consistent `CONFIRMED` parent before new authority can be created. Audit policy context is validated without truncation: canonical unique Policy IDs are limited to 50, malformed or over-bounded stored evidence fails closed, and all repository write paths reject invalid policy lists.
 
+Persisted authority fields now retain their raw sheet types and must match their canonical production formats: `WFR-` plus 24 uppercase hexadecimal receipt characters, lowercase 64-character hashes, millisecond UTC ISO timestamps, canonical actor/action/module and Company/Person identifiers, exact lifecycle states, and validated Policy IDs. Receipt IDs are globally unique across the complete audit sheet; correlated history rejects duplicate receipt authorities, and the locked confirmation append path fails closed on any cross-correlation or candidate receipt collision.
+
 ## UX
 
 Client 360 now guides Prepare → Review → Confirm → Receipt → Continue. Confirmation controls are disabled during requests, and the UI clearly states that no destination business record has been created.
