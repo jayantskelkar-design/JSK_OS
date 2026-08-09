@@ -285,6 +285,8 @@ function testBuild1020ReleaseCandidate(){return runJSKOSReleaseSuite_(1020,[
   {name:'Large audit history and lifecycle bounds',run:testBuild1020LargeAuditAndLifecycleBounds},
   {name:'Audit sheet-read failure classification',run:testBuild1020SheetReadFailureClassification},
   {name:'Read-only inspection construction',run:testBuild1020ReadOnlyInspectionConstruction},
+  {name:'Read-only sheet resolution failure',run:testBuild1020ReadOnlySheetResolutionFailure},
+  {name:'Real read-only repositories remain write-free',run:testBuild1020RealReadOnlyRepositoriesNoWrites},
   {name:'Quote reconciliation recovery UI',run:function(){return testUiMarker_(renderQuoteUi,['workflowReconcileButton','apiQuoteWorkflowReconciliationInspect','apiQuoteWorkflowReconcile','RECONCILIATION REQUIRED','EXECUTION UNCERTAIN']);}}
 ],null);}
 

@@ -3,7 +3,7 @@ var JSK_WORKFLOW_AUDIT=Object.freeze({SHEET:'Workflow_Audit',HEADERS:Object.free
 class WorkflowAuditStorageError extends Error{constructor(){super('Workflow audit storage is unavailable.');this.name='WorkflowAuditStorageError';this.code='WORKFLOW_AUDIT_STORAGE_FAILURE';}}
 class WorkflowAuditLookupError extends Error{constructor(){super('Workflow audit lookup is unavailable.');this.name='WorkflowAuditLookupError';this.code='WORKFLOW_AUDIT_LOOKUP_FAILURE';}}
 class WorkflowAuditRepository{
-  constructor(spreadsheet,options){this.spreadsheet=spreadsheet||JSKOS.ConfigService.getSpreadsheet();this.readOnly=Boolean(options&&options.readOnly);this.sheet=this.readOnly?this.spreadsheet.getSheetByName(JSK_WORKFLOW_AUDIT.SHEET):this.initialize_();}
+  constructor(spreadsheet,options){this.spreadsheet=spreadsheet||JSKOS.ConfigService.getSpreadsheet();this.readOnly=Boolean(options&&options.readOnly);if(!this.readOnly){this.sheet=this.initialize_();return;}try{this.sheet=this.spreadsheet.getSheetByName(JSK_WORKFLOW_AUDIT.SHEET);}catch(error){this.sheet=null;this.readOnlyLookupFailure=true;}}
   lock_(){return LockService.getScriptLock();}
   withLock_(callback){var lock=this.lock_();lock.waitLock(JSK_WORKFLOW_AUDIT.LOCK_TIMEOUT_MS);try{return callback.call(this);}finally{if(typeof lock.hasLock!=='function'||lock.hasLock())lock.releaseLock();}}
   initialize_(){return this.withLock_(function(){var sheet=this.spreadsheet.getSheetByName(JSK_WORKFLOW_AUDIT.SHEET);if(!sheet){sheet=this.spreadsheet.insertSheet(JSK_WORKFLOW_AUDIT.SHEET);sheet.getRange(1,1,1,JSK_WORKFLOW_AUDIT.HEADERS.length).setValues([JSK_WORKFLOW_AUDIT.HEADERS.slice()]);sheet.setFrozenRows(1);}this.validateSchema_(sheet);return sheet;});}
