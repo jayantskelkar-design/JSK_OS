@@ -5,6 +5,7 @@ const path = require('path');
 const vm = require('vm');
 const root = path.resolve(__dirname, '..');
 const properties = {};
+properties.JSK_OS_ADMIN_EMAILS = 'owner@example.com';
 
 function output(content) {
   return {

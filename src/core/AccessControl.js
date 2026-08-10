@@ -80,6 +80,10 @@ JSKOS.AccessControl = (function () {
     return String(email || '').trim().toLowerCase();
   }
 
+  function validEmail_(email) {
+    return /^[a-z0-9._%+\-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(normalizeEmail_(email));
+  }
+
   function currentEmail_() {
     return normalizeEmail_(JSKOS.ConfigService.getCurrentUser());
   }
@@ -103,9 +107,14 @@ JSKOS.AccessControl = (function () {
   }
 
   function configuredAdmins_() {
-    return String(PropertiesService.getScriptProperties()
-      .getProperty(JSK_ACCESS.ADMIN_EMAILS_KEY) || '')
-      .split(',').map(normalizeEmail_).filter(Boolean);
+    var raw = String(PropertiesService.getScriptProperties()
+      .getProperty(JSK_ACCESS.ADMIN_EMAILS_KEY) || '').trim();
+    if (!raw) return [];
+    var admins = raw.split(',').map(normalizeEmail_);
+    if (admins.some(function (email) { return !validEmail_(email); })) {
+      throw new Error('Invalid ' + JSK_ACCESS.ADMIN_EMAILS_KEY + ': administrator emails must be valid.');
+    }
+    return admins;
   }
 
   function validRole_(role) {
@@ -121,14 +130,10 @@ JSKOS.AccessControl = (function () {
     var configured = Object.keys(roleMap).length > 0 || admins.length > 0;
     var role = roleMap[normalizedEmail] || '';
     if (admins.indexOf(normalizedEmail) !== -1) role = JSK_ACCESS.ROLES.ADMINISTRATOR;
-    // Safe bootstrap: the first owner remains administrator until roles are configured.
-    if (!configured && normalizedEmail && normalizedEmail !== 'system') {
-      role = JSK_ACCESS.ROLES.ADMINISTRATOR;
-    }
     if (!validRole_(role)) role = '';
     return {
       email: normalizedEmail,
-      authenticated: Boolean(normalizedEmail && normalizedEmail !== 'system'),
+      authenticated: Boolean(validEmail_(normalizedEmail) && normalizedEmail !== 'system'),
       configured: configured,
       role: role || 'Unassigned',
       permissions: role ? permissionsForRole_(role) : {}
@@ -204,9 +209,6 @@ JSKOS.AccessControl = (function () {
       throw new Error('You cannot downgrade your own Administrator access.');
     }
     var roleMap = parseRoleMap_();
-    if (!actor.configured && actor.email) {
-      roleMap[actor.email] = JSK_ACCESS.ROLES.ADMINISTRATOR;
-    }
     roleMap[normalizedEmail] = role;
     PropertiesService.getScriptProperties().setProperty(
       JSK_ACCESS.ROLE_MAP_KEY, JSON.stringify(roleMap)
@@ -240,9 +242,6 @@ JSKOS.AccessControl = (function () {
       roleMap[email] = JSK_ACCESS.ROLES.ADMINISTRATOR;
     });
     var context = getContext();
-    if (!context.configured && context.authenticated) {
-      roleMap[context.email] = JSK_ACCESS.ROLES.ADMINISTRATOR;
-    }
     return Object.keys(roleMap).sort().map(function (email) {
       return {
         email: email,
