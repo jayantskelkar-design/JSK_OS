@@ -262,6 +262,34 @@ function testBuild1019ReleaseCandidate(){return runJSKOSReleaseSuite_(1019,[
   {name:'Quote v1-v2 migration fixtures',run:testBuild1019QuoteMigrationFixtures}
 ],null);}
 
+/** Build 1020 Quote execution operational reconciliation control. */
+function testBuild1020ReleaseCandidate(){return runJSKOSReleaseSuite_(1020,[
+  {name:'Verified reconciliation inspection',run:testBuild1020VerifiedInspection},
+  {name:'Audit-only reconciliation',run:testBuild1020AuditOnlyReconciliation},
+  {name:'Zero, one and multiple destination matches',run:testBuild1020ZeroOneMultipleMatches},
+  {name:'Audit and destination lookup outages',run:testBuild1020LookupOutages},
+  {name:'Authority tampering isolation',run:testBuild1020TamperingFailsClosed},
+  {name:'Receipt and destination identity isolation',run:testBuild1020ReceiptAndIdentityTampering},
+  {name:'Mutable Quote business-field independence',run:testBuild1020MutableBusinessFieldsIndependent},
+  {name:'Normal Quote CRUD reconciliation compatibility',run:testBuild1020RepositoryCrudReconciliationCompatibility},
+  {name:'Expired audit-only reconciliation',run:testBuild1020ExpiredAuditOnlyRules},
+  {name:'Audit storage pending state',run:testBuild1020AuditStoragePending},
+  {name:'Concurrent reconciliation idempotency',run:testBuild1020ConcurrentIdempotency},
+  {name:'Unauthorized reconciliation isolation',run:testBuild1020UnauthorizedIsolation},
+  {name:'Malformed lifecycle isolation',run:testBuild1020MalformedLifecycleAndMetadata},
+  {name:'Safe bounded diagnostics',run:testBuild1020SafeDiagnostics},
+  {name:'Strict reconciliation API payload',run:testBuild1020StrictApiPayload},
+  {name:'Read-only destination ownership',run:testBuild1020ReadOnlyDestinationOwnership},
+  {name:'Least-privilege reconciliation permission',run:testBuild1020LeastPrivilegeContract},
+  {name:'Bounded authoritative audit lookup',run:testBuild1020BoundedAuditLookupContract},
+  {name:'Large audit history and lifecycle bounds',run:testBuild1020LargeAuditAndLifecycleBounds},
+  {name:'Audit sheet-read failure classification',run:testBuild1020SheetReadFailureClassification},
+  {name:'Read-only inspection construction',run:testBuild1020ReadOnlyInspectionConstruction},
+  {name:'Read-only sheet resolution failure',run:testBuild1020ReadOnlySheetResolutionFailure},
+  {name:'Real read-only repositories remain write-free',run:testBuild1020RealReadOnlyRepositoriesNoWrites},
+  {name:'Quote reconciliation recovery UI',run:function(){return testUiMarker_(renderQuoteUi,['workflowReconcileButton','apiQuoteWorkflowReconciliationInspect','apiQuoteWorkflowReconcile','RECONCILIATION REQUIRED','EXECUTION UNCERTAIN']);}}
+],null);}
+
 function testCompleteNavigation() {
   var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
   var results = routeKeys.map(function (routeKey) {
@@ -308,6 +336,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Build 1017', run: testBuild1017ReleaseCandidate },
     { name: 'Build 1018', run: testBuild1018ReleaseCandidate },
     { name: 'Build 1019', run: testBuild1019ReleaseCandidate },
+    { name: 'Build 1020', run: testBuild1020ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);

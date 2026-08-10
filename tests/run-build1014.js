@@ -11,10 +11,11 @@ global.JSKOS = {
     requireModuleOperation: function () {},
     getOperationPermission: function (moduleName, operation) { return moduleName + '.' + operation; }
   },
-  Config: { APP: { VERSION: '1.5.7' } },
+  Config: { APP: { VERSION: '1.5.8' } },
   Router: { resolve: function (event) { return event.parameter.page; } }
 };
-global.JSK_ACCESS = { ROUTE_PERMISSIONS: { client360: 'client360.view' } };
+global.JSK_ACCESS = { ROLES: { ADMINISTRATOR:'Administrator',MANAGER:'Manager',EXECUTIVE:'Executive',STAFF:'Staff',READ_ONLY:'Read-only' }, ROUTE_PERMISSIONS: { client360: 'client360.view' } };
+global.JSKOS.AccessControl.hasRolePermission=function(role,permission){return role==='Administrator'||permission!=='quotes.reconcile'&&false;};
 global.console = console;
 ['CompanyRepository','PeopleRepository','PolicyRepository','ClaimRepository','TaskRepository','MeetingRepository','CommunicationRepository','DocumentRepository','QuoteRepository','EndorsementRepository','RevenueRepository'].forEach(function (name) {
   global[name] = function () {};
@@ -45,6 +46,11 @@ global.renderClient360Ui = function () {
     fs.readFileSync(path.join(root, 'src/Ui/Client360/Client360Scripts.html'), 'utf8');
   return { getContent: function () { return content; } };
 };
+global.renderQuoteUi = function () {
+  var content = fs.readFileSync(path.join(root, 'src/Ui/Quote/Quote.html'), 'utf8') +
+    fs.readFileSync(path.join(root, 'src/Ui/Quote/QuoteScripts.html'), 'utf8');
+  return { getContent: function () { return content; } };
+};
 
 global.runJSKOSReleaseSuite_ = function (build, tests) {
   var results = tests.map(function (test) {
@@ -73,6 +79,8 @@ load('src/quote/QuoteModule.js');
 load('src/quote/QuoteWorkflowExecution.js');
 load('src/quote/QuoteWorkflowExecutionTest.js');
 load('src/quote/QuoteMigrationTest.js');
+load('src/quote/QuoteWorkflowReconciliation.js');
+load('src/quote/QuoteWorkflowReconciliationTest.js');
 load('src/core/ClientContextApi.js');
 load('src/core/ClientContextTest.js');
 load('src/client360/Client360Service.js');
@@ -86,9 +94,10 @@ var reports = {
   build1016: testBuild1016ReleaseCandidate(),
   build1017: testBuild1017ReleaseCandidate(),
   build1018: testBuild1018ReleaseCandidate(),
-  build1019: testBuild1019ReleaseCandidate()
+  build1019: testBuild1019ReleaseCandidate(),
+  build1020: testBuild1020ReleaseCandidate()
 };
-if (reports.client360V01.failed || reports.build1014.failed || reports.build1015.failed || reports.build1016.failed || reports.build1017.failed || reports.build1018.failed || reports.build1019.failed) {
+if (reports.client360V01.failed || reports.build1014.failed || reports.build1015.failed || reports.build1016.failed || reports.build1017.failed || reports.build1018.failed || reports.build1019.failed || reports.build1020.failed) {
   console.error(JSON.stringify(reports, null, 2));
   process.exit(1);
 }
