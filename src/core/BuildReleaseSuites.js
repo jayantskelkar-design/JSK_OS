@@ -307,6 +307,15 @@ function testBuild1021ReleaseCandidate(){return runJSKOSReleaseSuite_(1021,[
   {name:'Recovery queue UI safety',run:testBuild1021UiSafety}
 ],null);}
 
+/** Build 1022 final architecture remediation. */
+function testBuild1022ReleaseCandidate(){return runJSKOSReleaseSuite_(1022,[
+  {name:'Normal Quote CRUD server actor',run:testBuild1022QuoteCrudActorBoundary},
+  {name:'Normal Quote CRUD authorization boundary',run:testBuild1022QuoteCrudAuthorizationBoundary},
+  {name:'Unconfigured access fails closed',run:testBuild1022AccessBootstrapFailsClosed},
+  {name:'Configured and malformed access boundaries',run:testBuild1022ConfiguredAccessAndMalformedInputs},
+  {name:'Controlled execution and receipt regression',run:testBuild1022ArchitectureRegression}
+],null);}
+
 function testCompleteNavigation() {
   var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
   var results = routeKeys.map(function (routeKey) {
@@ -355,6 +364,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Build 1019', run: testBuild1019ReleaseCandidate },
     { name: 'Build 1020', run: testBuild1020ReleaseCandidate },
     { name: 'Build 1021', run: testBuild1021ReleaseCandidate },
+    { name: 'Build 1022', run: testBuild1022ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);
