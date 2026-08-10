@@ -48,13 +48,14 @@ class ClaimRepository {
 
   search(criteria) {
     criteria = criteria || {};
+    var includeArchived = Boolean(criteria.includeArchived);
     var query = String(criteria.query || '').trim().toLowerCase(), status = String(criteria.status || '').trim().toLowerCase();
     var type = String(criteria.claimType || '').trim().toLowerCase(), owner = String(criteria.owner || '').trim().toLowerCase();
     var linkField = criteria.policyId ? 'Policy ID' : criteria.companyId ? 'Company ID' : criteria.personId ? 'Person ID' : '';
     var linkValue = criteria.policyId || criteria.companyId || criteria.personId || '';
     var items = this._entries().filter(function (entry) {
       var r = entry.record;
-      if (!r['Claim ID'] || this._bool(r['Is Deleted'])) return false;
+      if (!r['Claim ID'] || (!includeArchived && this._bool(r['Is Deleted']))) return false;
       if (status && String(r['Status']).toLowerCase() !== status) return false;
       if (type && String(r['Claim Type']).toLowerCase() !== type) return false;
       if (owner && String(r['Assigned Owner']).toLowerCase() !== owner) return false;
