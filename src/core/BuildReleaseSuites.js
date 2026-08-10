@@ -311,6 +311,8 @@ function testBuild1021ReleaseCandidate(){return runJSKOSReleaseSuite_(1021,[
 function testBuild1022ReleaseCandidate(){return runJSKOSReleaseSuite_(1022,[
   {name:'Normal Quote CRUD server actor',run:testBuild1022QuoteCrudActorBoundary},
   {name:'Normal Quote CRUD authorization boundary',run:testBuild1022QuoteCrudAuthorizationBoundary},
+  {name:'Quote decision server actor',run:testBuild1022QuoteDecisionActorBoundary},
+  {name:'Quote conversion server actor',run:testBuild1022QuoteConversionActorBoundary},
   {name:'Unconfigured access fails closed',run:testBuild1022AccessBootstrapFailsClosed},
   {name:'Configured and malformed access boundaries',run:testBuild1022ConfiguredAccessAndMalformedInputs},
   {name:'Controlled execution and receipt regression',run:testBuild1022ArchitectureRegression}
