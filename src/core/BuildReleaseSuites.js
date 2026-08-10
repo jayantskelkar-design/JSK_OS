@@ -297,6 +297,7 @@ function testBuild1021ReleaseCandidate(){return runJSKOSReleaseSuite_(1021,[
   {name:'Audit and candidate hard bounds',run:testBuild1021HardBounds},
   {name:'Stable absolute cursor pagination',run:testBuild1021CursorStability},
   {name:'Strict pagination validation',run:testBuild1021PaginationValidation},
+  {name:'Header-only pagination validation',run:testBuild1021EmptyPaginationValidation},
   {name:'Storage states and zero-write reads',run:testBuild1021StorageStatesAndZeroWrites},
   {name:'Row-read outage classification',run:testBuild1021RowReadFailure},
   {name:'Permission conjunction',run:testBuild1021PermissionConjunction},
