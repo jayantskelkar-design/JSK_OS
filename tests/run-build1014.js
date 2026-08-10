@@ -81,6 +81,8 @@ load('src/quote/QuoteWorkflowExecutionTest.js');
 load('src/quote/QuoteMigrationTest.js');
 load('src/quote/QuoteWorkflowReconciliation.js');
 load('src/quote/QuoteWorkflowReconciliationTest.js');
+load('src/quote/QuoteReconciliationQueue.js');
+load('src/quote/QuoteReconciliationQueueTest.js');
 load('src/core/ClientContextApi.js');
 load('src/core/ClientContextTest.js');
 load('src/client360/Client360Service.js');
@@ -95,9 +97,10 @@ var reports = {
   build1017: testBuild1017ReleaseCandidate(),
   build1018: testBuild1018ReleaseCandidate(),
   build1019: testBuild1019ReleaseCandidate(),
-  build1020: testBuild1020ReleaseCandidate()
+  build1020: testBuild1020ReleaseCandidate(),
+  build1021: testBuild1021ReleaseCandidate()
 };
-if (reports.client360V01.failed || reports.build1014.failed || reports.build1015.failed || reports.build1016.failed || reports.build1017.failed || reports.build1018.failed || reports.build1019.failed || reports.build1020.failed) {
+if (reports.client360V01.failed || reports.build1014.failed || reports.build1015.failed || reports.build1016.failed || reports.build1017.failed || reports.build1018.failed || reports.build1019.failed || reports.build1020.failed || reports.build1021.failed) {
   console.error(JSON.stringify(reports, null, 2));
   process.exit(1);
 }

@@ -290,6 +290,23 @@ function testBuild1020ReleaseCandidate(){return runJSKOSReleaseSuite_(1020,[
   {name:'Quote reconciliation recovery UI',run:function(){return testUiMarker_(renderQuoteUi,['workflowReconcileButton','apiQuoteWorkflowReconciliationInspect','apiQuoteWorkflowReconcile','RECONCILIATION REQUIRED','EXECUTION UNCERTAIN']);}}
 ],null);}
 
+/** Build 1021 bounded Quote reconciliation operations queue. */
+function testBuild1021ReleaseCandidate(){return runJSKOSReleaseSuite_(1021,[
+  {name:'Bounded candidate discovery',run:testBuild1021CandidateDiscovery},
+  {name:'Malformed and mixed evidence isolation',run:testBuild1021MalformedAndMixedEvidence},
+  {name:'Audit and candidate hard bounds',run:testBuild1021HardBounds},
+  {name:'Stable absolute cursor pagination',run:testBuild1021CursorStability},
+  {name:'Strict pagination validation',run:testBuild1021PaginationValidation},
+  {name:'Header-only pagination validation',run:testBuild1021EmptyPaginationValidation},
+  {name:'Storage states and zero-write reads',run:testBuild1021StorageStatesAndZeroWrites},
+  {name:'Row-read outage classification',run:testBuild1021RowReadFailure},
+  {name:'Permission conjunction',run:testBuild1021PermissionConjunction},
+  {name:'Safe advisory response contract',run:testBuild1021SafeResponseContract},
+  {name:'Fresh inspection authority isolation',run:testBuild1021StaleQueueHasNoAuthority},
+  {name:'No mutation ownership',run:testBuild1021NoMutationOwnership},
+  {name:'Recovery queue UI safety',run:testBuild1021UiSafety}
+],null);}
+
 function testCompleteNavigation() {
   var routeKeys = Object.keys(JSKOS.RouteConfig.ROUTES);
   var results = routeKeys.map(function (routeKey) {
@@ -337,6 +354,7 @@ function testJSKOSStableReleaseReadiness() {
     { name: 'Build 1018', run: testBuild1018ReleaseCandidate },
     { name: 'Build 1019', run: testBuild1019ReleaseCandidate },
     { name: 'Build 1020', run: testBuild1020ReleaseCandidate },
+    { name: 'Build 1021', run: testBuild1021ReleaseCandidate },
     { name: 'All web routes', run: testAllWebRoutes }
   ];
   var report = runJSKOSReleaseSuite_('STABLE', suites, null);
