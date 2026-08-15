@@ -15,10 +15,10 @@ var JSKOS=JSKOS||{};
     if(typeof value==='number'&&!Number.isFinite(value))throw paymentError_('REVENUE_FINANCIAL_INVALID',label+' is invalid.');
     var raw=typeof value==='string'?value.trim():String(value),pattern=new RegExp('^(0|[1-9][0-9]{0,12})(?:\\.([0-9]{1,'+maxFraction+'}))?$'),match=pattern.exec(raw);
     if(!match)throw paymentError_('REVENUE_FINANCIAL_INVALID',label+' is invalid.');
-    var whole=BigInt(match[1]),fraction=match[2]||'',six=(fraction+'000000').slice(0,6),paise=whole*100n+BigInt(six.slice(0,2)||'0');
-    if(Number(six.charAt(2)||'0')>=5)paise+=1n;
-    if(paise>BigInt(MAX_SAFE)||(!allowZero&&paise===0n))throw paymentError_('REVENUE_FINANCIAL_INVALID',label+' is outside the supported range.');
-    return Number(paise);
+    var whole=Number(match[1]),fraction=match[2]||'',six=(fraction+'000000').slice(0,6),paise=whole*100+Number(six.slice(0,2)||'0');
+    if(Number(six.charAt(2)||'0')>=5)paise+=1;
+    if(paise>MAX_SAFE||(!allowZero&&paise===0))throw paymentError_('REVENUE_FINANCIAL_INVALID',label+' is outside the supported range.');
+    return paise;
   }
   function paymentPaise_(value){
     if(typeof value!=='number'&&typeof value!=='string')throw paymentError_('REVENUE_PAYMENT_VALIDATION','Payment amount is invalid.');
@@ -36,11 +36,11 @@ var JSKOS=JSKOS||{};
     if(result>100000000)throw paymentError_('REVENUE_FINANCIAL_INVALID','Commission rate is invalid.');
     return result;
   }
-  function roundedDivide_(numerator,denominator){var quotient=numerator/denominator,remainder=numerator%denominator;if(remainder*2n>=denominator)quotient+=1n;if(quotient>BigInt(MAX_SAFE))throw paymentError_('REVENUE_FINANCIAL_INVALID','Financial calculation exceeds the supported range.');return Number(quotient);}
+  function roundedRateAmount_(amount,rate){var denominator=100000000,base=10000,major=Math.floor(amount/denominator),remainder=amount-major*denominator,left=Math.floor(remainder/base),right=remainder-left*base,rateLeft=Math.floor(rate/base),rateRight=rate-rateLeft*base,middle=left*rateRight+right*rateLeft,tail=middle*base+right*rateRight,quotient=major*rate+left*rateLeft+Math.floor(tail/denominator);if((tail%denominator)*2>=denominator)quotient+=1;if(quotient>MAX_SAFE)throw paymentError_('REVENUE_FINANCIAL_INVALID','Financial calculation exceeds the supported range.');return quotient;}
   function financial_(record){
     record=record||{};
     var premium=decimal_(blank_(record.premiumAmount)?0:record.premiumAmount,6,'Premium amount',true),gst=decimal_(blank_(record.gstAmount)?0:record.gstAmount,6,'GST amount',true),tds=decimal_(blank_(record.tdsAmount)?0:record.tdsAmount,6,'TDS amount',true),derived=blank_(record.expectedCommission),expected;
-    if(derived)expected=roundedDivide_(BigInt(premium)*BigInt(rateMillionths_(record.commissionRate)),100000000n);else expected=decimal_(record.expectedCommission,6,'Expected commission',true);
+    if(derived)expected=roundedRateAmount_(premium,rateMillionths_(record.commissionRate));else expected=decimal_(record.expectedCommission,6,'Expected commission',true);
     var net=expected+gst-tds;if(net<0||!Number.isSafeInteger(net))throw paymentError_('REVENUE_FINANCIAL_INVALID','Net receivable is invalid.');
     return{premiumPaise:premium,gstPaise:gst,tdsPaise:tds,expectedCommissionPaise:expected,netReceivablePaise:net,derivedExpected:derived,expectedCommission:expected/100,netReceivable:net/100};
   }
