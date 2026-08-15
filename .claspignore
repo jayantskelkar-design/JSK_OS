@@ -43,6 +43,7 @@ renewal/RenewalWorkQueueTest.js
 report/ReportServiceTest.js
 revenue/Build1011ReleaseTest.js
 revenue/RevenueBackendTest.js
+revenue/RevenuePaymentTest.js
 task/Build1004ReleaseTest.js
 task/TaskAutomationTest.js
 task/TaskBackendTest.js
