@@ -10,7 +10,7 @@
  */
 
 var JSK_POLICY_SCHEMA = Object.freeze({
-  VERSION: 5,
+  VERSION: 6,
   SHEET_NAME: 'Policies',
   AUDIT_SHEET_NAME: 'Audit_Log',
   HEADER_ROW: 1,
@@ -56,7 +56,9 @@ var JSK_POLICY_SCHEMA = Object.freeze({
     'Updated At',
     'Updated By',
     'Record Version',
-    'Is Deleted'
+    'Is Deleted',
+    'Source Quote ID',
+    'Quote Conversion ID'
   ]),
 
   COLUMN_WIDTHS: Object.freeze({
@@ -97,7 +99,9 @@ var JSK_POLICY_SCHEMA = Object.freeze({
     'Updated At': 165,
     'Updated By': 190,
     'Record Version': 120,
-    'Is Deleted': 105
+    'Is Deleted': 105,
+    'Source Quote ID': 190,
+    'Quote Conversion ID': 250
   }),
 
   POLICY_TYPE_VALUES: Object.freeze([
@@ -604,7 +608,9 @@ function formatPolicySheet_(sheet, headerRow) {
     'Company ID',
     'Person ID',
     'Family ID',
-    'Previous Policy Number'
+    'Previous Policy Number',
+    'Source Quote ID',
+    'Quote Conversion ID'
   ].forEach(function (header) {
     applyPolicyColumnFormat_(
       sheet,

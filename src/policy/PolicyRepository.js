@@ -31,6 +31,10 @@ var JSK_POLICY_REPOSITORY_CONFIG = Object.freeze({
     'Record Version', 'Is Deleted'
   ]),
 
+  CONVERSION_HEADERS: Object.freeze([
+    'Source Quote ID', 'Quote Conversion ID'
+  ]),
+
   SEARCHABLE_HEADERS: Object.freeze([
     'Policy ID', 'Policy Number', 'Proposal Number', 'Policy Type',
     'Product Name', 'Insurer Name', 'Company ID', 'Person ID',
@@ -514,6 +518,126 @@ class PolicyRepository {
     this._validateSchema();
   }
 
+  /**
+   * Returns every row carrying either side of the immutable conversion
+   * identity. The caller classifies exact, contradictory, and multiple
+   * evidence while holding the authoritative script lock.
+   */
+  findQuoteConversionEvidence(sourceQuoteId, conversionId) {
+    this._assertConversionSchema();
+    var normalizedQuoteId = this._normalizeText(sourceQuoteId).toUpperCase();
+    var normalizedConversionId = this._normalizeText(conversionId).toUpperCase();
+    if (!normalizedQuoteId || !normalizedConversionId) {
+      throw new Error('Quote conversion evidence identity is required.');
+    }
+    return this._readAllEntries().filter(function (entry) {
+      var source = this._normalizeText(entry.record['Source Quote ID']).toUpperCase();
+      var conversion = this._normalizeText(entry.record['Quote Conversion ID']).toUpperCase();
+      return source === normalizedQuoteId || conversion === normalizedConversionId;
+    }, this).map(function (entry) {
+      return this._formatRecord(entry.record, entry.rowNumber);
+    }, this);
+  }
+
+  /** Returns up to all exact Policy ID rows so historical ambiguity is visible. */
+  findAllByPolicyId(policyId) {
+    var normalizedId = this._normalizeRequiredId(policyId);
+    return this._readAllEntries().filter(function (entry) {
+      return this._normalizeText(entry.record['Policy ID']).toUpperCase() === normalizedId;
+    }, this).map(function (entry) {
+      return this._formatRecord(entry.record, entry.rowNumber);
+    }, this);
+  }
+
+  findAllBySourceQuoteId(sourceQuoteId) {
+    this._assertConversionSchema();
+    var normalizedQuoteId = this._normalizeText(sourceQuoteId).toUpperCase();
+    if (!normalizedQuoteId) throw new Error('Source Quote ID is required.');
+    return this._readAllEntries().filter(function (entry) {
+      return this._normalizeText(entry.record['Source Quote ID']).toUpperCase() === normalizedQuoteId;
+    }, this).map(function (entry) {
+      return this._formatRecord(entry.record, entry.rowNumber);
+    }, this);
+  }
+
+  /**
+   * Creates a Policy whose source linkage is present in the first durable row
+   * write. This method intentionally never acquires a lock itself.
+   */
+  createFromQuoteUnderLock(policy, actor, sourceQuoteId, conversionId, lock) {
+    this._assertAuthoritativeLock(lock);
+    this._refreshSchema();
+    this._assertConversionSchema();
+    var normalizedActor = this._normalizeActor(actor);
+    var normalizedQuoteId = this._normalizeText(sourceQuoteId).toUpperCase();
+    var normalizedConversionId = this._normalizeText(conversionId).toUpperCase();
+    if (!normalizedQuoteId || !/^QCV-[A-F0-9]{32}$/.test(normalizedConversionId)) {
+      throw new Error('Quote conversion identity is invalid.');
+    }
+
+    var normalizedPolicy = this._normalizePolicy(policy);
+    delete normalizedPolicy['Source Quote ID'];
+    delete normalizedPolicy['Quote Conversion ID'];
+    var errors = this._validateForCreate(normalizedPolicy);
+    if (errors.length) throw new PolicyValidationError(errors);
+    this._assertNoDuplicate(normalizedPolicy, null);
+
+    var now = new Date();
+    var record = this._createEmptyRecord();
+    this._applyPolicyFields(record, normalizedPolicy);
+    record['Policy ID'] = this._generatePolicyId();
+    record['Created At'] = now;
+    record['Created By'] = normalizedActor;
+    record['Updated At'] = now;
+    record['Updated By'] = normalizedActor;
+    record['Record Version'] = 1;
+    record['Is Deleted'] = false;
+    record['Source Quote ID'] = normalizedQuoteId;
+    record['Quote Conversion ID'] = normalizedConversionId;
+    if (!record['Policy Status']) record['Policy Status'] = 'Active';
+    if (!record['Renewal Stage']) record['Renewal Stage'] = 'Call Pending';
+
+    var targetRow = this.sheet.getLastRow() + 1;
+    this.sheet.getRange(targetRow, 1, 1, this.headers.length)
+      .setValues([this._recordToRow(record)]);
+    SpreadsheetApp.flush();
+
+    var created = this.findById(record['Policy ID'], { includeDeleted: true });
+    if (!created || created.sourceQuoteId !== normalizedQuoteId ||
+        created.quoteConversionId !== normalizedConversionId) {
+      var uncertain = new Error('Policy conversion write could not be verified.');
+      uncertain.code = 'POLICY_CONVERSION_WRITE_UNCERTAIN';
+      throw uncertain;
+    }
+    this._writeAuditLogSafely({
+      action: 'CREATE_FROM_QUOTE',
+      entityId: record['Policy ID'],
+      actor: normalizedActor,
+      beforeData: null,
+      afterData: this._serializeRecord(record)
+    });
+    return created;
+  }
+
+  _assertAuthoritativeLock(lock) {
+    if (!lock || typeof lock.hasLock !== 'function' || !lock.hasLock()) {
+      throw new Error('Authoritative Quote conversion lock is required.');
+    }
+  }
+
+  _assertConversionSchema() {
+    var missing = JSK_POLICY_REPOSITORY_CONFIG.CONVERSION_HEADERS.filter(
+      function (header) { return this.headerMap[header] === undefined; },
+      this
+    );
+    if (missing.length) {
+      throw new Error(
+        'Policies conversion schema is outdated. Missing columns: ' +
+        missing.join(', ') + '. Run migratePolicyDatabase().'
+      );
+    }
+  }
+
   _findHeaderRow() {
     var maxRows = Math.min(
       Math.max(this.sheet.getLastRow(), 1),
@@ -743,7 +867,9 @@ class PolicyRepository {
       'Updated At': true,
       'Updated By': true,
       'Record Version': true,
-      'Is Deleted': true
+      'Is Deleted': true,
+      'Source Quote ID': true,
+      'Quote Conversion ID': true
     };
 
     Object.keys(source || {}).forEach(function (header) {
@@ -777,7 +903,8 @@ class PolicyRepository {
       policyDocumentUrl: 'Policy Document URL',
       previousPolicyNumber: 'Previous Policy Number',
       claimsCount: 'Claims Count', lastClaimDate: 'Last Claim Date',
-      remarks: 'Remarks'
+      remarks: 'Remarks', sourceQuoteId: 'Source Quote ID',
+      quoteConversionId: 'Quote Conversion ID'
     };
 
     var normalized = {};
@@ -949,7 +1076,8 @@ class PolicyRepository {
       'Policy ID': 'policyId', 'Company ID': 'companyId',
       'Person ID': 'personId', 'Family ID': 'familyId',
       'GST Amount': 'gstAmount', 'Policy Document URL': 'policyDocumentUrl',
-      'Is Deleted': 'isDeleted'
+      'Is Deleted': 'isDeleted', 'Source Quote ID': 'sourceQuoteId',
+      'Quote Conversion ID': 'quoteConversionId'
     };
     if (specialNames[header]) return specialNames[header];
     return header
