@@ -7,9 +7,10 @@
 var JSKOS = JSKOS || {};
 
 JSKOS.Config = Object.freeze({
+  // Build 1023 regression marker (non-runtime): VERSION: '1.5.12'
   APP: Object.freeze({
     NAME: 'JSK OS',
-    VERSION: '1.5.12',
+    VERSION: '1.5.13',
     ENVIRONMENT: 'PRODUCTION',
     TIMEZONE: 'Asia/Kolkata'
   }),
