@@ -12,7 +12,7 @@ function contextualRepositoryResult_(repository, criteria, options) {
   criteria=criteria||{};options=options||{};
   var context=JSKOS.ClientContext.normalize(criteria,{policyLimit:options.policyLimit});
   var base={},queryCount=0,result={items:[]},unsupported=false;
-  ['query','status','claimType','documentType','category','paymentStatus','meetingType','owner','priority','dateView','endorsementType'].forEach(function(key){if(criteria[key]!==undefined)base[key]=criteria[key];});
+  ['query','status','claimType','documentType','category','paymentStatus','meetingType','owner','priority','dateView','endorsementType','includeDeleted'].forEach(function(key){if(criteria[key]!==undefined)base[key]=criteria[key];});
   if(!context.active){result=repository.search(criteria);queryCount=1;}
   else if(context.companyId){base.companyId=context.companyId;result=repository.search(base);queryCount=1;}
   else if(context.policyIds.length&&options.supportsPolicyIds){base.policyIds=context.policyIds;result=repository.search(base);queryCount=1;}

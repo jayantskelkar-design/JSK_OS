@@ -34,17 +34,40 @@ class ClaimRepository {
       var entry = this._find(String(id || '').trim().toUpperCase());
       if (!entry) throw new Error('Claim not found.');
       var version = Number(entry.record['Record Version']) || 1;
+      if (this._bool(entry.record['Is Deleted'])) throw new Error('Claim is archived. Restore it first.');
       if (expectedVersion !== undefined && Number(expectedVersion) !== version) {
         var conflict = new Error('Claim was modified by another user.'); conflict.code = 'VERSION_CONFLICT'; conflict.currentVersion = version; throw conflict;
       }
-      var updated = Object.assign({}, entry.record, this._normalize(changes)); this._validate(updated);
+      var patch = this._normalize(changes); delete patch['Claim ID']; delete patch['Is Deleted'];
+      var updated = Object.assign({}, entry.record, patch); this._validate(updated);
+      updated['Claim ID'] = entry.record['Claim ID'];
       updated['Updated At'] = new Date(); updated['Updated By'] = this._actor(actor); updated['Record Version'] = version + 1;
       this.sheet.getRange(entry.row, 1, 1, this.headers.length).setValues([this._toRow(updated)]); SpreadsheetApp.flush();
       return this._format(updated);
     } finally { lock.releaseLock(); }
   }
 
-  remove(id, actor, expectedVersion) { return this.update(id, { 'Is Deleted': true }, actor, expectedVersion); }
+  remove(id, actor, expectedVersion) { return this._setArchivedState_(id, true, actor, expectedVersion); }
+
+  restore(id, actor, expectedVersion) { return this._setArchivedState_(id, false, actor, expectedVersion); }
+
+  _setArchivedState_(id, archived, actor, expectedVersion) {
+    var lock = LockService.getScriptLock(); lock.waitLock(30000);
+    try {
+      var entry = this._find(String(id || '').trim().toUpperCase());
+      if (!entry) throw new Error('Claim not found.');
+      var version = Number(entry.record['Record Version']) || 1;
+      if (expectedVersion !== undefined && Number(expectedVersion) !== version) {
+        var conflict = new Error('Claim was modified by another user.'); conflict.code = 'VERSION_CONFLICT'; conflict.currentVersion = version; throw conflict;
+      }
+      if (this._bool(entry.record['Is Deleted']) === archived) return this._format(entry.record);
+      var updated = Object.assign({}, entry.record);
+      updated['Is Deleted'] = archived;
+      updated['Updated At'] = new Date(); updated['Updated By'] = this._actor(actor); updated['Record Version'] = version + 1;
+      this.sheet.getRange(entry.row, 1, 1, this.headers.length).setValues([this._toRow(updated)]); SpreadsheetApp.flush();
+      return this._format(updated);
+    } finally { lock.releaseLock(); }
+  }
 
   search(criteria) {
     criteria = criteria || {};
@@ -54,7 +77,7 @@ class ClaimRepository {
     var linkValue = criteria.policyId || criteria.companyId || criteria.personId || '';
     var items = this._entries().filter(function (entry) {
       var r = entry.record;
-      if (!r['Claim ID'] || this._bool(r['Is Deleted'])) return false;
+      if (!r['Claim ID'] || (!this._bool(criteria.includeArchived || criteria.includeDeleted) && this._bool(r['Is Deleted']))) return false;
       if (status && String(r['Status']).toLowerCase() !== status) return false;
       if (type && String(r['Claim Type']).toLowerCase() !== type) return false;
       if (owner && String(r['Assigned Owner']).toLowerCase() !== owner) return false;
