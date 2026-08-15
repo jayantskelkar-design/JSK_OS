@@ -486,6 +486,29 @@ function validatePolicyHeaderIntegrity_(sheet, headerRow) {
       '. Resolve the duplicate columns before running the migration.'
     );
   }
+
+  var canonicalV5Headers = JSK_POLICY_SCHEMA.HEADERS.slice(0, -2);
+  var previousIndex = -1;
+
+  canonicalV5Headers.forEach(function (header) {
+    var index = headers.indexOf(header);
+
+    if (index === -1) {
+      throw new Error(
+        'Required legacy Policy header is missing: ' + header +
+        '. Restore the canonical v5 schema before running the migration.'
+      );
+    }
+
+    if (index <= previousIndex) {
+      throw new Error(
+        'Legacy Policy headers are out of order at: ' + header +
+        '. Restore the canonical v5 header order before running the migration.'
+      );
+    }
+
+    previousIndex = index;
+  });
 }
 
 /** @private @param {string[]} headers @return {number} */

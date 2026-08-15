@@ -138,6 +138,7 @@ var JSKOS=JSKOS||{};
       var draft=policyDraft_(quote,request),fingerprint=fingerprint_(draft),conversionId=newIdentity_(),intent;
       try{intent=quotes.beginConversionUnderLock(quote.quoteId,conversionId,fingerprint,actor,clock(),lock);}
       catch(error){throw recovery_('Quote conversion intent could not be persisted safely.');}
+      if(exactEvidence_(intent).length)throw conflict_('The generated Quote conversion identity is already in use.');
       return createAndFinalize_(intent,conversionId,draft,fingerprint,actor,lock);
     }
 
