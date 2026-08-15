@@ -35,7 +35,6 @@ function doGet(event) {
   if (event && event.parameter && event.parameter['hub.mode']) {
     return handleMetaWhatsAppWebhookVerification(event);
   }
-  bootstrapBuild1002Automation_();
   var route = JSKOS.Router.resolve(event);
   if (
     JSKOS.AccessControl &&
@@ -103,26 +102,6 @@ function buildJSKOSNavigationHtml_(activeRoute) {
 /** Meta WhatsApp webhook entry point. */
 function doPost(event) {
   return handleMetaWhatsAppWebhook(event);
-}
-
-/**
- * Keeps Build 1002 schema and daily automation ready without blocking UI.
- * @private
- */
-function bootstrapBuild1002Automation_() {
-  try {
-    if (
-      JSKOS.RenewalAutomation &&
-      typeof JSKOS.RenewalAutomation.ensureReady === 'function'
-    ) {
-      JSKOS.RenewalAutomation.ensureReady();
-    }
-  } catch (error) {
-    console.error(
-      'Build 1002 automation bootstrap failed: ' +
-      (error && error.stack ? error.stack : error)
-    );
-  }
 }
 
 JSKOS.Router = Object.freeze({

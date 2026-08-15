@@ -68,7 +68,7 @@ class Fixture{
 }
 
 global.console={log(){},info(){},warn(){},error(){}};
-global.JSKOS={Config:{LOCKS:{TIMEOUT_MS:30000}}};
+global.JSKOS={Config:{LOCKS:{TIMEOUT_MS:30000}},LegacyMutationAuthority:{requireAdmin:function(){return{kind:'ADMIN'};},assertAdmin:function(){return true;},requireSchema:function(){return{success:true};}}};
 global.PropertiesService={getScriptProperties(){return{getProperty(key){return activeFixture&&Object.prototype.hasOwnProperty.call(activeFixture.properties,key)?activeFixture.properties[key]:null;},setProperty(key,value){activeFixture.properties[key]=String(value);}};}};
 global.LockService={getScriptLock(){return activeFixture.scriptLock;},getDocumentLock(){return activeFixture.documentLock;}};
 global.SpreadsheetApp={getActiveSpreadsheet(){return activeFixture.spreadsheet;},flush(){if(activeFixture)activeFixture.maybeFault({kind:'flush',sheet:'*'},'flush');},newDataValidation(){return{requireValueInList(){return this;},setAllowInvalid(){return this;},setHelpText(){return this;},build(){return{};}};}};

@@ -38,6 +38,11 @@ function apiReportExport() {
 }
 
 function sendExecutiveReportEmail() {
+  JSKOS.LegacyMutationAuthority.requireAdmin('reports.send');
+  return sendExecutiveReportEmail_();
+}
+
+function sendExecutiveReportEmail_() {
   var recipients = String(
     PropertiesService.getScriptProperties()
       .getProperty('JSK_OS_REPORT_RECIPIENTS') || ''
@@ -79,8 +84,16 @@ function sendExecutiveReportEmail() {
   return { success: true, recipients: recipients, fileName: report.fileName };
 }
 
+function sendExecutiveReportEmailTrusted_() {
+  return legacyRunTrustedSystem_('EXECUTIVE_REPORT_SENDER', function (authority) {
+    legacyRequireTrustedSystem_(authority);
+    return sendExecutiveReportEmail_();
+  });
+}
+
 function installExecutiveReportTrigger() {
-  var handler = 'sendExecutiveReportEmail';
+  JSKOS.LegacyMutationAuthority.requireAdmin('reports.install-trigger');
+  var handler = 'sendExecutiveReportEmailTrusted_';
   ScriptApp.getProjectTriggers().forEach(function (trigger) {
     if (trigger.getHandlerFunction() === handler) {
       ScriptApp.deleteTrigger(trigger);

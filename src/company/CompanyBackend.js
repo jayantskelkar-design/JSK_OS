@@ -48,8 +48,8 @@ class CompanyService {
     );
   }
 
-  restore(companyId, actor) {
-    return this.repository.restore(companyId, actor);
+  restore(companyId, actor, expectedVersion) {
+    return this.repository.restore(companyId, actor, expectedVersion);
   }
 
   search(criteria) {
@@ -67,13 +67,11 @@ class CompanyService {
  *   .apiCompanyCreate(payload);
  */
 function apiCompanyCreate(payload) {
-  return companyApiExecute_('create', function () {
+  return companyApiExecute_('create', function (actor) {
     var request = companyNormalizeRequest_(payload);
-console.log("API GET REQUEST");
-console.log(JSON.stringify(request));
     return new CompanyService().create(
       request.data,
-      request.actor
+      actor
     );
   });
 }
@@ -100,13 +98,13 @@ function apiCompanyGet(payload) {
  * UPDATE
  */
 function apiCompanyUpdate(payload) {
-  return companyApiExecute_('update', function () {
+  return companyApiExecute_('update', function (actor) {
     var request = companyNormalizeRequest_(payload);
 
     return new CompanyService().update(
       request.companyId,
       request.data,
-      request.actor,
+      actor,
       request.expectedVersion
     );
   });
@@ -117,12 +115,12 @@ function apiCompanyUpdate(payload) {
  * ARCHIVE / SOFT DELETE
  */
 function apiCompanyArchive(payload) {
-  return companyApiExecute_('archive', function () {
+  return companyApiExecute_('archive', function (actor) {
     var request = companyNormalizeRequest_(payload);
 
     return new CompanyService().archive(
       request.companyId,
-      request.actor,
+      actor,
       request.expectedVersion
     );
   });
@@ -133,12 +131,13 @@ function apiCompanyArchive(payload) {
  * RESTORE
  */
 function apiCompanyRestore(payload) {
-  return companyApiExecute_('restore', function () {
+  return companyApiExecute_('restore', function (actor) {
     var request = companyNormalizeRequest_(payload);
 
     return new CompanyService().restore(
       request.companyId,
-      request.actor
+      actor,
+      companyExpectedVersion_(request.expectedVersion)
     );
   });
 }
@@ -229,8 +228,9 @@ function companyNormalizeRequest_(payload) {
  */
 function companyApiExecute_(operation, callback) {
   try {
-    JSKOS.AccessControl.requireModuleOperation('companies', operation);
-    var result = callback();
+    var authority = JSKOS.LegacyMutationAuthority.requireUser('companies', operation);
+    requireCompanySchema_();
+    var result = callback(JSKOS.LegacyMutationAuthority.actor(authority), authority);
 
     return {
       success: true,
@@ -257,6 +257,18 @@ function companyApiExecute_(operation, callback) {
       }
     };
   }
+}
+
+function companyExpectedVersion_(value) {
+  var number = Number(value);
+  if (value === '' || value === null || value === undefined ||
+      !isFinite(number) || number <= 0 || Math.floor(number) !== number) {
+    var error = new Error('A finite positive integer expectedVersion is required.');
+    error.code = 'VALIDATION_ERROR';
+    error.status = 400;
+    throw error;
+  }
+  return number;
 }
 
 

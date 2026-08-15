@@ -19,6 +19,8 @@ JSKOS.WaLeadWhatsAppProvider = Object.freeze({
 });
 
 function getWaLeadWhatsAppConfigStatus() {
+  JSKOS.LegacyMutationAuthority.requireUser('communications','view');
+  requireBuild1006Communications_();
   var values = PropertiesService.getScriptProperties().getProperties();
   return {
     ready: Boolean(values[JSK_WALEAD_WA.API_KEY] && values[JSK_WALEAD_WA.PHONE_NUMBER_ID]),
@@ -30,7 +32,14 @@ function getWaLeadWhatsAppConfigStatus() {
 }
 
 function sendQueuedWaLeadWhatsApp(limit) {
-  ensureBuild1006Communications();
+  var authority=JSKOS.LegacyMutationAuthority.requireAdmin('communications.walead-send');
+  return sendQueuedWaLeadWhatsApp_(limit,authority);
+}
+
+function sendQueuedWaLeadWhatsApp_(limit,authority) {
+  JSKOS.LegacyMutationAuthority.assertMutation(authority);
+  requireBuild1006Communications_();
+  var actor=JSKOS.LegacyMutationAuthority.actor(authority);
   var config = getWaLeadWhatsAppConfig_();
   var repository = new CommunicationRepository();
   var now = new Date();
@@ -48,8 +57,8 @@ function sendQueuedWaLeadWhatsApp(limit) {
     try {
       var claimed = repository.update(item.communicationId, {
         status: 'Sending', provider: JSK_WALEAD_WA.PROVIDER, lastError: ''
-      }, 'WA Lead Sender', item.recordVersion);
-      sendWaLeadWhatsAppItem_(repository, claimed, config);
+      }, actor, item.recordVersion);
+      sendWaLeadWhatsAppItem_(repository, claimed, config, actor);
       report.sent += 1;
     } catch (error) {
       if (error && error.code === 'VERSION_CONFLICT') { report.skipped += 1; return; }
@@ -61,7 +70,7 @@ function sendQueuedWaLeadWhatsApp(limit) {
   return report;
 }
 
-function sendWaLeadWhatsAppItem_(repository, item, config) {
+function sendWaLeadWhatsAppItem_(repository, item, config, actor) {
   var attempts = Number(item.attemptCount || 0) + 1;
   try {
     var response = UrlFetchApp.fetch(JSK_WALEAD_WA.ENDPOINT, {
@@ -84,20 +93,22 @@ function sendWaLeadWhatsAppItem_(repository, item, config) {
       status: 'Sent', provider: JSK_WALEAD_WA.PROVIDER,
       providerMessageId: String(body.wa_message_id), sentAt: new Date(),
       attemptCount: attempts, nextRetryAt: '', lastError: ''
-    }, 'WA Lead Sender', item.recordVersion);
+    }, actor, item.recordVersion);
   } catch (error) {
     var minutes = JSK_WALEAD_WA.RETRY_MINUTES[Math.min(attempts - 1, JSK_WALEAD_WA.RETRY_MINUTES.length - 1)];
     repository.update(item.communicationId, {
       status: 'Failed', provider: JSK_WALEAD_WA.PROVIDER,
       attemptCount: attempts, nextRetryAt: new Date(Date.now() + minutes * 60000),
       lastError: sanitizeWaLeadError_(error)
-    }, 'WA Lead Sender', item.recordVersion);
+    }, actor, item.recordVersion);
     throw error;
   }
 }
 
 function sendWaLeadWhatsAppLiveTest() {
-  ensureBuild1006Communications();
+  var authority=JSKOS.LegacyMutationAuthority.requireAdmin('communications.walead-live-test');
+  requireBuild1006Communications_();
+  var actor=JSKOS.LegacyMutationAuthority.actor(authority);
   var properties = PropertiesService.getScriptProperties();
   var recipient = normalizeWaLeadPhone_(properties.getProperty(JSK_WALEAD_WA.TEST_RECIPIENT));
   var repository = new CommunicationRepository();
@@ -106,24 +117,26 @@ function sendWaLeadWhatsAppLiveTest() {
     message: 'JSK OS WA Lead WhatsApp integration test successful.',
     provider: JSK_WALEAD_WA.PROVIDER,
     idempotencyKey: 'WALEAD-LIVE-TEST-' + Utilities.formatDate(new Date(), 'Asia/Kolkata', 'yyyyMMddHHmmss')
-  }, 'WA Lead Live Test');
+  }, actor);
   var claimed = repository.update(queued.communicationId, {
     status: 'Sending', provider: JSK_WALEAD_WA.PROVIDER, lastError: ''
-  }, 'WA Lead Live Test', queued.recordVersion);
-  sendWaLeadWhatsAppItem_(repository, claimed, getWaLeadWhatsAppConfig_());
+  }, actor, queued.recordVersion);
+  sendWaLeadWhatsAppItem_(repository, claimed, getWaLeadWhatsAppConfig_(),actor);
   var result = repository.findById(queued.communicationId, true);
   console.info(JSON.stringify({ success: true, communicationId: result.communicationId,
     status: result.status, providerMessageIdConfigured: Boolean(result.providerMessageId) }));
   return result;
 }
 
-function processWaLeadWhatsAppOutbox() { return sendQueuedWaLeadWhatsApp(20); }
+function processWaLeadWhatsAppOutbox() { var authority=JSKOS.LegacyMutationAuthority.requireAdmin('communications.walead-outbox');return sendQueuedWaLeadWhatsApp_(20,authority); }
 
 /** Installable-trigger entry point for queued WhatsApp communications. */
-function runWaLeadCommunicationAutomation() { return sendQueuedWaLeadWhatsApp(20); }
+function runWaLeadCommunicationAutomation() { var authority=JSKOS.LegacyMutationAuthority.requireAdmin('communications.walead-automation');return sendQueuedWaLeadWhatsApp_(20,authority); }
+function runWaLeadCommunicationAutomation_() { return legacyRunTrustedSystem_('WALEAD_WHATSAPP_SENDER',function(authority){return sendQueuedWaLeadWhatsApp_(20,authority);}); }
 
 function ensureWaLeadCommunicationAutomation() {
-  var handler = 'runWaLeadCommunicationAutomation';
+  JSKOS.LegacyMutationAuthority.requireAdmin('communications.install-trigger');
+  var handler = 'runWaLeadCommunicationAutomation_';
   var triggers = ScriptApp.getProjectTriggers().filter(function (trigger) {
     return trigger.getHandlerFunction() === handler;
   });
@@ -138,6 +151,7 @@ function ensureWaLeadCommunicationAutomation() {
 
 /** Controlled approved-template test; sends only to the configured test recipient. */
 function triggerWaLeadRenewalTemplateLiveTest() {
+  JSKOS.LegacyMutationAuthority.requireAdmin('communications.walead-template-test');
   var config = getWaLeadWhatsAppConfig_();
   var recipient = normalizeWaLeadPhone_(PropertiesService.getScriptProperties().getProperty(JSK_WALEAD_WA.TEST_RECIPIENT));
   var response = triggerWaLeadBotFlow_(config, recipient);

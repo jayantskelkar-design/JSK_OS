@@ -20,6 +20,12 @@ var JSK_CLAIM_SCHEMA = Object.freeze({
 });
 
 function migrateClaimDatabase() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('claims.migrate');
+  return migrateClaimDatabase_(authority);
+}
+
+function migrateClaimDatabase_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
@@ -76,8 +82,24 @@ function setClaimValidation_(sheet, headers, header, values, rows) {
 }
 
 function ensureBuild1007Claims() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('claims.ensure');
+  return ensureBuild1007Claims_(authority);
+}
+
+function ensureBuild1007Claims_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   var version = Number(PropertiesService.getScriptProperties().getProperty(JSK_CLAIM_SCHEMA.PROPERTY_KEY)) || 0;
   return version < JSK_CLAIM_SCHEMA.VERSION
-    ? migrateClaimDatabase()
+    ? migrateClaimDatabase_(authority)
     : { success: true, created: false, schemaVersion: JSK_CLAIM_SCHEMA.VERSION };
+}
+
+function requireBuild1007Claims_() {
+  return JSKOS.LegacyMutationAuthority.requireSchema({
+    moduleName: 'Claim',
+    sheetName: JSK_CLAIM_SCHEMA.SHEET_NAME,
+    headers: JSK_CLAIM_SCHEMA.HEADERS,
+    propertyKey: JSK_CLAIM_SCHEMA.PROPERTY_KEY,
+    version: JSK_CLAIM_SCHEMA.VERSION
+  });
 }

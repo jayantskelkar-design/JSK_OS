@@ -137,6 +137,9 @@ class PeopleRepository {
       record.Person_ID = repository._generatePersonId();
       record.Created_At = now;
       record.Updated_At = now;
+      record[repository._recordVersionHeader()] = 1;
+      if (repository._deletedHeader()) record[repository._deletedHeader()] = false;
+      if (repository._updatedByHeader()) record[repository._updatedByHeader()] = repository._normalizeActor(actor);
 
       if (!record.Status) {
         record.Status = 'Prospect';
@@ -206,7 +209,7 @@ class PeopleRepository {
    * @param {string=} actor Actor name or email.
    * @return {Object} Updated person.
    */
-  update(personId, changes, actor) {
+  update(personId, changes, actor, expectedVersion) {
     var repository = this;
     var lock = LockService.getDocumentLock();
 
@@ -232,6 +235,14 @@ class PeopleRepository {
 
       var existing =
         repository._readRecordAtRow(rowNumber);
+      var versionHeader = repository._recordVersionHeader();
+      var currentVersion = Number(existing[versionHeader]) || 1;
+      if (Number(expectedVersion) !== currentVersion) {
+        throw new PeopleConflictError(
+          'Person was modified by another user.',
+          currentVersion
+        );
+      }
 
       var normalizedChanges =
         repository._normalizePerson(changes);
@@ -246,6 +257,8 @@ class PeopleRepository {
       updated.Person_ID = normalizedId;
       updated.Created_At = existing.Created_At;
       updated.Updated_At = new Date();
+      updated[versionHeader] = currentVersion + 1;
+      if (repository._updatedByHeader()) updated[repository._updatedByHeader()] = repository._normalizeActor(actor);
 
       var errors = repository._validate(
         updated,
@@ -297,12 +310,13 @@ class PeopleRepository {
    * @param {string=} actor Actor name or email.
    * @return {Object} Archived person.
    */
-  archive(personId, actor) {
+  archive(personId, actor, expectedVersion) {
     return this._setStatus(
       personId,
       'Archived',
       'ARCHIVE',
-      actor
+      actor,
+      expectedVersion
     );
   }
 
@@ -313,12 +327,13 @@ class PeopleRepository {
    * @param {string=} actor Actor name or email.
    * @return {Object} Restored person.
    */
-  restore(personId, actor) {
+  restore(personId, actor, expectedVersion) {
     return this._setStatus(
       personId,
       'Active',
       'RESTORE',
-      actor
+      actor,
+      expectedVersion
     );
   }
 
@@ -644,7 +659,7 @@ class PeopleRepository {
    * @param {string=} actor Actor.
    * @return {Object} Updated person.
    */
-  _setStatus(personId, status, action, actor) {
+  _setStatus(personId, status, action, actor, expectedVersion) {
     var repository = this;
     var lock = LockService.getDocumentLock();
 
@@ -666,11 +681,21 @@ class PeopleRepository {
 
       var existing =
         repository._readRecordAtRow(rowNumber);
+      var versionHeader = repository._recordVersionHeader();
+      var currentVersion = Number(existing[versionHeader]) || 1;
+      if (Number(expectedVersion) !== currentVersion) {
+        throw new PeopleConflictError(
+          'Person was modified by another user.',
+          currentVersion
+        );
+      }
 
       var updated = Object.assign({}, existing);
 
       updated.Status = status;
       updated.Updated_At = new Date();
+      updated[versionHeader] = currentVersion + 1;
+      if (repository._updatedByHeader()) updated[repository._updatedByHeader()] = repository._normalizeActor(actor);
 
       repository.sheet
         .getRange(
@@ -836,6 +861,27 @@ class PeopleRepository {
           missing.join(', ')
       );
     }
+    if (!this._recordVersionHeader()) {
+      throw new Error('People schema is missing columns: Record Version');
+    }
+  }
+
+  _recordVersionHeader() {
+    if (this.headerMap['Record Version'] !== undefined) return 'Record Version';
+    if (this.headerMap.Record_Version !== undefined) return 'Record_Version';
+    return '';
+  }
+
+  _deletedHeader() {
+    if (this.headerMap['Is Deleted'] !== undefined) return 'Is Deleted';
+    if (this.headerMap.Is_Deleted !== undefined) return 'Is_Deleted';
+    return '';
+  }
+
+  _updatedByHeader() {
+    if (this.headerMap['Updated By'] !== undefined) return 'Updated By';
+    if (this.headerMap.Updated_By !== undefined) return 'Updated_By';
+    return '';
   }
 
   /**
@@ -967,7 +1013,13 @@ class PeopleRepository {
     var protectedFields = {
       Person_ID: true,
       Created_At: true,
-      Updated_At: true
+      Updated_At: true,
+      'Record Version': true,
+      Record_Version: true,
+      'Is Deleted': true,
+      Is_Deleted: true,
+      'Updated By': true,
+      Updated_By: true
     };
 
     Object.keys(source || {}).forEach(
@@ -1337,6 +1389,8 @@ class PeopleRepository {
         ) {
           formatted[key] =
             this._formatDateForApi(value);
+        } else if (header === 'Record Version' || header === 'Record_Version') {
+          formatted[key] = Number(value) || 1;
         } else {
           formatted[key] =
             value === null ||
@@ -1380,7 +1434,13 @@ class PeopleRepository {
       Next_Followup: 'nextFollowup',
       Notes: 'notes',
       Created_At: 'createdAt',
-      Updated_At: 'updatedAt'
+      Updated_At: 'updatedAt',
+      'Record Version': 'recordVersion',
+      Record_Version: 'recordVersion',
+      'Is Deleted': 'isDeleted',
+      Is_Deleted: 'isDeleted',
+      'Updated By': 'updatedBy',
+      Updated_By: 'updatedBy'
     };
 
     return mappings[header] || header;
@@ -1665,6 +1725,16 @@ class PeopleDuplicateError extends Error {
     this.status = 409;
     this.duplicatePersonId =
       duplicatePersonId;
+  }
+}
+
+class PeopleConflictError extends Error {
+  constructor(message, currentVersion) {
+    super(message || 'Person was modified by another user.');
+    this.name = 'PeopleConflictError';
+    this.code = 'VERSION_CONFLICT';
+    this.status = 409;
+    this.currentVersion = Number(currentVersion) || 1;
   }
 }
 

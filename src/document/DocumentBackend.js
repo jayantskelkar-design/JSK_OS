@@ -2,8 +2,9 @@
 
 function documentApiExecute_(operation, callback) {
   try {
-    JSKOS.AccessControl.requireModuleOperation('documents', operation);
-    return { success: true, data: documentApiSerialize_(callback()), error: null, meta: { operation: operation, timestamp: new Date().toISOString() } };
+    var authority = JSKOS.LegacyMutationAuthority.requireUser('documents', operation);
+    requireBuild1008Documents_();
+    return { success: true, data: documentApiSerialize_(callback(JSKOS.LegacyMutationAuthority.actor(authority), authority)), error: null, meta: { operation: operation, timestamp: new Date().toISOString() } };
   } catch (error) {
     console.error('Document API ' + operation + ' failed: ' + (error.stack || error));
     return {
@@ -35,12 +36,12 @@ function documentApiSerialize_(value) {
 }
 
 function documentRequest_(payload) { return payload && typeof payload === 'object' ? payload : {}; }
-function documentRepository_() { ensureBuild1008Documents(); return new DocumentRepository(); }
+function documentRepository_() { requireBuild1008Documents_(); return new DocumentRepository(); }
 
 function apiDocumentCreate(payload) {
-  return documentApiExecute_('create', function () {
+  return documentApiExecute_('create', function (actor) {
     var request = documentRequest_(payload);
-    return documentRepository_().create(request.data || request, request.actor);
+    return documentRepository_().create(request.data || request, actor);
   });
 }
 
@@ -54,23 +55,23 @@ function apiDocumentGet(payload) {
 }
 
 function apiDocumentUpdate(payload) {
-  return documentApiExecute_('update', function () {
+  return documentApiExecute_('update', function (actor) {
     var request = documentRequest_(payload);
-    return documentRepository_().update(request.documentId, request.data || {}, request.actor, request.expectedVersion);
+    return documentRepository_().update(request.documentId, request.data || {}, actor, request.expectedVersion);
   });
 }
 
 function apiDocumentDelete(payload) {
-  return documentApiExecute_('delete', function () {
+  return documentApiExecute_('delete', function (actor) {
     var request = documentRequest_(payload);
-    return documentRepository_().remove(request.documentId, request.actor, request.expectedVersion);
+    return documentRepository_().remove(request.documentId, actor, request.expectedVersion);
   });
 }
 
 function apiDocumentRestore(payload) {
-  return documentApiExecute_('restore', function () {
+  return documentApiExecute_('restore', function (actor) {
     var request = documentRequest_(payload);
-    return documentRepository_().restore(request.documentId, request.actor, request.expectedVersion);
+    return documentRepository_().restore(request.documentId, actor, request.expectedVersion);
   });
 }
 
@@ -113,7 +114,8 @@ function apiDocumentExpirySummary() {
 }
 
 function getDocumentFilters() {
-  JSKOS.AccessControl.requireModuleOperation('documents', 'filters');
+  JSKOS.LegacyMutationAuthority.requireUser('documents', 'filters');
+  requireBuild1008Documents_();
   return {
     documentTypes: JSK_DOCUMENT_SCHEMA.TYPE_VALUES.slice(),
     categories: JSK_DOCUMENT_SCHEMA.CATEGORY_VALUES.slice(),
@@ -122,7 +124,8 @@ function getDocumentFilters() {
 }
 
 function getDocumentLinkOptions() {
-  JSKOS.AccessControl.requireModuleOperation('documents', 'link-options');
+  JSKOS.LegacyMutationAuthority.requireUser('documents', 'link-options');
+  requireBuild1008Documents_();
   var spreadsheet = JSKOS.ConfigService.getSpreadsheet();
   var definitions = {
     companyId: { sheet: 'Companies', id: 'Company ID', labels: ['Company Name'] },

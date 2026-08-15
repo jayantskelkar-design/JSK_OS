@@ -130,6 +130,12 @@ var JSK_PEOPLE_SCHEMA = Object.freeze({
  * @return {Object} Migration result.
  */
 function migratePeopleDatabase() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('people.migrate');
+  return migratePeopleDatabase_(authority);
+}
+
+function migratePeopleDatabase_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   var lock = LockService.getScriptLock();
 
   lock.waitLock(
@@ -773,4 +779,15 @@ function assertPeopleMigration_(condition, message) {
       'People Migration Test Failed: ' + message
     );
   }
+}
+
+function requirePeopleSchema_() {
+  var headers = JSK_PEOPLE_CONFIG.REQUIRED_HEADERS.slice();
+  headers.push(['Record Version', 'Record_Version']);
+  return JSKOS.LegacyMutationAuthority.requireSchema({
+    moduleName: 'People',
+    sheetName: JSK_PEOPLE_CONFIG.SHEET_NAME,
+    headers: headers,
+    headerScanLimit: JSK_PEOPLE_CONFIG.HEADER_SCAN_LIMIT
+  });
 }

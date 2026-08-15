@@ -18,6 +18,12 @@ var JSK_COMMUNICATION_SCHEMA = Object.freeze({
 });
 
 function migrateCommunicationDatabase() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('communications.migrate');
+  return migrateCommunicationDatabase_(authority);
+}
+
+function migrateCommunicationDatabase_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   var lock = LockService.getScriptLock(); lock.waitLock(30000);
   try {
     var spreadsheet = JSKOS.ConfigService.getSpreadsheet();
@@ -44,4 +50,5 @@ function migrateCommunicationDatabase() {
 }
 
 function setCommunicationValidation_(sheet, headers, header, values, rows) { var index=headers.indexOf(header); if(index===-1)return; sheet.getRange(2,index+1,rows,1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(values.slice(),true).setAllowInvalid(false).build()); }
-function ensureBuild1006Communications() { var version=Number(PropertiesService.getScriptProperties().getProperty(JSK_COMMUNICATION_SCHEMA.PROPERTY_KEY))||0; var sheet=JSKOS.ConfigService.getSpreadsheet().getSheetByName(JSK_COMMUNICATION_SCHEMA.SHEET_NAME); if(version<JSK_COMMUNICATION_SCHEMA.VERSION||!sheet)return migrateCommunicationDatabase(); var headers=sheet.getRange(1,1,1,sheet.getLastColumn()).getDisplayValues()[0]; return JSK_COMMUNICATION_SCHEMA.HEADERS.some(function(h){return headers.indexOf(h)===-1;})?migrateCommunicationDatabase():{success:true,created:false,schemaVersion:version,sheetName:sheet.getName()}; }
+function ensureBuild1006Communications() { var authority=JSKOS.LegacyMutationAuthority.requireAdmin('communications.ensure');try{requireBuild1006Communications_();return{success:true,created:false,schemaVersion:JSK_COMMUNICATION_SCHEMA.VERSION,sheetName:JSK_COMMUNICATION_SCHEMA.SHEET_NAME};}catch(error){if(error&&error.code==='MIGRATION_REQUIRED')return migrateCommunicationDatabase_(authority);throw error;} }
+function requireBuild1006Communications_() { return JSKOS.LegacyMutationAuthority.requireSchema({moduleName:'Communication',sheetName:JSK_COMMUNICATION_SCHEMA.SHEET_NAME,headers:JSK_COMMUNICATION_SCHEMA.HEADERS,propertyKey:JSK_COMMUNICATION_SCHEMA.PROPERTY_KEY,version:JSK_COMMUNICATION_SCHEMA.VERSION}); }

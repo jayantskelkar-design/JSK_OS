@@ -1,15 +1,16 @@
 /** JSK OS production automation trigger audit and repair utilities. */
 var JSK_AUTOMATION_TRIGGERS = Object.freeze([
-  { handler: 'runDailyRenewalAutomation', schedule: 'Daily renewal automation' },
-  { handler: 'runDailyDocumentExpiryAutomation', schedule: 'Daily document expiry' },
-  { handler: 'runDailyEndorsementAutomation', schedule: 'Daily endorsement SLA' },
-  { handler: 'runDailyQuoteAutomation', schedule: 'Daily quote expiry' },
-  { handler: 'runDailyRevenueAutomation', schedule: 'Daily revenue collection' },
-  { handler: 'sendExecutiveReportEmail', schedule: 'Daily executive report' },
-  { handler: 'runWaLeadCommunicationAutomation', schedule: 'WA Lead outbox' }
+  { handler: 'runDailyRenewalAutomation_', schedule: 'Daily renewal automation' },
+  { handler: 'runDailyDocumentExpiryAutomation_', schedule: 'Daily document expiry' },
+  { handler: 'runDailyEndorsementAutomation_', schedule: 'Daily endorsement SLA' },
+  { handler: 'runDailyQuoteAutomation_', schedule: 'Daily quote expiry' },
+  { handler: 'runDailyRevenueAutomation_', schedule: 'Daily revenue collection' },
+  { handler: 'sendExecutiveReportEmailTrusted_', schedule: 'Daily executive report' },
+  { handler: 'runWaLeadCommunicationAutomation_', schedule: 'WA Lead outbox' }
 ]);
 
 function auditAutomationTriggers() {
+  JSKOS.LegacyMutationAuthority.requireAdmin('automation.audit');
   var counts = {};
   ScriptApp.getProjectTriggers().forEach(function (trigger) {
     var handler = trigger.getHandlerFunction();
@@ -41,8 +42,9 @@ function auditAutomationTriggers() {
 }
 
 function installAllAutomationTriggers() {
+  JSKOS.LegacyMutationAuthority.requireAdmin('automation.install-all');
   ScriptApp.getProjectTriggers().forEach(function (trigger) {
-    if (trigger.getHandlerFunction() === 'runWaLeadCommunicationAutomation') {
+    if (trigger.getHandlerFunction() === 'runWaLeadCommunicationAutomation_') {
       ScriptApp.deleteTrigger(trigger);
     }
   });

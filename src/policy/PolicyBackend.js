@@ -120,14 +120,14 @@ class PolicyService {
 
 /** Creates a policy. */
 function apiPolicyCreate(payload) {
-  return policyApiExecute_('create', function () {
+  return policyApiExecute_('create', function (actor) {
     var request = policyNormalizeRequest_(payload);
     var data = policyRequireDataObject_(
       request.data,
       'Policy data is required.'
     );
 
-    return policyGetService_().create(data, request.actor);
+    return policyGetService_().create(data, actor);
   });
 }
 
@@ -185,7 +185,7 @@ function apiPolicyGetByNumber(payload) {
 
 /** Updates a policy. */
 function apiPolicyUpdate(payload) {
-  return policyApiExecute_('update', function () {
+  return policyApiExecute_('update', function (actor) {
     var request = policyNormalizeRequest_(payload);
     var policyId = policyRequireText_(
       request.policyId,
@@ -209,7 +209,7 @@ function apiPolicyUpdate(payload) {
     return policyGetService_().update(
       policyId,
       data,
-      request.actor,
+      actor,
       request.expectedVersion
     );
   });
@@ -217,7 +217,7 @@ function apiPolicyUpdate(payload) {
 
 /** Archives a policy. */
 function apiPolicyArchive(payload) {
-  return policyApiExecute_('archive', function () {
+  return policyApiExecute_('archive', function (actor) {
     var request = policyNormalizeRequest_(payload);
     var policyId = policyRequireText_(
       request.policyId,
@@ -227,7 +227,7 @@ function apiPolicyArchive(payload) {
 
     return policyGetService_().archive(
       policyId,
-      request.actor,
+      actor,
       request.expectedVersion
     );
   });
@@ -235,7 +235,7 @@ function apiPolicyArchive(payload) {
 
 /** Restores a policy. */
 function apiPolicyRestore(payload) {
-  return policyApiExecute_('restore', function () {
+  return policyApiExecute_('restore', function (actor) {
     var request = policyNormalizeRequest_(payload);
     var policyId = policyRequireText_(
       request.policyId,
@@ -245,7 +245,7 @@ function apiPolicyRestore(payload) {
 
     return policyGetService_().restore(
       policyId,
-      request.actor,
+      actor,
       request.expectedVersion
     );
   });
@@ -474,13 +474,16 @@ function policyValidateOptionalDate_(value, field, label) {
 
 /** Standard API response wrapper. */
 function policyApiExecute_(operation, callback) {
-  var requestId = Utilities.getUuid();
   var startedAt = new Date().getTime();
-  var logger = policyCreateLogger_(requestId, operation);
+  var requestId = '';
+  var logger = null;
 
   try {
-    JSKOS.AccessControl.requireModuleOperation('policies', operation);
-    var result = callback();
+    var authority = JSKOS.LegacyMutationAuthority.requireUser('policies', operation);
+    requirePolicySchema_();
+    requestId = Utilities.getUuid();
+    logger = policyCreateLogger_(requestId, operation);
+    var result = callback(JSKOS.LegacyMutationAuthority.actor(authority), authority);
     var durationMs = new Date().getTime() - startedAt;
 
     if (logger) {
@@ -583,7 +586,10 @@ function policyFormatError_(error) {
     VALIDATION_ERROR: true,
     POLICY_NOT_FOUND: true,
     DUPLICATE_POLICY: true,
-    VERSION_CONFLICT: true
+    VERSION_CONFLICT: true,
+    UNAUTHORIZED: true,
+    FORBIDDEN: true,
+    MIGRATION_REQUIRED: true
   };
   var isKnown = Boolean(knownCodes[code]);
 

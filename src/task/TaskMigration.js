@@ -16,6 +16,12 @@ var JSK_TASK_SCHEMA = Object.freeze({
 });
 
 function migrateTaskDatabase() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('tasks.migrate');
+  return migrateTaskDatabase_(authority);
+}
+
+function migrateTaskDatabase_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
@@ -98,9 +104,22 @@ function setTaskValidation_(sheet, headers, header, values, rows) {
 }
 
 function ensureBuild1004Tasks() {
-  var version = Number(PropertiesService.getScriptProperties()
-    .getProperty(JSK_TASK_SCHEMA.PROPERTY_KEY)) || 0;
-  return version < JSK_TASK_SCHEMA.VERSION
-    ? migrateTaskDatabase()
-    : { success: true, created: false, schemaVersion: JSK_TASK_SCHEMA.VERSION };
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('tasks.ensure');
+  try {
+    requireBuild1004Tasks_();
+    return { success: true, created: false, schemaVersion: JSK_TASK_SCHEMA.VERSION };
+  } catch (error) {
+    if (error && error.code === 'MIGRATION_REQUIRED') return migrateTaskDatabase_(authority);
+    throw error;
+  }
+}
+
+function requireBuild1004Tasks_() {
+  return JSKOS.LegacyMutationAuthority.requireSchema({
+    moduleName: 'Task',
+    sheetName: JSK_TASK_SCHEMA.SHEET_NAME,
+    headers: JSK_TASK_SCHEMA.HEADERS,
+    propertyKey: JSK_TASK_SCHEMA.PROPERTY_KEY,
+    version: JSK_TASK_SCHEMA.VERSION
+  });
 }

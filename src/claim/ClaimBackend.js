@@ -5,7 +5,7 @@ function claimApiExecute_(operation, callback) {
   catch (error) { console.error('Claim API ' + operation + ' failed: ' + (error.stack || error)); return { success: false, data: null, error: { name: error.name || 'Error', message: error.message || String(error), code: error.code || '', details: error.currentVersion ? { currentVersion: error.currentVersion } : {} } }; }
 }
 function claimRequest_(payload) { return payload && typeof payload === 'object' ? payload : {}; }
-function claimRepository_() { ensureBuild1007Claims(); return new ClaimRepository(); }
+function claimRepository_() { if (typeof requireBuild1007Claims_ === 'function') requireBuild1007Claims_(); else ensureBuild1007Claims(); return new ClaimRepository(); }
 function claimServerActor_(context) { var actor = String(context && context.email || '').trim().toLowerCase(); if (!/^[a-z0-9._%+\-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(actor)) throw new Error('Authenticated Claim actor is unavailable.'); return actor; }
 function apiClaimCreate(payload) { return claimApiExecute_('create', function (context) { var r = claimRequest_(payload); return claimRepository_().create(r.data || {}, claimServerActor_(context)); }); }
 function apiClaimGet(payload) { return claimApiExecute_('get', function () { var r = claimRequest_(payload), item = claimRepository_().findById(r.claimId, false); if (!item) throw new Error('Claim not found.'); return item; }); }

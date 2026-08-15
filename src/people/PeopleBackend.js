@@ -47,8 +47,8 @@ class PeopleService {
    * @param {string=} actor Actor.
    * @return {Object}
    */
-  update(personId, payload, actor) {
-    return this.repository.update(personId, payload, actor);
+  update(personId, payload, actor, expectedVersion) {
+    return this.repository.update(personId, payload, actor, expectedVersion);
   }
 
   /**
@@ -56,8 +56,8 @@ class PeopleService {
    * @param {string=} actor Actor.
    * @return {Object}
    */
-  archive(personId, actor) {
-    return this.repository.archive(personId, actor);
+  archive(personId, actor, expectedVersion) {
+    return this.repository.archive(personId, actor, expectedVersion);
   }
 
   /**
@@ -65,8 +65,8 @@ class PeopleService {
    * @param {string=} actor Actor.
    * @return {Object}
    */
-  restore(personId, actor) {
-    return this.repository.restore(personId, actor);
+  restore(personId, actor, expectedVersion) {
+    return this.repository.restore(personId, actor, expectedVersion);
   }
 
   /**
@@ -111,12 +111,12 @@ class PeopleService {
  * @return {Object}
  */
 function apiPeopleCreate(payload) {
-  return peopleApiExecute_('create', function () {
+  return peopleApiExecute_('create', function (actor) {
     var request = peopleNormalizeRequest_(payload);
 
     return new PeopleService().create(
       request.data || {},
-      request.actor
+      actor
     );
   });
 }
@@ -148,7 +148,7 @@ function apiPeopleGet(payload) {
  * @return {Object}
  */
 function apiPeopleUpdate(payload) {
-  return peopleApiExecute_('update', function () {
+  return peopleApiExecute_('update', function (actor) {
     var request = peopleNormalizeRequest_(payload);
 
     peopleRequireText_(
@@ -160,7 +160,8 @@ function apiPeopleUpdate(payload) {
     return new PeopleService().update(
       request.personId,
       request.data || {},
-      request.actor
+      actor,
+      peopleExpectedVersion_(request.expectedVersion)
     );
   });
 }
@@ -172,7 +173,7 @@ function apiPeopleUpdate(payload) {
  * @return {Object}
  */
 function apiPeopleArchive(payload) {
-  return peopleApiExecute_('archive', function () {
+  return peopleApiExecute_('archive', function (actor) {
     var request = peopleNormalizeRequest_(payload);
 
     peopleRequireText_(
@@ -183,7 +184,8 @@ function apiPeopleArchive(payload) {
 
     return new PeopleService().archive(
       request.personId,
-      request.actor
+      actor,
+      peopleExpectedVersion_(request.expectedVersion)
     );
   });
 }
@@ -195,7 +197,7 @@ function apiPeopleArchive(payload) {
  * @return {Object}
  */
 function apiPeopleRestore(payload) {
-  return peopleApiExecute_('restore', function () {
+  return peopleApiExecute_('restore', function (actor) {
     var request = peopleNormalizeRequest_(payload);
 
     peopleRequireText_(
@@ -206,7 +208,8 @@ function apiPeopleRestore(payload) {
 
     return new PeopleService().restore(
       request.personId,
-      request.actor
+      actor,
+      peopleExpectedVersion_(request.expectedVersion)
     );
   });
 }
@@ -369,13 +372,15 @@ function peopleRequireText_(value, field, message) {
  * @return {Object}
  */
 function peopleApiExecute_(operation, callback) {
-  var requestId = Utilities.getUuid();
+  var requestId = '';
 
   try {
-    JSKOS.AccessControl.requireModuleOperation('people', operation);
+    var authority = JSKOS.LegacyMutationAuthority.requireUser('people', operation);
+    requirePeopleSchema_();
+    requestId = Utilities.getUuid();
     return {
       success: true,
-      data: callback(),
+      data: callback(JSKOS.LegacyMutationAuthority.actor(authority), authority),
       error: null,
       meta: {
         requestId: requestId,
@@ -405,6 +410,18 @@ function peopleApiExecute_(operation, callback) {
       }
     };
   }
+}
+
+function peopleExpectedVersion_(value) {
+  var number = Number(value);
+  if (value === '' || value === null || value === undefined ||
+      !isFinite(number) || number <= 0 || Math.floor(number) !== number) {
+    var error = new Error('A finite positive integer expectedVersion is required.');
+    error.code = 'VALIDATION_ERROR';
+    error.status = 400;
+    throw error;
+  }
+  return number;
 }
 
 /**
@@ -437,6 +454,11 @@ function peopleFormatError_(error) {
     duplicatePersonId:
       error && error.duplicatePersonId
         ? error.duplicatePersonId
+        : null,
+
+    currentVersion:
+      error && error.currentVersion !== undefined
+        ? error.currentVersion
         : null
   };
 }

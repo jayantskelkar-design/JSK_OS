@@ -11,7 +11,8 @@ JSKOS.TaskNotifications = (function () {
   var FALLBACK_RECIPIENTS_KEY = 'JSK_OS_RENEWAL_DASHBOARD_RECIPIENTS';
   var LOG_SHEET = 'Task_Notification_Log';
 
-  function sendDaily(tasks, referenceDate) {
+  function sendDaily(tasks, referenceDate, authority) {
+    JSKOS.LegacyMutationAuthority.assertMutation(authority);
     var properties = PropertiesService.getScriptProperties();
     var admin = String(properties.getProperty(RECIPIENTS_KEY) || properties.getProperty(FALLBACK_RECIPIENTS_KEY) || '').trim();
     var ownerEmails = parseOwnerEmails_(properties.getProperty(OWNER_EMAILS_KEY));
@@ -143,6 +144,9 @@ JSKOS.TaskNotifications = (function () {
 })();
 
 function runDailyTaskNotifications() {
-  ensureBuild1004Tasks();
-  return JSKOS.TaskNotifications.sendDaily(new TaskRepository().search({}).items || [], new Date());
+  var authority=JSKOS.LegacyMutationAuthority.requireAdmin('tasks.notifications');
+  return runDailyTaskNotificationsWithAuthority_(authority);
 }
+
+function runDailyTaskNotifications_() { return legacyRunTrustedSystem_('TASK_NOTIFICATIONS',runDailyTaskNotificationsWithAuthority_); }
+function runDailyTaskNotificationsWithAuthority_(authority) { JSKOS.LegacyMutationAuthority.assertMutation(authority);requireBuild1004Tasks_();return JSKOS.TaskNotifications.sendDaily(new TaskRepository().search({}).items||[],new Date(),authority); }

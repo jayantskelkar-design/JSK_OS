@@ -1,6 +1,7 @@
 /** JSK OS production release operations. */
 
 function createJSKOSProductionBackup() {
+  JSKOS.LegacyMutationAuthority.requireAdmin('release.backup');
   var spreadsheet = JSKOS.ConfigService.getSpreadsheet();
   var sourceFile = DriveApp.getFileById(spreadsheet.getId());
   var folders = DriveApp.getFoldersByName('JSK OS Backups');
@@ -28,6 +29,7 @@ function createJSKOSProductionBackup() {
 }
 
 function getJSKOSReleaseReadinessStatus() {
+  JSKOS.LegacyMutationAuthority.requireAdmin('release.readiness');
   var triggerAudit = auditAutomationTriggers();
   var version = JSKOS.Config.APP.VERSION;
   return {

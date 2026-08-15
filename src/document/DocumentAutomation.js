@@ -25,8 +25,10 @@ JSKOS.DocumentAutomation = (function () {
     return result;
   }
 
-  function runDaily(referenceDate) {
-    ensureBuild1008Documents();
+  function runDaily(referenceDate, authority) {
+    JSKOS.LegacyMutationAuthority.assertMutation(authority);
+    requireBuild1008Documents_();
+    var actor = JSKOS.LegacyMutationAuthority.actor(authority);
     var repository = new DocumentRepository();
     var items = repository.search({}).items || [];
     var summary = summarize(items, referenceDate || new Date());
@@ -34,7 +36,7 @@ JSKOS.DocumentAutomation = (function () {
     items.forEach(function (item) {
       var expiry = startOfDay_(item.expiryDate);
       if (!expiry || expiry >= startOfDay_(referenceDate || new Date()) || item.status === 'Expired') return;
-      try { repository.update(item.documentId, { status: 'Expired' }, 'Document Expiry Automation', item.recordVersion); updated += 1; }
+      try { repository.update(item.documentId, { status: 'Expired' }, actor, item.recordVersion); updated += 1; }
       catch (error) { console.error('Document expiry update failed: ' + (error.stack || error)); }
     });
     return { summary: summary, statusesUpdated: updated, emailSent: sendDigest_(summary) };
@@ -55,10 +57,12 @@ JSKOS.DocumentAutomation = (function () {
   return { summarize: summarize, runDaily: runDaily };
 })();
 
-function runDailyDocumentExpiryAutomation() { return JSKOS.DocumentAutomation.runDaily(new Date()); }
+function runDailyDocumentExpiryAutomation() { var authority=JSKOS.LegacyMutationAuthority.requireAdmin('documents.automation');return JSKOS.DocumentAutomation.runDaily(new Date(),authority); }
+function runDailyDocumentExpiryAutomation_() { return legacyRunTrustedSystem_('DOCUMENT_EXPIRY_AUTOMATION',function(authority){return JSKOS.DocumentAutomation.runDaily(new Date(),authority);}); }
 
 function installDocumentExpiryTrigger() {
-  var handler = 'runDailyDocumentExpiryAutomation';
+  JSKOS.LegacyMutationAuthority.requireAdmin('documents.install-trigger');
+  var handler = 'runDailyDocumentExpiryAutomation_';
   ScriptApp.getProjectTriggers().forEach(function (trigger) { if (trigger.getHandlerFunction() === handler) ScriptApp.deleteTrigger(trigger); });
   var trigger = ScriptApp.newTrigger(handler).timeBased().everyDays(1).atHour(8).create();
   return { success: true, handler: handler, triggerId: trigger.getUniqueId() };
