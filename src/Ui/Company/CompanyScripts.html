@@ -654,6 +654,7 @@ console.log("typeof =", typeof companyId);
         .then(function (response) {
           assertSuccessfulResponse(response);
 
+          setSaveButtonLoading(false);
           closeCompanyModal();
 
           showToast(
