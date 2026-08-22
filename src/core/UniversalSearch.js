@@ -12,6 +12,20 @@
  */
 function apiUniversalSearch(payload) {
   try {
+    // Universal search spans both legacy repositories.  Establish the
+    // authenticated read boundary and prove both schemas ready before even
+    // interpreting caller-controlled input (including the short-query path).
+    JSKOS.LegacyMutationAuthority.requireUser(
+      'companies',
+      'search'
+    );
+    JSKOS.LegacyMutationAuthority.requireUser(
+      'people',
+      'search'
+    );
+    requireCompanySchema_();
+    requirePeopleSchema_();
+
     var request = normalizeUniversalSearchRequest_(payload);
     var query = String(request.query || '').trim();
 
@@ -86,11 +100,18 @@ function apiUniversalSearch(payload) {
       success: false,
       data: null,
       error: {
-        code: 'UNIVERSAL_SEARCH_ERROR',
+        code:
+          error && error.code
+            ? error.code
+            : 'UNIVERSAL_SEARCH_ERROR',
         message:
           error && error.message
             ? error.message
-            : 'Universal search failed.'
+            : 'Universal search failed.',
+        details:
+          error && error.details
+            ? error.details
+            : null
       },
       meta: {
         version: '0.9.3',

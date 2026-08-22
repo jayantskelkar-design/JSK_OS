@@ -128,6 +128,10 @@ function reportExecutiveSummaryTrusted_() {
   var today = day_(new Date());
   var endorsements = items_(new EndorsementRepository());
   var documents = items_(new DocumentRepository());
+  var documentExpiry = JSKOS.DocumentAutomation.summarize(
+    documents,
+    today
+  );
   var quotes = items_(new QuoteRepository());
   var revenues = items_(new RevenueRepository({ readOnly: true }));
   var openEndorsements = endorsements.filter(function (item) {
@@ -167,7 +171,7 @@ function reportExecutiveSummaryTrusted_() {
     },
     servicing: {
       documents: documents.length,
-      documentsExpired: documents.filter(function (item) { return item.status === 'Expired'; }).length,
+      documentsExpired: Number(documentExpiry.expired || 0),
       endorsementsOverdue: overdueEndorsements.length,
       quotesExpiring7Days: expiringQuotes.length
     },
