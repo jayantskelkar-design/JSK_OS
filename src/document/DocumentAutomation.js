@@ -63,7 +63,18 @@ function runDailyDocumentExpiryAutomation_() { return legacyRunTrustedSystem_('D
 function installDocumentExpiryTrigger() {
   JSKOS.LegacyMutationAuthority.requireAdmin('documents.install-trigger');
   var handler = 'runDailyDocumentExpiryAutomation_';
-  ScriptApp.getProjectTriggers().forEach(function (trigger) { if (trigger.getHandlerFunction() === handler) ScriptApp.deleteTrigger(trigger); });
-  var trigger = ScriptApp.newTrigger(handler).timeBased().everyDays(1).atHour(8).create();
-  return { success: true, handler: handler, triggerId: trigger.getUniqueId() };
+  var legacyHandler = 'runDailyDocumentExpiryAutomation';
+  var retained = null;
+  var removed = [];
+  ScriptApp.getProjectTriggers().forEach(function (trigger) {
+    var current = trigger.getHandlerFunction();
+    if (current === legacyHandler || (current === handler && retained)) {
+      ScriptApp.deleteTrigger(trigger);
+      removed.push(current);
+    } else if (current === handler) {
+      retained = trigger;
+    }
+  });
+  var trigger = retained || ScriptApp.newTrigger(handler).timeBased().everyDays(1).atHour(8).create();
+  return { success: true, handler: handler, triggerId: trigger.getUniqueId(), created: !retained, removedHandlers: removed };
 }

@@ -1,12 +1,12 @@
 /** JSK OS production automation trigger audit and repair utilities. */
 var JSK_AUTOMATION_TRIGGERS = Object.freeze([
-  { handler: 'runDailyRenewalAutomation_', schedule: 'Daily renewal automation' },
-  { handler: 'runDailyDocumentExpiryAutomation_', schedule: 'Daily document expiry' },
-  { handler: 'runDailyEndorsementAutomation_', schedule: 'Daily endorsement SLA' },
-  { handler: 'runDailyQuoteAutomation_', schedule: 'Daily quote expiry' },
-  { handler: 'runDailyRevenueAutomation_', schedule: 'Daily revenue collection' },
-  { handler: 'sendExecutiveReportEmailTrusted_', schedule: 'Daily executive report' },
-  { handler: 'runWaLeadCommunicationAutomation_', schedule: 'WA Lead outbox' }
+  { handler: 'runDailyRenewalAutomation_', legacyHandlers: ['runDailyRenewalAutomation'], schedule: 'Daily renewal automation' },
+  { handler: 'runDailyDocumentExpiryAutomation_', legacyHandlers: ['runDailyDocumentExpiryAutomation'], schedule: 'Daily document expiry' },
+  { handler: 'runDailyEndorsementAutomation_', legacyHandlers: ['runDailyEndorsementAutomation'], schedule: 'Daily endorsement SLA' },
+  { handler: 'runDailyQuoteAutomation_', legacyHandlers: ['runDailyQuoteAutomation'], schedule: 'Daily quote expiry' },
+  { handler: 'runDailyRevenueAutomation_', legacyHandlers: ['runDailyRevenueAutomation'], schedule: 'Daily revenue collection' },
+  { handler: 'sendExecutiveReportEmailTrusted_', legacyHandlers: ['sendExecutiveReportEmail', 'sendExecutiveReportEmail_'], schedule: 'Daily executive report' },
+  { handler: 'runWaLeadCommunicationAutomation_', legacyHandlers: ['runWaLeadCommunicationAutomation'], schedule: 'WA Lead outbox' }
 ]);
 
 function auditAutomationTriggers() {
@@ -18,22 +18,29 @@ function auditAutomationTriggers() {
   });
   var items = JSK_AUTOMATION_TRIGGERS.map(function (definition) {
     var count = counts[definition.handler] || 0;
+    var legacy = (definition.legacyHandlers || []).reduce(function (total, handler) {
+      return total + (counts[handler] || 0);
+    }, 0);
     return {
       handler: definition.handler,
       schedule: definition.schedule,
       count: count,
       installed: count === 1,
-      duplicate: count > 1
+      duplicate: count > 1,
+      legacyCount: legacy,
+      legacyHandlers: (definition.legacyHandlers || []).filter(function (handler) { return counts[handler]; })
     };
   });
   var result = {
-    success: items.every(function (item) { return item.installed; }),
+    success: items.every(function (item) { return item.installed && item.legacyCount === 0; }),
     expected: items.length,
     installed: items.filter(function (item) { return item.installed; }).length,
     missing: items.filter(function (item) { return item.count === 0; })
       .map(function (item) { return item.handler; }),
     duplicates: items.filter(function (item) { return item.duplicate; })
       .map(function (item) { return item.handler; }),
+    legacy: items.filter(function (item) { return item.legacyCount > 0; })
+      .reduce(function (handlers, item) { return handlers.concat(item.legacyHandlers); }, []),
     items: items,
     generatedAt: new Date().toISOString()
   };
@@ -43,11 +50,6 @@ function auditAutomationTriggers() {
 
 function installAllAutomationTriggers() {
   JSKOS.LegacyMutationAuthority.requireAdmin('automation.install-all');
-  ScriptApp.getProjectTriggers().forEach(function (trigger) {
-    if (trigger.getHandlerFunction() === 'runWaLeadCommunicationAutomation_') {
-      ScriptApp.deleteTrigger(trigger);
-    }
-  });
   var results = [
     { name: 'Renewals', result: installDailyRenewalAutomation() },
     { name: 'Documents', result: installDocumentExpiryTrigger() },

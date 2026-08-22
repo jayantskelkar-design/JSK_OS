@@ -222,17 +222,25 @@ JSKOS.RenewalAutomation = (function () {
 
   /** @private */
   function findDailyTrigger_() {
-    var matches = ScriptApp.getProjectTriggers().filter(function (trigger) {
-      return trigger.getHandlerFunction() === 'runDailyRenewalAutomation';
+    var retained = null;
+    ScriptApp.getProjectTriggers().forEach(function (trigger) {
+      var handler = trigger.getHandlerFunction();
+      if (handler === 'runDailyRenewalAutomation' ||
+          (handler === 'runDailyRenewalAutomation_' && retained)) {
+        ScriptApp.deleteTrigger(trigger);
+      } else if (handler === 'runDailyRenewalAutomation_') {
+        retained = trigger;
+      }
     });
-    return matches.length ? matches[0] : null;
+    return retained;
   }
 
   function removeDailyTriggers() {
     JSKOS.LegacyMutationAuthority.requireAdmin('renewal.remove-trigger');
     var removed = 0;
     ScriptApp.getProjectTriggers().forEach(function (trigger) {
-      if (trigger.getHandlerFunction() === 'runDailyRenewalAutomation_') {
+      if (trigger.getHandlerFunction() === 'runDailyRenewalAutomation_' ||
+          trigger.getHandlerFunction() === 'runDailyRenewalAutomation') {
         ScriptApp.deleteTrigger(trigger);
         removed += 1;
       }

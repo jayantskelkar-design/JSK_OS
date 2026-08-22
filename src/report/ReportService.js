@@ -60,40 +60,124 @@ function reportTotal_(response, moduleName) {
  * @return {Object}
  */
 function apiReportExecutiveSummary() {
-  return reportApi_(function () {
-    var revenue = reportData_(apiRevenueSummary(), 'Revenue');
-    var endorsements = reportData_(apiEndorsementSummary(), 'Endorsement');
-    var documentExpiry = reportData_(
-      apiDocumentExpirySummary(),
-      'Document'
-    );
-    var quoteExpiry = reportData_(apiQuoteExpirySummary(), 'Quote');
+  return reportApi_(reportExecutiveSummaryFromApis_);
+}
 
-    return {
-      clients: {
-        companies: reportTotal_(apiCompanySearch({ pageSize: 1 }), 'Company'),
-        people: reportTotal_(apiPeopleSearch({ pageSize: 1 }), 'People')
-      },
-      business: {
-        policies: reportTotal_(apiPolicySearch({ pageSize: 1 }), 'Policy'),
-        claims: reportTotal_(apiClaimSearch({ pageSize: 1 }), 'Claim'),
-        quotes: reportTotal_(apiQuoteSearch({}), 'Quote'),
-        endorsementsOpen: Number(endorsements.totalOpen || 0)
-      },
-      servicing: {
-        documents: reportTotal_(apiDocumentSearch({}), 'Document'),
-        documentsExpired: Number(documentExpiry.expired || 0),
-        endorsementsOverdue: Number(endorsements.overdue || 0),
-        quotesExpiring7Days: Number(quoteExpiry.due7 || 0)
-      },
-      finance: {
-        expected: Number(revenue.expected || 0),
-        received: Number(revenue.received || 0),
-        outstanding: Number(revenue.outstanding || 0),
-        overdue: Number(revenue.overdue || 0)
-      }
-    };
+function reportExecutiveSummaryFromApis_() {
+  var revenue = reportData_(apiRevenueSummary(), 'Revenue');
+  var endorsements = reportData_(apiEndorsementSummary(), 'Endorsement');
+  var documentExpiry = reportData_(apiDocumentExpirySummary(), 'Document');
+  var quoteExpiry = reportData_(apiQuoteExpirySummary(), 'Quote');
+  return {
+    clients: {
+      companies: reportTotal_(apiCompanySearch({ pageSize: 1 }), 'Company'),
+      people: reportTotal_(apiPeopleSearch({ pageSize: 1 }), 'People')
+    },
+    business: {
+      policies: reportTotal_(apiPolicySearch({ pageSize: 1 }), 'Policy'),
+      claims: reportTotal_(apiClaimSearch({ pageSize: 1 }), 'Claim'),
+      quotes: reportTotal_(apiQuoteSearch({}), 'Quote'),
+      endorsementsOpen: Number(endorsements.totalOpen || 0)
+    },
+    servicing: {
+      documents: reportTotal_(apiDocumentSearch({}), 'Document'),
+      documentsExpired: Number(documentExpiry.expired || 0),
+      endorsementsOverdue: Number(endorsements.overdue || 0),
+      quotesExpiring7Days: Number(quoteExpiry.due7 || 0)
+    },
+    finance: {
+      expected: Number(revenue.expected || 0),
+      received: Number(revenue.received || 0),
+      outstanding: Number(revenue.outstanding || 0),
+      overdue: Number(revenue.overdue || 0)
+    }
+  };
+}
+
+function reportExecutiveSummaryTrusted_() {
+  requireCompanySchema_();
+  requirePeopleSchema_();
+  requirePolicySchema_();
+  requireBuild1007Claims_();
+  requireBuild1008Documents_();
+  requireBuild1009Endorsements_();
+  requireBuild1010Quotes_();
+  requireBuild1011Revenue_();
+
+  function items_(repository, criteria) {
+    var result = repository.search(criteria || {});
+    return result && Array.isArray(result.items) ? result.items : [];
+  }
+  function count_(repository) {
+    var result = repository.search({ page: 1, pageSize: 1 });
+    if (result && typeof result.total === 'number') return result.total;
+    if (result && typeof result.totalItems === 'number') return result.totalItems;
+    if (result && result.pagination && typeof result.pagination.totalItems === 'number') {
+      return result.pagination.totalItems;
+    }
+    return result && Array.isArray(result.items) ? result.items.length : 0;
+  }
+  function day_(value) {
+    if (!value) return null;
+    var date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+    if (isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }
+
+  var today = day_(new Date());
+  var endorsements = items_(new EndorsementRepository());
+  var documents = items_(new DocumentRepository());
+  var quotes = items_(new QuoteRepository());
+  var revenues = items_(new RevenueRepository({ readOnly: true }));
+  var openEndorsements = endorsements.filter(function (item) {
+    return ['Completed', 'Rejected', 'Cancelled'].indexOf(item.status) === -1;
   });
+  var overdueEndorsements = openEndorsements.filter(function (item) {
+    var due = day_(item.nextActionDate || item.slaDueDate);
+    return due && due < today;
+  });
+  var expiringQuotes = quotes.filter(function (item) {
+    var expiry = day_(item.expiryDate);
+    if (!expiry || ['Converted', 'Rejected'].indexOf(item.status) !== -1) return false;
+    var days = Math.floor((expiry.getTime() - today.getTime()) / 86400000);
+    return days >= 0 && days <= 7;
+  });
+  var expected = 0;
+  var received = 0;
+  var outstanding = 0;
+  var overdue = 0;
+  revenues.forEach(function (item) {
+    expected += Number(item.netReceivable || 0);
+    received += Number(item.amountReceived || 0);
+    outstanding += Number(item.outstandingAmount || 0);
+    if (item.paymentStatus === 'Overdue') overdue += 1;
+  });
+
+  return {
+    clients: {
+      companies: count_(new CompanyRepository()),
+      people: count_(new PeopleRepository())
+    },
+    business: {
+      policies: count_(new PolicyRepository()),
+      claims: count_(new ClaimRepository()),
+      quotes: quotes.length,
+      endorsementsOpen: openEndorsements.length
+    },
+    servicing: {
+      documents: documents.length,
+      documentsExpired: documents.filter(function (item) { return item.status === 'Expired'; }).length,
+      endorsementsOverdue: overdueEndorsements.length,
+      quotesExpiring7Days: expiringQuotes.length
+    },
+    finance: {
+      expected: expected,
+      received: received,
+      outstanding: outstanding,
+      overdue: overdue
+    }
+  };
 }
 
 function getReportFilters() {

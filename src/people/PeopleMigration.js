@@ -11,6 +11,7 @@
 
 var JSK_PEOPLE_SCHEMA = Object.freeze({
   VERSION: 1,
+  PROPERTY_KEY: 'JSK_OS_PEOPLE_SCHEMA_VERSION',
   SHEET_NAME: 'People',
   AUDIT_SHEET_NAME: 'Audit_Log',
   HEADER_ROW: 1,
@@ -693,7 +694,7 @@ function savePeopleSchemaVersion_() {
   PropertiesService
     .getScriptProperties()
     .setProperty(
-      'JSK_OS_PEOPLE_SCHEMA_VERSION',
+      JSK_PEOPLE_SCHEMA.PROPERTY_KEY,
       String(JSK_PEOPLE_SCHEMA.VERSION)
     );
 }
@@ -742,7 +743,7 @@ function testPeopleDatabaseMigration() {
 
   var storedVersion = PropertiesService
     .getScriptProperties()
-    .getProperty('JSK_OS_PEOPLE_SCHEMA_VERSION');
+    .getProperty(JSK_PEOPLE_SCHEMA.PROPERTY_KEY);
 
   assertPeopleMigration_(
     Number(storedVersion) ===
@@ -788,6 +789,8 @@ function requirePeopleSchema_() {
     moduleName: 'People',
     sheetName: JSK_PEOPLE_CONFIG.SHEET_NAME,
     headers: headers,
-    headerScanLimit: JSK_PEOPLE_CONFIG.HEADER_SCAN_LIMIT
+    headerScanLimit: JSK_PEOPLE_CONFIG.HEADER_SCAN_LIMIT,
+    propertyKey: JSK_PEOPLE_SCHEMA.PROPERTY_KEY,
+    version: JSK_PEOPLE_SCHEMA.VERSION
   });
 }

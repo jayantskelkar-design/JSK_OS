@@ -60,9 +60,18 @@ function runDailyRevenueAutomationWithAuthority_(authority) {
 function installRevenueAutomationTrigger() {
   JSKOS.LegacyMutationAuthority.requireAdmin('revenue.install-trigger');
   var handler = 'runDailyRevenueAutomation_';
+  var legacyHandler = 'runDailyRevenueAutomation';
+  var retained = null;
+  var removed = [];
   ScriptApp.getProjectTriggers().forEach(function (trigger) {
-    if (trigger.getHandlerFunction() === handler) ScriptApp.deleteTrigger(trigger);
+    var current = trigger.getHandlerFunction();
+    if (current === legacyHandler || (current === handler && retained)) {
+      ScriptApp.deleteTrigger(trigger);
+      removed.push(current);
+    } else if (current === handler) {
+      retained = trigger;
+    }
   });
-  var trigger = ScriptApp.newTrigger(handler).timeBased().everyDays(1).atHour(11).create();
-  return { success: true, triggerId: trigger.getUniqueId() };
+  var trigger = retained || ScriptApp.newTrigger(handler).timeBased().everyDays(1).atHour(11).create();
+  return { success: true, triggerId: trigger.getUniqueId(), created: !retained, removedHandlers: removed };
 }

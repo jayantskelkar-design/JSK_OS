@@ -2,8 +2,9 @@
 
 class DocumentRepository {
   constructor() {
-    ensureBuild1008Documents();
-    this.sheet = JSKOS.ConfigService.getSpreadsheet().getSheetByName(JSK_DOCUMENT_SCHEMA.SHEET_NAME);
+    requireBuild1008Documents_();
+    this.spreadsheet = JSKOS.ConfigService.getSpreadsheet();
+    this.sheet = this.spreadsheet.getSheetByName(JSK_DOCUMENT_SCHEMA.SHEET_NAME);
     this.headers = this.sheet.getRange(1, 1, 1, this.sheet.getLastColumn()).getDisplayValues()[0];
   }
 
@@ -25,6 +26,7 @@ class DocumentRepository {
     this.validate_(item);
     this.sheet.appendRow(this.toRow_(item));
     SpreadsheetApp.flush();
+    this._writeAuditLog('CREATE', item.documentId, item.createdBy, null, item);
     return this.findById(item.documentId, true);
     } finally {
       lock.releaseLock();
@@ -63,6 +65,7 @@ class DocumentRepository {
     this.validate_(item);
     this.sheet.getRange(index, 1, 1, this.headers.length).setValues([this.toRow_(item)]);
     SpreadsheetApp.flush();
+    this._writeAuditLog('UPDATE', documentId, item.updatedBy, current, item);
     return this.findById(documentId, true);
     } finally {
       lock.releaseLock();
@@ -81,6 +84,7 @@ class DocumentRepository {
       if (!index) throw new Error('Document not found.');
       var item = this.fromRow_(this.sheet.getRange(index, 1, 1, this.headers.length).getValues()[0]);
       if (!item.isDeleted) return item;
+      var current = Object.assign({}, item);
       if (expectedVersion !== undefined && Number(expectedVersion) !== Number(item.recordVersion)) {
         var conflict = new Error('Document was modified by another user.');
         conflict.code = 'VERSION_CONFLICT'; conflict.currentVersion = item.recordVersion; throw conflict;
@@ -93,6 +97,7 @@ class DocumentRepository {
       this.validate_(item);
       this.sheet.getRange(index, 1, 1, this.headers.length).setValues([this.toRow_(item)]);
       SpreadsheetApp.flush();
+      this._writeAuditLog('RESTORE', documentId, item.updatedBy, current, item);
       return this.findById(documentId, true);
     } finally { lock.releaseLock(); }
   }
@@ -118,6 +123,16 @@ class DocumentRepository {
     });
     items.sort(function (a, b) { return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0); });
     return { items: items, total: items.length };
+  }
+
+  _writeAuditLog(action, entityId, actor, beforeData, afterData) {
+    var audit = this.spreadsheet.getSheetByName('Audit_Log');
+    if (!audit) {
+      audit = this.spreadsheet.insertSheet('Audit_Log');
+      audit.getRange(1, 1, 1, 8).setValues([['Audit ID', 'Timestamp', 'Entity Type', 'Entity ID', 'Action', 'Actor', 'Before Data', 'After Data']]);
+      audit.setFrozenRows(1);
+    }
+    audit.appendRow(['AUD-' + Utilities.getUuid().toUpperCase(), new Date(), 'Document', String(entityId), String(action), String(actor), beforeData ? JSON.stringify(beforeData) : '', afterData ? JSON.stringify(afterData) : '']);
   }
 
   validate_(item) {

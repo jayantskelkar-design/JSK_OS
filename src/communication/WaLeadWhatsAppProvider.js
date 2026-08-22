@@ -137,14 +137,23 @@ function runWaLeadCommunicationAutomation_() { return legacyRunTrustedSystem_('W
 function ensureWaLeadCommunicationAutomation() {
   JSKOS.LegacyMutationAuthority.requireAdmin('communications.install-trigger');
   var handler = 'runWaLeadCommunicationAutomation_';
-  var triggers = ScriptApp.getProjectTriggers().filter(function (trigger) {
-    return trigger.getHandlerFunction() === handler;
+  var legacyHandler = 'runWaLeadCommunicationAutomation';
+  var retained = null;
+  var removed = [];
+  ScriptApp.getProjectTriggers().forEach(function (trigger) {
+    var current = trigger.getHandlerFunction();
+    if (current === legacyHandler || (current === handler && retained)) {
+      ScriptApp.deleteTrigger(trigger);
+      removed.push(current);
+    } else if (current === handler) {
+      retained = trigger;
+    }
   });
-  if (!triggers.length) {
-    ScriptApp.newTrigger(handler).timeBased().everyMinutes(5).create();
-  }
+  var created = false;
+  if (!retained) { retained = ScriptApp.newTrigger(handler).timeBased().everyMinutes(5).create(); created = true; }
   var report = { success: true, handler: handler, intervalMinutes: 5,
-    existingTriggerCount: triggers.length, created: triggers.length === 0 };
+    existingTriggerCount: 1, created: created,
+    removedHandlers: removed, triggerId: retained.getUniqueId() };
   console.info(JSON.stringify(report));
   return report;
 }
