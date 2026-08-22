@@ -376,7 +376,7 @@ class CompanyRepository {
    * @param {string} actor
    * @return {Object}
    */
-  restore(companyId, actor) {
+  restore(companyId, actor, expectedVersion) {
     var repository = this;
     var lock = LockService.getDocumentLock();
 
@@ -396,6 +396,14 @@ class CompanyRepository {
       }
 
       var existingRecord = repository._readRecordAtRow(rowNumber);
+      var currentVersion = Number(existingRecord['Record Version']) || 1;
+
+      if (Number(expectedVersion) !== currentVersion) {
+        throw new CompanyConflictError(
+          'Company was modified by another user.',
+          currentVersion
+        );
+      }
 
       if (!repository._toBoolean(existingRecord['Is Deleted'])) {
         return repository._formatRecord(existingRecord, rowNumber);
@@ -411,7 +419,7 @@ class CompanyRepository {
       restoredRecord['Updated By'] =
         repository._normalizeActor(actor);
       restoredRecord['Record Version'] =
-        (Number(existingRecord['Record Version']) || 1) + 1;
+        currentVersion + 1;
 
       repository.sheet
         .getRange(rowNumber, 1, 1, repository.headers.length)

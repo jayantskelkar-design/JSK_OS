@@ -14,6 +14,7 @@ communication/MetaWhatsAppProviderTest.js
 communication/WaLeadWhatsAppProviderTest.js
 core/AccessControlTest.js
 core/Build1022SecurityTest.js
+core/Build1025SecurityTest.js
 core/BuildReleaseSuites.js
 core/ClientActionTest.js
 core/ClientContextTest.js

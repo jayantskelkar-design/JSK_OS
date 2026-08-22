@@ -189,6 +189,12 @@ var JSK_POLICY_SCHEMA = Object.freeze({
  * @return {Object} Migration result.
  */
 function migratePolicyDatabase() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('policies.migrate');
+  return migratePolicyDatabase_(authority);
+}
+
+function migratePolicyDatabase_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   var lock = LockService.getScriptLock();
 
   lock.waitLock(getPolicyMigrationLockTimeout_());
@@ -255,6 +261,17 @@ function migratePolicyDatabase() {
   } finally {
     lock.releaseLock();
   }
+}
+
+function requirePolicySchema_() {
+  return JSKOS.LegacyMutationAuthority.requireSchema({
+    moduleName: 'Policy',
+    sheetName: JSK_POLICY_SCHEMA.SHEET_NAME,
+    headers: JSK_POLICY_REPOSITORY_CONFIG.REQUIRED_HEADERS,
+    headerScanLimit: 10,
+    propertyKey: JSK_POLICY_SCHEMA.PROPERTY_KEY,
+    version: JSK_POLICY_SCHEMA.VERSION
+  });
 }
 
 /**

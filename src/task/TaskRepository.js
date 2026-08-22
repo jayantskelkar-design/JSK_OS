@@ -26,6 +26,7 @@ class TaskRepository {
       'Record Version': 1, 'Is Deleted': false
     });
     this.sheet.appendRow(this._toRow(record));
+    this._writeAuditLog('CREATE', record['Task ID'], record['Created By'], null, record);
     return this.findById(record['Task ID'], true);
   }
 
@@ -57,6 +58,7 @@ class TaskRepository {
       updated['Record Version'] = currentVersion + 1;
       this.sheet.getRange(entry.row, 1, 1, this.headers.length).setValues([this._toRow(updated)]);
       SpreadsheetApp.flush();
+      this._writeAuditLog('UPDATE', taskId, updated['Updated By'], entry.record, updated);
       return this._format(updated);
     } finally {
       lock.releaseLock();
@@ -90,6 +92,16 @@ class TaskRepository {
     }, this).map(function (entry) { return this._format(entry.record); }, this);
     items.sort(function (a, b) { return String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999')); });
     return { items: items, totalItems: items.length };
+  }
+
+  _writeAuditLog(action, entityId, actor, beforeData, afterData) {
+    var audit = this.spreadsheet.getSheetByName('Audit_Log');
+    if (!audit) {
+      audit = this.spreadsheet.insertSheet('Audit_Log');
+      audit.getRange(1, 1, 1, 8).setValues([['Audit ID', 'Timestamp', 'Entity Type', 'Entity ID', 'Action', 'Actor', 'Before Data', 'After Data']]);
+      audit.setFrozenRows(1);
+    }
+    audit.appendRow(['AUD-' + Utilities.getUuid().toUpperCase(), new Date(), 'Task', String(entityId), String(action), String(actor), beforeData ? JSON.stringify(beforeData) : '', afterData ? JSON.stringify(afterData) : '']);
   }
 
   _entries() {

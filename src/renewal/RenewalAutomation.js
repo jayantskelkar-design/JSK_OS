@@ -21,7 +21,8 @@ JSKOS.RenewalAutomation = (function () {
     ESCALATION_DAYS: 3
   });
 
-  function runDaily(referenceDate) {
+  function runDaily(referenceDate, authority) {
+    JSKOS.LegacyMutationAuthority.assertMutation(authority);
     var today = startOfDay_(referenceDate || new Date());
     var policies = collectPolicies_();
     var followUpResult = synchronizeFollowUpActions_(policies, today);
@@ -171,8 +172,9 @@ JSKOS.RenewalAutomation = (function () {
   }
 
   function installDailyTrigger() {
+    JSKOS.LegacyMutationAuthority.requireAdmin('renewal.install-trigger');
     removeDailyTriggers();
-    return ScriptApp.newTrigger('runDailyRenewalAutomation')
+    return ScriptApp.newTrigger('runDailyRenewalAutomation_')
       .timeBased()
       .atHour(CONFIG.TRIGGER_HOUR)
       .everyDays(1)
@@ -186,6 +188,7 @@ JSKOS.RenewalAutomation = (function () {
    * Safe to call from the web-app bootstrap on every request.
    */
   function ensureReady() {
+    JSKOS.LegacyMutationAuthority.requireAdmin('renewal.ensure');
     var properties = PropertiesService.getScriptProperties();
     var installedVersion = Number(
       properties.getProperty(JSK_POLICY_SCHEMA.PROPERTY_KEY)
@@ -199,7 +202,7 @@ JSKOS.RenewalAutomation = (function () {
     var trigger = findDailyTrigger_();
     var triggerCreated = false;
     if (!trigger) {
-      trigger = ScriptApp.newTrigger('runDailyRenewalAutomation')
+      trigger = ScriptApp.newTrigger('runDailyRenewalAutomation_')
         .timeBased()
         .atHour(CONFIG.TRIGGER_HOUR)
         .everyDays(1)
@@ -219,16 +222,25 @@ JSKOS.RenewalAutomation = (function () {
 
   /** @private */
   function findDailyTrigger_() {
-    var matches = ScriptApp.getProjectTriggers().filter(function (trigger) {
-      return trigger.getHandlerFunction() === 'runDailyRenewalAutomation';
+    var retained = null;
+    ScriptApp.getProjectTriggers().forEach(function (trigger) {
+      var handler = trigger.getHandlerFunction();
+      if (handler === 'runDailyRenewalAutomation' ||
+          (handler === 'runDailyRenewalAutomation_' && retained)) {
+        ScriptApp.deleteTrigger(trigger);
+      } else if (handler === 'runDailyRenewalAutomation_') {
+        retained = trigger;
+      }
     });
-    return matches.length ? matches[0] : null;
+    return retained;
   }
 
   function removeDailyTriggers() {
+    JSKOS.LegacyMutationAuthority.requireAdmin('renewal.remove-trigger');
     var removed = 0;
     ScriptApp.getProjectTriggers().forEach(function (trigger) {
-      if (trigger.getHandlerFunction() === 'runDailyRenewalAutomation') {
+      if (trigger.getHandlerFunction() === 'runDailyRenewalAutomation_' ||
+          trigger.getHandlerFunction() === 'runDailyRenewalAutomation') {
         ScriptApp.deleteTrigger(trigger);
         removed += 1;
       }
@@ -412,8 +424,11 @@ JSKOS.RenewalAutomation = (function () {
 })();
 
 function runDailyRenewalAutomation() {
-  return JSKOS.RenewalAutomation.runDaily();
+  var authority=JSKOS.LegacyMutationAuthority.requireAdmin('renewal.automation');
+  return JSKOS.RenewalAutomation.runDaily(null,authority);
 }
+
+function runDailyRenewalAutomation_() { return legacyRunTrustedSystem_('RENEWAL_AUTOMATION',function(authority){return JSKOS.RenewalAutomation.runDaily(null,authority);}); }
 
 function installDailyRenewalAutomation() {
   return JSKOS.RenewalAutomation.installDailyTrigger();

@@ -14,7 +14,7 @@ var JSK_META_WA = Object.freeze({
 });
 
 JSKOS.MetaWhatsAppProvider = Object.freeze({
-  configStatus: metaWhatsAppConfigStatus_,
+  configStatus: getMetaWhatsAppConfigStatus,
   sendQueued: sendQueuedMetaWhatsApp,
   buildTextPayload: buildMetaWhatsAppTextPayload_,
   parseStatuses: parseMetaWhatsAppStatuses_
@@ -34,7 +34,14 @@ function metaWhatsAppConfigStatus_() {
 }
 
 function sendQueuedMetaWhatsApp(limit) {
-  ensureBuild1006Communications();
+  var authority=JSKOS.LegacyMutationAuthority.requireAdmin('communications.meta-send');
+  return sendQueuedMetaWhatsApp_(limit,authority);
+}
+
+function sendQueuedMetaWhatsApp_(limit,authority) {
+  JSKOS.LegacyMutationAuthority.assertMutation(authority);
+  requireBuild1006Communications_();
+  var actor=JSKOS.LegacyMutationAuthority.actor(authority);
   var config = getMetaWhatsAppConfig_();
   var repository = new CommunicationRepository();
   var now = new Date();
@@ -49,8 +56,8 @@ function sendQueuedMetaWhatsApp(limit) {
     try {
       var claimed = repository.update(item.communicationId, {
         status: 'Sending', provider: JSK_META_WA.PROVIDER, lastError: ''
-      }, 'Meta WhatsApp Sender', item.recordVersion);
-      sendMetaWhatsAppItem_(repository, claimed, config);
+      }, actor, item.recordVersion);
+      sendMetaWhatsAppItem_(repository, claimed, config, actor);
       report.sent += 1;
     } catch (error) {
       if (error && error.code === 'VERSION_CONFLICT') { report.skipped += 1; return; }
@@ -62,7 +69,7 @@ function sendQueuedMetaWhatsApp(limit) {
   return report;
 }
 
-function sendMetaWhatsAppItem_(repository, item, config) {
+function sendMetaWhatsAppItem_(repository, item, config, actor) {
   var attempts = Number(item.attemptCount || 0) + 1;
   try {
     var response = UrlFetchApp.fetch(
@@ -82,14 +89,14 @@ function sendMetaWhatsAppItem_(repository, item, config) {
       status: 'Sent', provider: JSK_META_WA.PROVIDER,
       providerMessageId: body.messages[0].id, sentAt: new Date(),
       attemptCount: attempts, nextRetryAt: '', lastError: ''
-    }, 'Meta WhatsApp Sender', item.recordVersion);
+    }, actor, item.recordVersion);
   } catch (error) {
     var minutes = JSK_META_WA.RETRY_MINUTES[Math.min(attempts - 1, JSK_META_WA.RETRY_MINUTES.length - 1)];
     repository.update(item.communicationId, {
       status: 'Failed', provider: JSK_META_WA.PROVIDER,
       attemptCount: attempts, nextRetryAt: new Date(Date.now() + minutes * 60000),
       lastError: sanitizeMetaError_(error)
-    }, 'Meta WhatsApp Sender', item.recordVersion);
+    }, actor, item.recordVersion);
     throw error;
   }
 }
@@ -168,12 +175,15 @@ function parseJsonSafely_(text) { try { return JSON.parse(String(text || '{}'));
 function metaApiErrorMessage_(body) { return body && body.error ? String(body.error.message || body.error.type || 'Request failed') : 'Request failed'; }
 function sanitizeMetaError_(error) { return String(error && error.message ? error.message : error || 'Unknown error').replace(/Bearer\s+\S+/gi, 'Bearer [REDACTED]').substring(0, 500); }
 
-function getMetaWhatsAppConfigStatus() { return metaWhatsAppConfigStatus_(); }
-function processMetaWhatsAppOutbox() { return sendQueuedMetaWhatsApp(20); }
+function getMetaWhatsAppConfigStatus() { JSKOS.LegacyMutationAuthority.requireUser('communications','view');requireBuild1006Communications_();return metaWhatsAppConfigStatus_(); }
+function processMetaWhatsAppOutbox() { var authority=JSKOS.LegacyMutationAuthority.requireAdmin('communications.meta-outbox');return sendQueuedMetaWhatsApp_(20,authority); }
+function processMetaWhatsAppOutbox_() { return legacyRunTrustedSystem_('META_WHATSAPP_SENDER',function(authority){return sendQueuedMetaWhatsApp_(20,authority);}); }
 
 /** Sends exactly one controlled test message; it does not process other queued rows. */
 function sendMetaWhatsAppLiveTest() {
-  ensureBuild1006Communications();
+  var authority=JSKOS.LegacyMutationAuthority.requireAdmin('communications.meta-live-test');
+  requireBuild1006Communications_();
+  var actor=JSKOS.LegacyMutationAuthority.actor(authority);
   var properties = PropertiesService.getScriptProperties();
   var recipient = String(properties.getProperty(JSK_META_WA.TEST_RECIPIENT_KEY) || '').replace(/\D/g, '');
   if (!/^\d{10,15}$/.test(recipient)) throw new Error('JSK_OS_META_WA_TEST_RECIPIENT is missing or invalid.');
@@ -183,11 +193,11 @@ function sendMetaWhatsAppLiveTest() {
     message: 'JSK OS Meta WhatsApp integration test successful.',
     provider: JSK_META_WA.PROVIDER,
     idempotencyKey: 'META-LIVE-TEST-' + Utilities.formatDate(new Date(), 'Asia/Kolkata', 'yyyyMMddHHmmss')
-  }, 'Meta WhatsApp Live Test');
+  }, actor);
   var claimed = repository.update(queued.communicationId, {
     status: 'Sending', provider: JSK_META_WA.PROVIDER, lastError: ''
-  }, 'Meta WhatsApp Live Test', queued.recordVersion);
-  sendMetaWhatsAppItem_(repository, claimed, getMetaWhatsAppConfig_());
+  }, actor, queued.recordVersion);
+  sendMetaWhatsAppItem_(repository, claimed, getMetaWhatsAppConfig_(),actor);
   var result = repository.findById(queued.communicationId, true);
   console.info(JSON.stringify({ success: true, communicationId: result.communicationId,
     status: result.status, providerMessageIdConfigured: Boolean(result.providerMessageId) }));

@@ -2,8 +2,12 @@
 
 function apiReportExport() {
   return reportApi_(function () {
-    var response = apiReportExecutiveSummary();
-    var summary = reportData_(response, 'Executive summary');
+    return reportExport_(reportExecutiveSummaryFromApis_());
+  });
+}
+
+function reportExport_(summary) {
+    summary = summary || reportExecutiveSummaryTrusted_();
     var rows = [
       ['Section', 'Metric', 'Value'],
       ['Clients', 'Companies', summary.clients.companies],
@@ -34,10 +38,15 @@ function apiReportExport() {
       csv: csv,
       rowCount: rows.length - 1
     };
-  });
 }
 
 function sendExecutiveReportEmail() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('reports.send');
+  return sendExecutiveReportEmail_(authority);
+}
+
+function sendExecutiveReportEmail_(authority) {
+  JSKOS.LegacyMutationAuthority.assertMutation(authority);
   var recipients = String(
     PropertiesService.getScriptProperties()
       .getProperty('JSK_OS_REPORT_RECIPIENTS') || ''
@@ -47,12 +56,8 @@ function sendExecutiveReportEmail() {
       'Set JSK_OS_REPORT_RECIPIENTS in Script Properties before sending reports.'
     );
   }
-  var exportResponse = apiReportExport();
-  var report = reportData_(exportResponse, 'Report export');
-  var summary = reportData_(
-    apiReportExecutiveSummary(),
-    'Executive summary'
-  );
+  var summary = reportExecutiveSummaryTrusted_();
+  var report = reportExport_(summary);
   var finance = summary.finance;
   var body = [
     'JSK OS Executive Report',
@@ -79,19 +84,34 @@ function sendExecutiveReportEmail() {
   return { success: true, recipients: recipients, fileName: report.fileName };
 }
 
+function sendExecutiveReportEmailTrusted_() {
+  return legacyRunTrustedSystem_('EXECUTIVE_REPORT_SENDER', function (authority) {
+    legacyRequireTrustedSystem_(authority);
+    return sendExecutiveReportEmail_(authority);
+  });
+}
+
 function installExecutiveReportTrigger() {
-  var handler = 'sendExecutiveReportEmail';
+  JSKOS.LegacyMutationAuthority.requireAdmin('reports.install-trigger');
+  var handler = 'sendExecutiveReportEmailTrusted_';
+  var legacyHandlers = ['sendExecutiveReportEmail', 'sendExecutiveReportEmail_'];
+  var retained = null;
+  var removed = [];
   ScriptApp.getProjectTriggers().forEach(function (trigger) {
-    if (trigger.getHandlerFunction() === handler) {
+    var current = trigger.getHandlerFunction();
+    if (legacyHandlers.indexOf(current) !== -1 || (current === handler && retained)) {
       ScriptApp.deleteTrigger(trigger);
+      removed.push(current);
+    } else if (current === handler) {
+      retained = trigger;
     }
   });
-  var trigger = ScriptApp.newTrigger(handler)
+  var trigger = retained || ScriptApp.newTrigger(handler)
     .timeBased()
     .everyDays(1)
     .atHour(8)
     .create();
-  return { success: true, triggerId: trigger.getUniqueId(), hour: 8 };
+  return { success: true, triggerId: trigger.getUniqueId(), hour: 8, created: !retained, removedHandlers: removed };
 }
 
 function testReportAutomationPlan() {

@@ -17,6 +17,12 @@ var JSK_MEETING_SCHEMA = Object.freeze({
 });
 
 function migrateMeetingDatabase() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('meetings.migrate');
+  return migrateMeetingDatabase_(authority);
+}
+
+function migrateMeetingDatabase_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
@@ -59,11 +65,27 @@ function migrateMeetingDatabase() {
 }
 
 function ensureBuild1005Meetings() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('meetings.ensure');
+  return ensureBuild1005Meetings_(authority);
+}
+
+function ensureBuild1005Meetings_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   var version = Number(PropertiesService.getScriptProperties().getProperty(JSK_MEETING_SCHEMA.PROPERTY_KEY)) || 0;
   var spreadsheet = JSKOS.ConfigService.getSpreadsheet();
   var sheet = spreadsheet.getSheetByName(JSK_MEETING_SCHEMA.SHEET_NAME);
-  if (version < JSK_MEETING_SCHEMA.VERSION || !sheet) return migrateMeetingDatabase();
+  if (version < JSK_MEETING_SCHEMA.VERSION || !sheet) return migrateMeetingDatabase_(authority);
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
   var missing = JSK_MEETING_SCHEMA.HEADERS.some(function (header) { return headers.indexOf(header) === -1; });
-  return missing ? migrateMeetingDatabase() : { success: true, created: false, schemaVersion: version, sheetName: sheet.getName() };
+  return missing ? migrateMeetingDatabase_(authority) : { success: true, created: false, schemaVersion: version, sheetName: sheet.getName() };
+}
+
+function requireBuild1005Meetings_() {
+  return JSKOS.LegacyMutationAuthority.requireSchema({
+    moduleName: 'Meeting',
+    sheetName: JSK_MEETING_SCHEMA.SHEET_NAME,
+    headers: JSK_MEETING_SCHEMA.HEADERS,
+    propertyKey: JSK_MEETING_SCHEMA.PROPERTY_KEY,
+    version: JSK_MEETING_SCHEMA.VERSION
+  });
 }

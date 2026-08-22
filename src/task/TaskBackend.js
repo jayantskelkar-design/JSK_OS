@@ -2,8 +2,9 @@
 
 function taskApiExecute_(operation, callback) {
   try {
-    JSKOS.AccessControl.requireModuleOperation('tasks', operation);
-    return { success: true, data: callback(), error: null, meta: { operation: operation, timestamp: new Date().toISOString() } };
+    var authority = JSKOS.LegacyMutationAuthority.requireUser('tasks', operation);
+    requireBuild1004Tasks_();
+    return { success: true, data: callback(JSKOS.LegacyMutationAuthority.actor(authority), authority), error: null, meta: { operation: operation, timestamp: new Date().toISOString() } };
   } catch (error) {
     console.error('Task API ' + operation + ' failed: ' + (error.stack || error));
     return { success: false, data: null, error: { name: error.name || 'Error', message: error.message || String(error), code: error.code || '', details: error.currentVersion ? { currentVersion: error.currentVersion, code: error.code } : {} } };
@@ -11,12 +12,12 @@ function taskApiExecute_(operation, callback) {
 }
 
 function taskRequest_(payload) { return payload && typeof payload === 'object' ? payload : {}; }
-function taskRepository_() { ensureBuild1004Tasks(); return new TaskRepository(); }
+function taskRepository_() { requireBuild1004Tasks_(); return new TaskRepository(); }
 
 function apiTaskCreate(payload) {
-  return taskApiExecute_('create', function () {
+  return taskApiExecute_('create', function (actor) {
     var request = taskRequest_(payload);
-    return taskRepository_().create(request.data || {}, request.actor);
+    return taskRepository_().create(request.data || {}, actor);
   });
 }
 function apiTaskGet(payload) {
@@ -28,9 +29,9 @@ function apiTaskGet(payload) {
   });
 }
 function apiTaskUpdate(payload) {
-  return taskApiExecute_('update', function () {
+  return taskApiExecute_('update', function (actor) {
     var request = taskRequest_(payload);
-    return taskRepository_().update(request.taskId, request.data || {}, request.actor, request.expectedVersion);
+    return taskRepository_().update(request.taskId, request.data || {}, actor, request.expectedVersion);
   });
 }
 function apiTaskSearch(payload) {

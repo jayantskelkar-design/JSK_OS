@@ -159,14 +159,12 @@ JSKOS.AccessControl = (function () {
   function requirePermission(permission, options) {
     var context = getContext(options && options.email);
     if (!context.authenticated) {
-      audit_('DENIED', permission, context, 'Authentication required');
       var authError = new Error('Authentication is required.');
       authError.name = 'UnauthorizedError';
       authError.code = 'UNAUTHORIZED';
       throw authError;
     }
     if (!(context.permissions['*'] || context.permissions[permission])) {
-      audit_('DENIED', permission, context, 'Permission denied');
       var accessError = new Error('You do not have permission to perform this action.');
       accessError.name = 'ForbiddenError';
       accessError.code = 'FORBIDDEN';

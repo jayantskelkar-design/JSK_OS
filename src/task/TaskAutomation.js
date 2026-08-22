@@ -9,8 +9,10 @@ JSKOS.TaskAutomation = (function () {
   var RECIPIENTS_KEY = 'JSK_OS_TASK_DASHBOARD_RECIPIENTS';
   var FALLBACK_RECIPIENTS_KEY = 'JSK_OS_RENEWAL_DASHBOARD_RECIPIENTS';
 
-  function runDaily(policies, referenceDate) {
-    ensureBuild1004Tasks();
+  function runDaily(policies, referenceDate, authority) {
+    JSKOS.LegacyMutationAuthority.assertMutation(authority);
+    requireBuild1004Tasks_();
+    var actor = JSKOS.LegacyMutationAuthority.actor(authority);
     var repository = new TaskRepository();
     var tasks = repository.search({}).items || [];
     var plan = buildPlan_(policies || [], tasks, referenceDate || new Date());
@@ -18,18 +20,18 @@ JSKOS.TaskAutomation = (function () {
 
     plan.forEach(function (action) {
       if (action.type === 'CREATE') {
-        repository.create(action.data, 'Task Automation');
+        repository.create(action.data, actor);
         result.created += 1;
         return;
       }
-      repository.update(action.taskId, action.data, 'Task Automation', action.expectedVersion);
+      repository.update(action.taskId, action.data, actor, action.expectedVersion);
       result[action.type === 'CLOSE' ? 'closed' : 'updated'] += 1;
       if (action.escalated) result.escalated += 1;
     });
 
     var refreshedTasks = repository.search({}).items || [];
     result.summarySent = sendSummary_(refreshedTasks, result, referenceDate || new Date());
-    result.notifications = JSKOS.TaskNotifications.sendDaily(refreshedTasks, referenceDate || new Date());
+    result.notifications = JSKOS.TaskNotifications.sendDaily(refreshedTasks, referenceDate || new Date(), authority);
     return result;
   }
 
@@ -132,6 +134,17 @@ JSKOS.TaskAutomation = (function () {
 })();
 
 function runDailyTaskAutomation() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('tasks.automation');
+  return runDailyTaskAutomationWithAuthority_(authority);
+}
+
+function runDailyTaskAutomation_() {
+  return legacyRunTrustedSystem_('TASK_AUTOMATION', runDailyTaskAutomationWithAuthority_);
+}
+
+function runDailyTaskAutomationWithAuthority_(authority) {
+  JSKOS.LegacyMutationAuthority.assertMutation(authority);
+  requirePolicySchema_();
   var repository = new PolicyRepository();
   var policies = [], page = 1, result;
   do {
@@ -139,5 +152,5 @@ function runDailyTaskAutomation() {
     if (result && Array.isArray(result.items)) policies = policies.concat(result.items);
     page += 1;
   } while (result && result.pagination && result.pagination.hasNext);
-  return JSKOS.TaskAutomation.runDaily(policies, new Date());
+  return JSKOS.TaskAutomation.runDaily(policies, new Date(), authority);
 }

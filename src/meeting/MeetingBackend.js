@@ -2,8 +2,9 @@
 
 function meetingApiExecute_(operation, callback) {
   try {
-    JSKOS.AccessControl.requireModuleOperation('meetings', operation);
-    return { success: true, data: callback(), error: null, meta: { operation: operation, timestamp: new Date().toISOString() } };
+    var authority = JSKOS.LegacyMutationAuthority.requireUser('meetings', operation);
+    requireBuild1005Meetings_();
+    return { success: true, data: callback(JSKOS.LegacyMutationAuthority.actor(authority), authority), error: null, meta: { operation: operation, timestamp: new Date().toISOString() } };
   } catch (error) {
     console.error('Meeting API ' + operation + ' failed: ' + (error.stack || error));
     return { success: false, data: null, error: { name: error.name || 'Error', message: error.message || String(error), code: error.code || '', details: error.currentVersion ? { currentVersion: error.currentVersion } : {} } };
@@ -11,16 +12,16 @@ function meetingApiExecute_(operation, callback) {
 }
 
 function meetingRequest_(payload) { return payload && typeof payload === 'object' ? payload : {}; }
-function meetingRepository_() { ensureBuild1005Meetings(); return new MeetingRepository(); }
+function meetingRepository_() { requireBuild1005Meetings_(); return new MeetingRepository(); }
 
 function apiMeetingCreate(payload) {
-  return meetingApiExecute_('create', function () { var request = meetingRequest_(payload); return meetingRepository_().create(request.data || {}, request.actor); });
+  return meetingApiExecute_('create', function (actor) { var request = meetingRequest_(payload); return meetingRepository_().create(request.data || {}, actor); });
 }
 function apiMeetingGet(payload) {
   return meetingApiExecute_('get', function () { var request = meetingRequest_(payload); var meeting = meetingRepository_().findById(request.meetingId, false); if (!meeting) throw new Error('Meeting not found.'); return meeting; });
 }
 function apiMeetingUpdate(payload) {
-  return meetingApiExecute_('update', function () { var request = meetingRequest_(payload); return meetingRepository_().update(request.meetingId, request.data || {}, request.actor, request.expectedVersion); });
+  return meetingApiExecute_('update', function (actor) { var request = meetingRequest_(payload); return meetingRepository_().update(request.meetingId, request.data || {}, actor, request.expectedVersion); });
 }
 function apiMeetingSearch(payload) {
   return meetingApiExecute_('search', function () { return meetingRepository_().search(meetingRequest_(payload)); });
@@ -32,6 +33,7 @@ function apiMeetingComplete(payload) {
 }
 
 function getMeetingFilters() {
-  JSKOS.AccessControl.requireModuleOperation('meetings', 'filters');
+  JSKOS.LegacyMutationAuthority.requireUser('meetings', 'filters');
+  requireBuild1005Meetings_();
   return { types: JSK_MEETING_SCHEMA.TYPE_VALUES.slice(), statuses: JSK_MEETING_SCHEMA.STATUS_VALUES.slice() };
 }

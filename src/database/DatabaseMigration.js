@@ -1,4 +1,10 @@
 function migrateCompanyDatabase() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('companies.migrate');
+  return migrateCompanyDatabase_(authority);
+}
+
+function migrateCompanyDatabase_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
   if (!spreadsheet) {
@@ -114,4 +120,13 @@ function findCompanyHeaderRow_(sheet) {
   }
 
   return null;
+}
+
+function requireCompanySchema_() {
+  return JSKOS.LegacyMutationAuthority.requireSchema({
+    moduleName: 'Company',
+    sheetName: JSK_COMPANY_CONFIG.SHEET_NAME,
+    headers: JSK_COMPANY_CONFIG.REQUIRED_HEADERS,
+    headerScanLimit: JSK_COMPANY_CONFIG.HEADER_SCAN_LIMIT
+  });
 }

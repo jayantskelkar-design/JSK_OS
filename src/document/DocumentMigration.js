@@ -26,6 +26,12 @@ var JSK_DOCUMENT_SCHEMA = Object.freeze({
 });
 
 function migrateDocumentDatabase() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('documents.migrate');
+  return migrateDocumentDatabase_(authority);
+}
+
+function migrateDocumentDatabase_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
@@ -86,6 +92,12 @@ function migrateDocumentDatabase() {
 }
 
 function ensureBuild1008Documents() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('documents.ensure');
+  return ensureBuild1008Documents_(authority);
+}
+
+function ensureBuild1008Documents_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   var properties = PropertiesService.getScriptProperties();
   var current = Number(properties.getProperty(JSK_DOCUMENT_SCHEMA.PROPERTY_KEY) || 0);
   var sheet = JSKOS.ConfigService.getSpreadsheet().getSheetByName(JSK_DOCUMENT_SCHEMA.SHEET_NAME);
@@ -96,9 +108,19 @@ function ensureBuild1008Documents() {
       return headers.indexOf(header) !== -1;
     });
   }
-  if (current < JSK_DOCUMENT_SCHEMA.VERSION || !complete) return migrateDocumentDatabase();
+  if (current < JSK_DOCUMENT_SCHEMA.VERSION || !complete) return migrateDocumentDatabase_(authority);
   repairLegacyDocumentRows_(sheet, headers);
   return { success: true, schemaVersion: current, sheetName: JSK_DOCUMENT_SCHEMA.SHEET_NAME };
+}
+
+function requireBuild1008Documents_() {
+  return JSKOS.LegacyMutationAuthority.requireSchema({
+    moduleName: 'Document',
+    sheetName: JSK_DOCUMENT_SCHEMA.SHEET_NAME,
+    headers: JSK_DOCUMENT_SCHEMA.HEADERS,
+    propertyKey: JSK_DOCUMENT_SCHEMA.PROPERTY_KEY,
+    version: JSK_DOCUMENT_SCHEMA.VERSION
+  });
 }
 
 /** Assigns identifiers and concurrency defaults to pre-fix Build 1008 rows. */

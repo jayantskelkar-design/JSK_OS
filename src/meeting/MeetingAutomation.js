@@ -10,9 +10,11 @@ JSKOS.MeetingAutomation = (function () {
   var OWNER_EMAILS_KEY = 'JSK_OS_TASK_OWNER_EMAILS';
   var LOG_SHEET = 'Meeting_Automation_Log';
 
-  function runDaily(referenceDate) {
-    ensureBuild1005Meetings();
-    ensureBuild1004Tasks();
+  function runDaily(referenceDate, authority) {
+    JSKOS.LegacyMutationAuthority.assertMutation(authority);
+    requireBuild1005Meetings_();
+    requireBuild1004Tasks_();
+    var actor = JSKOS.LegacyMutationAuthority.actor(authority);
     var meetingRepository = new MeetingRepository();
     var taskRepository = new TaskRepository();
     var meetings = meetingRepository.search({}).items || [];
@@ -31,7 +33,7 @@ JSKOS.MeetingAutomation = (function () {
         var event = meeting.calendarEventId ? calendar.getEventById(meeting.calendarEventId) : findTaggedEvent_(calendar, meeting.meetingId, start);
         if (item.action === 'CANCEL') {
           if (event) event.deleteEvent();
-          if (meeting.calendarEventId) meetingRepository.update(meeting.meetingId, { calendarEventId: '' }, 'Meeting Automation', meeting.recordVersion);
+          if (meeting.calendarEventId) meetingRepository.update(meeting.meetingId, { calendarEventId: '' }, actor, meeting.recordVersion);
           return;
         }
         if (!event) {
@@ -45,7 +47,7 @@ JSKOS.MeetingAutomation = (function () {
         } else {
           event.setTitle(meeting.title).setTime(start, end).setDescription([meeting.agenda || '', meeting.meetingLink || ''].filter(Boolean).join('\n')).setLocation(meeting.location || '');
         }
-        if (meeting.calendarEventId !== event.getId()) meetingRepository.update(meeting.meetingId, { calendarEventId: event.getId() }, 'Meeting Automation', meeting.recordVersion);
+        if (meeting.calendarEventId !== event.getId()) meetingRepository.update(meeting.meetingId, { calendarEventId: event.getId() }, actor, meeting.recordVersion);
       } catch (error) { console.error('Meeting calendar sync failed: ' + (error.stack || error)); }
     });
 
@@ -58,9 +60,9 @@ JSKOS.MeetingAutomation = (function () {
 
     plan.followUps.forEach(function (item) {
       try {
-        var task = taskRepository.create(item.data, 'Meeting Automation');
+        var task = taskRepository.create(item.data, actor);
         var meeting = meetingRepository.findById(item.meetingId, false);
-        if (meeting && !meeting.followUpTaskId) meetingRepository.update(meeting.meetingId, { followUpTaskId: task.taskId }, 'Meeting Automation', meeting.recordVersion);
+        if (meeting && !meeting.followUpTaskId) meetingRepository.update(meeting.meetingId, { followUpTaskId: task.taskId }, actor, meeting.recordVersion);
         result.followUpsCreated += 1;
       } catch (error) { console.error('Meeting follow-up creation failed: ' + (error.stack || error)); }
     });
@@ -141,4 +143,5 @@ JSKOS.MeetingAutomation = (function () {
   return { runDaily: runDaily, buildPlan: buildPlan_ };
 })();
 
-function runDailyMeetingAutomation() { return JSKOS.MeetingAutomation.runDaily(new Date()); }
+function runDailyMeetingAutomation() { var authority=JSKOS.LegacyMutationAuthority.requireAdmin('meetings.automation');return JSKOS.MeetingAutomation.runDaily(new Date(),authority); }
+function runDailyMeetingAutomation_() { return legacyRunTrustedSystem_('MEETING_AUTOMATION',function(authority){return JSKOS.MeetingAutomation.runDaily(new Date(),authority);}); }

@@ -689,8 +689,6 @@ console.log("typeof =", typeof companyId);
             ? undefined
             : Number(versionValue),
 
-        actor: 'JSK OS UI',
-
         data: {
           companyName:
             getInputValue('companyName'),
@@ -770,8 +768,7 @@ console.log("typeof =", typeof companyId);
 
       callServer('apiCompanyArchive', {
         companyId: company.companyId,
-        expectedVersion: company.recordVersion,
-        actor: 'JSK OS UI'
+        expectedVersion: company.recordVersion
       })
         .then(function (response) {
           assertSuccessfulResponse(response);
@@ -784,7 +781,7 @@ console.log("typeof =", typeof companyId);
           loadCompanies();
         })
         .catch(function (error) {
-          showToast(getErrorMessage(error), 'error');
+          handleCompanyMutationError(error);
         })
         .finally(function () {
           setLoading(false);
@@ -803,7 +800,7 @@ console.log("typeof =", typeof companyId);
 
       callServer('apiCompanyRestore', {
         companyId: company.companyId,
-        actor: 'JSK OS UI'
+        expectedVersion: company.recordVersion
       })
         .then(function (response) {
           assertSuccessfulResponse(response);
@@ -816,7 +813,7 @@ console.log("typeof =", typeof companyId);
           loadCompanies();
         })
         .catch(function (error) {
-          showToast(getErrorMessage(error), 'error');
+          handleCompanyMutationError(error);
         })
         .finally(function () {
           setLoading(false);
@@ -885,6 +882,8 @@ console.log("typeof =", typeof companyId);
         ? details.fields
         : [];
 
+      if (handleCompanyMutationError(error)) return;
+
       if (fields.length > 0) {
         fields.forEach(function (fieldError) {
           showFieldError(
@@ -898,6 +897,21 @@ console.log("typeof =", typeof companyId);
         getErrorMessage(error);
 
       elements.formError.classList.remove('hidden');
+    }
+
+    function handleCompanyMutationError(error) {
+      var details = error && error.details ? error.details : {};
+      if (details.code === 'VERSION_CONFLICT') {
+        showToast('This company changed on the server. The latest data has been refreshed; review it before retrying.', 'error');
+        elements.companyModal.classList.add('hidden');
+        loadCompanies();
+        return true;
+      }
+      if (details.code === 'MIGRATION_REQUIRED') {
+        showToast('Companies is unavailable until an Administrator completes the database migration.', 'error');
+        return true;
+      }
+      return false;
     }
 
     function clearFormErrors() {

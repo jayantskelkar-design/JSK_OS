@@ -11,6 +11,7 @@
 
 var JSK_PEOPLE_SCHEMA = Object.freeze({
   VERSION: 1,
+  PROPERTY_KEY: 'JSK_OS_PEOPLE_SCHEMA_VERSION',
   SHEET_NAME: 'People',
   AUDIT_SHEET_NAME: 'Audit_Log',
   HEADER_ROW: 1,
@@ -130,6 +131,12 @@ var JSK_PEOPLE_SCHEMA = Object.freeze({
  * @return {Object} Migration result.
  */
 function migratePeopleDatabase() {
+  var authority = JSKOS.LegacyMutationAuthority.requireAdmin('people.migrate');
+  return migratePeopleDatabase_(authority);
+}
+
+function migratePeopleDatabase_(authority) {
+  JSKOS.LegacyMutationAuthority.assertAdmin(authority);
   var lock = LockService.getScriptLock();
 
   lock.waitLock(
@@ -687,7 +694,7 @@ function savePeopleSchemaVersion_() {
   PropertiesService
     .getScriptProperties()
     .setProperty(
-      'JSK_OS_PEOPLE_SCHEMA_VERSION',
+      JSK_PEOPLE_SCHEMA.PROPERTY_KEY,
       String(JSK_PEOPLE_SCHEMA.VERSION)
     );
 }
@@ -736,7 +743,7 @@ function testPeopleDatabaseMigration() {
 
   var storedVersion = PropertiesService
     .getScriptProperties()
-    .getProperty('JSK_OS_PEOPLE_SCHEMA_VERSION');
+    .getProperty(JSK_PEOPLE_SCHEMA.PROPERTY_KEY);
 
   assertPeopleMigration_(
     Number(storedVersion) ===
@@ -773,4 +780,17 @@ function assertPeopleMigration_(condition, message) {
       'People Migration Test Failed: ' + message
     );
   }
+}
+
+function requirePeopleSchema_() {
+  var headers = JSK_PEOPLE_CONFIG.REQUIRED_HEADERS.slice();
+  headers.push(['Record Version', 'Record_Version']);
+  return JSKOS.LegacyMutationAuthority.requireSchema({
+    moduleName: 'People',
+    sheetName: JSK_PEOPLE_CONFIG.SHEET_NAME,
+    headers: headers,
+    headerScanLimit: JSK_PEOPLE_CONFIG.HEADER_SCAN_LIMIT,
+    propertyKey: JSK_PEOPLE_SCHEMA.PROPERTY_KEY,
+    version: JSK_PEOPLE_SCHEMA.VERSION
+  });
 }
