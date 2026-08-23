@@ -119,6 +119,11 @@ function handleMetaWhatsAppWebhookVerification(event) {
 
 function handleMetaWhatsAppWebhook(event) {
   try {
+    var parameters = event && event.parameter ? event.parameter : {};
+    var expected = PropertiesService.getScriptProperties().getProperty(JSK_META_WA.VERIFY_TOKEN_KEY) || '';
+    if (!expected || String(parameters.webhook_token || '') !== expected) {
+      return metaWebhookResponse_({ success: false, error: 'UNAUTHORIZED' });
+    }
     var body = parseJsonSafely_(event && event.postData ? event.postData.contents : '{}');
     applyMetaWhatsAppStatuses_(parseMetaWhatsAppStatuses_(body));
     return metaWebhookResponse_({ success: true });
@@ -145,13 +150,20 @@ function parseMetaWhatsAppStatuses_(body) {
 
 function applyMetaWhatsAppStatuses_(statuses) {
   if (!statuses.length) return;
-  ensureBuild1006Communications();
+  requireBuild1006Communications_();
   var repository = new CommunicationRepository();
   var map = { sent: 'Sent', delivered: 'Delivered', read: 'Read', failed: 'Failed' };
+  var rank = { Queued: 0, Sending: 0, Failed: 0, Sent: 1, Delivered: 2, Read: 3 };
   statuses.forEach(function (status) {
     var item = repository.findByProviderMessageId(status.id);
     if (!item || !map[status.status]) return;
-    var changes = { status: map[status.status] };
+    var nextStatus = map[status.status];
+    if (nextStatus === 'Failed') {
+      if (rank[item.status] > 0 || item.status === 'Failed') return;
+    } else if ((rank[nextStatus] || 0) <= (rank[item.status] || 0)) {
+      return;
+    }
+    var changes = { status: nextStatus };
     if (status.status === 'sent') changes.sentAt = status.at;
     if (status.status === 'delivered') changes.deliveredAt = status.at;
     if (status.status === 'read') changes.readAt = status.at;

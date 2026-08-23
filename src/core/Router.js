@@ -369,8 +369,9 @@ JSKOS.Router = Object.freeze({
   },
 
   renderError: function (route, error) {
-    var message = error && error.stack ? error.stack : String(error);
-    console.error('JSK OS route error | route=' + route + ' | ' + message);
+    var diagnostic = error && error.stack ? error.stack : String(error);
+    console.error('JSK OS route error | route=' + route + ' | ' + diagnostic);
+    var message = 'The requested page could not be loaded. Please contact an Administrator if the problem continues.';
 
     var dashboardUrl = JSKOS.Router.buildRouteUrl('dashboard');
     var html = '<!DOCTYPE html><html><head><base target="_top">' +

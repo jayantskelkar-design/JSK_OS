@@ -113,7 +113,7 @@ class PeopleRepository {
    */
   create(person, actor) {
     var repository = this;
-    var lock = LockService.getDocumentLock();
+    var lock = LockService.getScriptLock();
 
     lock.waitLock(JSK_PEOPLE_CONFIG.LOCK_TIMEOUT_MS);
 
