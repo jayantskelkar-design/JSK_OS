@@ -211,12 +211,26 @@ class PeopleRepository {
    */
   update(personId, changes, actor, expectedVersion) {
     var repository = this;
-    var lock = LockService.getDocumentLock();
+    var lock = LockService.getScriptLock();
 
     lock.waitLock(JSK_PEOPLE_CONFIG.LOCK_TIMEOUT_MS);
 
     try {
       repository._refreshSchema();
+
+      if (
+        typeof expectedVersion !== 'number' ||
+        !isFinite(expectedVersion) ||
+        expectedVersion <= 0 ||
+        Math.floor(expectedVersion) !== expectedVersion
+      ) {
+        throw new PeopleValidationError([
+          {
+            field: 'expectedVersion',
+            message: 'A finite positive integer expectedVersion is required.'
+          }
+        ]);
+      }
 
       var normalizedId = repository
         ._normalizeText(personId)
@@ -236,8 +250,24 @@ class PeopleRepository {
       var existing =
         repository._readRecordAtRow(rowNumber);
       var versionHeader = repository._recordVersionHeader();
-      var currentVersion = Number(existing[versionHeader]) || 1;
-      if (Number(expectedVersion) !== currentVersion) {
+      var storedVersion = existing[versionHeader];
+      var currentVersion = Number(storedVersion);
+
+      if (
+        typeof storedVersion !== 'number' ||
+        !isFinite(currentVersion) ||
+        currentVersion <= 0 ||
+        Math.floor(currentVersion) !== currentVersion
+      ) {
+        var versionError = new Error(
+          'Person Record_Version is missing or invalid.'
+        );
+        versionError.code = 'INVALID_RECORD_VERSION';
+        versionError.status = 503;
+        throw versionError;
+      }
+
+      if (expectedVersion !== currentVersion) {
         throw new PeopleConflictError(
           'Person was modified by another user.',
           currentVersion
@@ -661,12 +691,26 @@ class PeopleRepository {
    */
   _setStatus(personId, status, action, actor, expectedVersion) {
     var repository = this;
-    var lock = LockService.getDocumentLock();
+    var lock = LockService.getScriptLock();
 
     lock.waitLock(JSK_PEOPLE_CONFIG.LOCK_TIMEOUT_MS);
 
     try {
       repository._refreshSchema();
+
+      if (
+        typeof expectedVersion !== 'number' ||
+        !isFinite(expectedVersion) ||
+        expectedVersion <= 0 ||
+        Math.floor(expectedVersion) !== expectedVersion
+      ) {
+        throw new PeopleValidationError([
+          {
+            field: 'expectedVersion',
+            message: 'A finite positive integer expectedVersion is required.'
+          }
+        ]);
+      }
 
       var normalizedId = repository
         ._normalizeText(personId)
@@ -682,8 +726,24 @@ class PeopleRepository {
       var existing =
         repository._readRecordAtRow(rowNumber);
       var versionHeader = repository._recordVersionHeader();
-      var currentVersion = Number(existing[versionHeader]) || 1;
-      if (Number(expectedVersion) !== currentVersion) {
+      var storedVersion = existing[versionHeader];
+      var currentVersion = Number(storedVersion);
+
+      if (
+        typeof storedVersion !== 'number' ||
+        !isFinite(currentVersion) ||
+        currentVersion <= 0 ||
+        Math.floor(currentVersion) !== currentVersion
+      ) {
+        var versionError = new Error(
+          'Person Record_Version is missing or invalid.'
+        );
+        versionError.code = 'INVALID_RECORD_VERSION';
+        versionError.status = 503;
+        throw versionError;
+      }
+
+      if (expectedVersion !== currentVersion) {
         throw new PeopleConflictError(
           'Person was modified by another user.',
           currentVersion
