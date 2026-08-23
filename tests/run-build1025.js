@@ -158,7 +158,6 @@ function readAliasProbes(){
 function actualReadAliasProbes(){
   const definitions=[
     {name:'Company',repo:'src/company/CompanyRepository.js',migration:'src/database/DatabaseMigration.js',headerExpr:'JSK_COMPANY_CONFIG.REQUIRED_HEADERS.slice()',sheetExpr:'JSK_COMPANY_CONFIG.SHEET_NAME',calls:c=>[()=>c.apiCompanyGet({companyId:'x'}),()=>c.apiCompanySearch({}),()=>c.apiCompanyHealth(),()=>c.searchCompanies({}),()=>c.searchCompanyById('x'),()=>c.searchCompanyByGstin('x'),()=>c.searchCompanySuggestions({query:'xx'}),()=>c.getCompanySearchFilters()],extras:['src/company/CompanySearchApi.js']},
-    {name:'People',repo:'src/people/PeopleRepository.js',migration:'src/people/PeopleMigration.js',headerExpr:"JSK_PEOPLE_CONFIG.REQUIRED_HEADERS.concat(['Record Version'])",sheetExpr:'JSK_PEOPLE_CONFIG.SHEET_NAME',propertyExpr:'JSK_PEOPLE_SCHEMA.PROPERTY_KEY',versionExpr:'JSK_PEOPLE_SCHEMA.VERSION',calls:c=>[()=>c.apiPeopleGet({personId:'x'}),()=>c.apiPeopleSearch({}),()=>c.apiPeopleByCompany({companyId:'x'}),()=>c.apiPeopleFollowupsDue({}),()=>c.apiPeopleHealth(),()=>c.searchPeople({}),()=>c.searchPersonById('x'),()=>c.searchPeopleSuggestions({query:'xx'}),()=>c.getPeopleSearchFilters()],extras:['src/people/PeopleSearchApi.js']},
     {name:'Policy',repo:'src/policy/PolicyRepository.js',migration:'src/policy/PolicyMigration.js',headerExpr:'JSK_POLICY_SCHEMA.HEADERS.slice()',sheetExpr:'JSK_POLICY_SCHEMA.SHEET_NAME',propertyExpr:'JSK_POLICY_SCHEMA.PROPERTY_KEY',versionExpr:'JSK_POLICY_SCHEMA.VERSION',calls:c=>[()=>c.apiPolicyGet({policyId:'x'}),()=>c.apiPolicyRenewalHistory({policyId:'x'}),()=>c.apiPolicyGetByNumber({policyNumber:'x'}),()=>c.apiPolicySearch({}),()=>c.apiPolicyByCompany({companyId:'x'}),()=>c.apiPolicyByPerson({personId:'x'}),()=>c.apiPolicyRenewalsDue({}),()=>c.apiPolicyHealth(),()=>c.searchPolicies({}),()=>c.searchPolicyById('x'),()=>c.searchPolicyByNumber('x'),()=>c.searchPoliciesByCompany('x'),()=>c.searchPoliciesByPerson('x'),()=>c.searchPolicyRenewalsDue({}),()=>c.searchPolicySuggestions({query:'xx'}),()=>c.getPolicySearchFilters(),()=>c.apiPolicySearchHealth()],extras:['src/policy/PolicySearchApi.js']},
     {name:'Document',repo:'src/document/DocumentRepository.js',migration:'src/document/DocumentMigration.js',headerExpr:'JSK_DOCUMENT_SCHEMA.HEADERS.slice()',sheetExpr:'JSK_DOCUMENT_SCHEMA.SHEET_NAME',propertyExpr:'JSK_DOCUMENT_SCHEMA.PROPERTY_KEY',versionExpr:'JSK_DOCUMENT_SCHEMA.VERSION',calls:c=>[()=>c.apiDocumentGet({documentId:'x'}),()=>c.apiDocumentSearch({}),()=>c.apiDocumentExpirySummary({}),()=>c.getDocumentFilters(),()=>c.getDocumentLinkOptions()]},
     {name:'Task',repo:'src/task/TaskRepository.js',migration:'src/task/TaskMigration.js',headerExpr:'JSK_TASK_SCHEMA.HEADERS.slice()',sheetExpr:'JSK_TASK_SCHEMA.SHEET_NAME',propertyExpr:'JSK_TASK_SCHEMA.PROPERTY_KEY',versionExpr:'JSK_TASK_SCHEMA.VERSION',calls:c=>[()=>c.apiTaskGet({taskId:'x'}),()=>c.apiTaskSearch({})]},
@@ -180,11 +179,33 @@ function actualReadAliasProbes(){
     const schemaState={present:stateName==='stale',headers:[],sheetName:'',properties:{}},c=runtime({moduleName:'UniversalSearch',schemaState:schemaState});
     load(c,'src/company/CompanyRepository.js');load(c,'src/database/DatabaseMigration.js');schemaState.headers=Array.from(vm.runInContext('JSK_COMPANY_CONFIG.REQUIRED_HEADERS.slice()',c));schemaState.sheetName=vm.runInContext('JSK_COMPANY_CONFIG.SHEET_NAME',c);if(stateName==='stale')schemaState.headers=schemaState.headers.slice(0,-1);load(c,'src/core/UniversalSearch.js');const before=JSON.parse(JSON.stringify(c.effects)),code=errorCode(()=>c.apiUniversalSearch({query:''})),after=JSON.parse(JSON.stringify(c.effects));assert(code==='MIGRATION_REQUIRED','Universal Search Company '+stateName+' short path escaped: '+code);protectedKeys.forEach(key=>assert(after[key]===before[key],'Universal Search Company '+stateName+' changed '+key));inventory.UniversalSearch['company-'+stateName]={code:code,before:before,after:after};
   });
-  ['missing','stale'].forEach(stateName=>{
-    const schemaState={present:stateName==='stale',headers:[],sheetName:'',properties:{}},c=runtime({moduleName:'UniversalSearch',schemaState:schemaState});
-    load(c,'src/people/PeopleRepository.js');load(c,'src/people/PeopleMigration.js');schemaState.headers=Array.from(vm.runInContext("JSK_PEOPLE_CONFIG.REQUIRED_HEADERS.concat(['Record Version'])",c));schemaState.sheetName=vm.runInContext('JSK_PEOPLE_CONFIG.SHEET_NAME',c);const key=vm.runInContext('JSK_PEOPLE_SCHEMA.PROPERTY_KEY',c),version=Number(vm.runInContext('JSK_PEOPLE_SCHEMA.VERSION',c));schemaState.properties[key]=stateName==='stale'?String(Math.max(0,version-1)):String(version);c.requireCompanySchema_=function(){return{};};load(c,'src/core/UniversalSearch.js');const before=JSON.parse(JSON.stringify(c.effects)),code=errorCode(()=>c.apiUniversalSearch({query:''})),after=JSON.parse(JSON.stringify(c.effects));assert(code==='MIGRATION_REQUIRED','Universal Search People '+stateName+' short path escaped: '+code);protectedKeys.forEach(key=>assert(after[key]===before[key],'Universal Search People '+stateName+' changed '+key));inventory.UniversalSearch['people-'+stateName]={code:code,before:before,after:after};
-  });
+  inventory.People=peopleRuntimeSchemaGateProbe();
   return{success:true,states:['missing','stale'],protectedCounters:protectedKeys,inventory:inventory};
+}
+
+function peopleRuntimeSchemaGateProbe(){
+  function run(transform){
+    const schemaState={present:true,headers:[],sheetName:'',properties:{}},c=runtime({moduleName:'People',schemaState:schemaState});
+    load(c,'src/people/PeopleRepository.js');load(c,'src/people/PeopleMigration.js');
+    schemaState.headers=Array.from(vm.runInContext("JSK_PEOPLE_CONFIG.REQUIRED_HEADERS.concat(['Record_Version'])",c));
+    schemaState.sheetName=vm.runInContext('JSK_PEOPLE_CONFIG.SHEET_NAME',c);
+    if(transform)transform(schemaState.headers);
+    c.migrationCalls=0;c.migratePeopleDatabase=function(){c.migrationCalls++;throw new Error('Migration helper must not run');};
+    repository(c,'PeopleRepository');load(c,'src/people/PeopleBackend.js');
+    const result=c.apiPeopleSearch({});
+    return{result:result,effects:c.effects,migrationCalls:c.migrationCalls};
+  }
+  const valid=run();
+  assert(valid.result&&valid.result.success===true,'People valid legacy schema without script property was rejected');
+  assert(valid.effects.propertyRead===0,'People runtime gate still read a schema-version script property');
+  assert(valid.migrationCalls===0,'People normal runtime invoked migratePeopleDatabase');
+  const missingLegacy=run(headers=>headers.splice(0,1));
+  assert(missingLegacy.result&&missingLegacy.result.error&&missingLegacy.result.error.code==='MIGRATION_REQUIRED','People schema missing a required legacy header did not fail closed');
+  assert(missingLegacy.migrationCalls===0,'People missing-header path invoked migratePeopleDatabase');
+  const missingVersion=run(headers=>headers.pop());
+  assert(missingVersion.result&&missingVersion.result.error&&missingVersion.result.error.code==='MIGRATION_REQUIRED','People schema missing both record-version aliases did not fail closed');
+  assert(missingVersion.migrationCalls===0,'People missing-version path invoked migratePeopleDatabase');
+  return{validWithoutProperty:true,missingLegacyHeaderCode:missingLegacy.result.error.code,missingVersionAliasCode:missingVersion.result.error.code,propertyReads:valid.effects.propertyRead,migrationCalls:valid.migrationCalls};
 }
 
 function staticAndInventory(){

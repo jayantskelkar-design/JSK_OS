@@ -789,8 +789,6 @@ function requirePeopleSchema_() {
     moduleName: 'People',
     sheetName: JSK_PEOPLE_CONFIG.SHEET_NAME,
     headers: headers,
-    headerScanLimit: JSK_PEOPLE_CONFIG.HEADER_SCAN_LIMIT,
-    propertyKey: JSK_PEOPLE_SCHEMA.PROPERTY_KEY,
-    version: JSK_PEOPLE_SCHEMA.VERSION
+    headerScanLimit: JSK_PEOPLE_CONFIG.HEADER_SCAN_LIMIT
   });
 }
