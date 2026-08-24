@@ -21,6 +21,7 @@ JSKOS.RouteConfig = Object.freeze({
     meetings: Object.freeze({ key: 'meetings', title: 'Meetings', icon: '◷', enabled: true }),
     communications: Object.freeze({ key: 'communications', title: 'Communications', icon: '✉', enabled: true }),
     client360: Object.freeze({ key: 'client360', title: 'Client 360', icon: '360', enabled: true }),
+    garuda: Object.freeze({ key: 'garuda', title: 'GARUDA Lead IQ', icon: 'G', enabled: true }),
     access: Object.freeze({ key: 'access', title: 'User Access', icon: '@', enabled: true })
   })
 });
@@ -162,6 +163,9 @@ JSKOS.Router = Object.freeze({
         case 'client360':
           return JSKOS.Router.renderClient360(event);
 
+        case 'garuda':
+          return JSKOS.Router.renderGaruda();
+
         case 'access':
           return JSKOS.Router.renderAccess();
 
@@ -282,6 +286,13 @@ JSKOS.Router = Object.freeze({
     });
   },
 
+  renderGaruda: function () {
+    if (typeof renderGarudaUi !== 'function') {
+      throw new Error('renderGarudaUi() is unavailable.');
+    }
+    return renderGarudaUi();
+  },
+
   /**
    * Returns the deployed Web App URL when available.
    * Editor tests may return an empty string; that is expected.
@@ -326,6 +337,7 @@ JSKOS.Router = Object.freeze({
       meetings: JSKOS.Router.buildRouteUrl('meetings'),
       communications: JSKOS.Router.buildRouteUrl('communications'),
       client360: JSKOS.Router.buildRouteUrl('client360'),
+      garuda: JSKOS.Router.buildRouteUrl('garuda'),
       access: JSKOS.Router.buildRouteUrl('access')
     };
   },

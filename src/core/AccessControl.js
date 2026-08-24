@@ -20,6 +20,7 @@ var JSK_ACCESS = Object.freeze({
     quotes: 'quotes.view', revenue: 'revenue.view', reports: 'reports.view',
     tasks: 'tasks.view', meetings: 'meetings.view',
     communications: 'communications.view', client360: 'client360.view',
+    garuda: 'garuda.view',
     access: 'access.manage'
   })
 });
@@ -30,7 +31,7 @@ JSKOS.AccessControl = (function () {
   var ALL_MODULES = [
     'dashboard', 'companies', 'people', 'policies', 'claims', 'documents',
     'endorsements', 'quotes', 'revenue', 'reports', 'tasks', 'meetings',
-    'communications', 'client360'
+    'communications', 'client360', 'garuda'
   ];
 
   function permissionsForRole_(role) {
@@ -57,7 +58,7 @@ JSKOS.AccessControl = (function () {
     if (role === JSK_ACCESS.ROLES.EXECUTIVE) {
       ['dashboard', 'companies', 'people', 'policies', 'claims', 'documents',
         'endorsements', 'quotes', 'revenue', 'reports', 'tasks', 'meetings',
-        'client360']
+        'client360', 'garuda']
         .forEach(function (moduleName) { allow(moduleName, ['view']); });
       return permissions;
     }
@@ -72,7 +73,8 @@ JSKOS.AccessControl = (function () {
       });
       return permissions;
     }
-    ALL_MODULES.forEach(function (moduleName) { allow(moduleName, ['view']); });
+    ALL_MODULES.filter(function (moduleName) { return moduleName !== 'garuda'; })
+      .forEach(function (moduleName) { allow(moduleName, ['view']); });
     return permissions;
   }
 
