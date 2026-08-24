@@ -62,7 +62,7 @@ JSKOS.GarudaCloudVisionOcr = (function () {
     var pages = annotation && annotation.pages || [], scores = []; pages.forEach(function (page) { if (typeof page.confidence === 'number') scores.push(page.confidence); });
     return { text: text, confidence: scores.length ? scores.reduce(function (a, b) { return a + b; }, 0) / scores.length : null };
   }
-  function parseResult_(image) { var ocr = extractText_(image); return parse(ocr.text, ocr.confidence); }
+  function parseResult_(image) { var ocr = extractText_(image), result = parse(ocr.text, ocr.confidence); result.sourceText = String(ocr.text || '').replace(/\r/g, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim().substring(0, 12000); return result; }
   function extract(input) { return { front: parseResult_(input.front), back: input.back ? parseResult_(input.back) : null }; }
   return Object.freeze({ extract: extract, parse: parse, endpoint: ENDPOINT, feature: FEATURE });
 })();
