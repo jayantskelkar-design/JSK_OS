@@ -8,6 +8,20 @@ function apiGarudaAnalyze(payload) {
   });
 }
 
+function apiGarudaExtractVisitingCard(payload) {
+  return garudaApiExecute_('extract-card', function () {
+    var request = payload && typeof payload === 'object' ? payload : {};
+    var front = JSKOS.GarudaVisitingCard.validateImage(request.front, true);
+    var back = JSKOS.GarudaVisitingCard.validateImage(request.back, false);
+    if (typeof extractGarudaVisitingCardWithConfiguredOcr_ !== 'function') {
+      var unavailable = new Error('Visiting-card OCR is not configured. Contact an Administrator to enable the approved OCR provider.');
+      unavailable.code = 'GARUDA_OCR_UNAVAILABLE'; unavailable.status = 503; throw unavailable;
+    }
+    var extracted = extractGarudaVisitingCardWithConfiguredOcr_({ front: front, back: back });
+    return JSKOS.GarudaVisitingCard.merge(extracted && extracted.front, extracted && extracted.back);
+  });
+}
+
 function garudaApiExecute_(operation, callback) {
   try {
     // GARUDA analysis is read-only; use the same explicit permission as the UI route.

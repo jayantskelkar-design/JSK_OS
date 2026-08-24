@@ -1,0 +1,23 @@
+'use strict';
+const fs=require('fs'),path=require('path'),vm=require('vm'),root=path.resolve(__dirname,'..');let assertions=0,calls=[];
+function assert(value,message){assertions++;if(!value)throw new Error(message);}
+function source(file){return fs.readFileSync(path.join(root,file),'utf8');}
+function visionResponse(text,status){return{getResponseCode(){return status||200;},getContentText(){return JSON.stringify(status&&status!==200?{error:{code:status}}:{responses:[{fullTextAnnotation:{text,pages:[{confidence:.88}]}}]});}};}
+const context={Object,Array,String,Number,Boolean,Math,JSON,Error,UrlFetchApp:{fetch(url,options){calls.push({url,options});return visionResponse(context.nextText.shift());}},ScriptApp:{getOAuthToken(){return'SYNTHETIC_TOKEN';}}};vm.createContext(context);vm.runInContext(source('src/garuda/GarudaCloudVisionOcr.js'),context,{filename:'GarudaCloudVisionOcr.js'});vm.runInContext(source('src/garuda/GarudaVisitingCard.js'),context,{filename:'GarudaVisitingCard.js'});
+const ocr=context.JSKOS.GarudaCloudVisionOcr,card=context.JSKOS.GarudaVisitingCard;
+function run(){
+  const front='Aarav Mehta\nDirector\nSynthetic Industries Pvt Ltd\nMobile: +91 98765 43210\naarav@example.com';
+  const back='www.synthetic.example\nTel: 020 41234567\nAddress: Plot 7, Industrial Estate, Pune - 411001\nGSTIN: 27ABCDE1234F1Z5\nProducts / Services: Industrial components';
+  const parsedFront=ocr.parse(front,.9),parsedBack=ocr.parse(back,.8);
+  assert(parsedFront.personName==='Aarav Mehta','Name on Front failed');assert(parsedFront.companyName==='Synthetic Industries Pvt Ltd','Company on Front failed');assert(parsedFront.primaryMobile,'Primary mobile failed');assert(parsedFront.email==='aarav@example.com','Email failed');
+  assert(parsedBack.website==='www.synthetic.example','www-only website failed');assert(parsedBack.address&&/Pune/.test(parsedBack.address),'Address on Back failed');assert(parsedBack.gstin==='27ABCDE1234F1Z5','GSTIN failed');assert(parsedBack.productsServices==='Industrial components','Products/services failed');
+  const merged=card.merge(parsedFront,parsedBack);assert(merged.fields.website==='https://www.synthetic.example','Version 180 website normalization failed');assert(merged.provenance.personName==='VISITING_CARD_FRONT','Front provenance failed');assert(merged.provenance.website==='VISITING_CARD_BACK','Back provenance failed');assert(merged.requiresReview===true,'Human review not mandatory');
+  const duplicate=card.merge({primaryMobile:'9876543210',mobile:'9876543210'},{primaryMobile:'9876543210',mobile:'9876543210'});assert(duplicate.fields.primaryMobile==='9876543210'&&!duplicate.fields.alternateMobile,'Duplicate phone created alternate');
+  const two=card.merge({primaryMobile:'9876543210',mobile:'9876543210'},{primaryMobile:'9123456780',mobile:'9123456780'});assert(two.fields.alternateMobile==='9123456780','Two mobile numbers failed');
+  context.nextText=[front,back];calls=[];const extracted=ocr.extract({front:{base64:'FRONT'},back:{base64:'BACK'}});assert(calls.length===2&&extracted.front.email&&extracted.back.website,'Front/Back were not separate Vision calls');const request=JSON.parse(calls[0].options.payload);assert(calls[0].url==='https://vision.googleapis.com/v1/images:annotate'&&calls[0].options.headers.Authorization==='Bearer SYNTHETIC_TOKEN','Cloud Vision OAuth failed');assert(request.requests[0].features[0].type==='DOCUMENT_TEXT_DETECTION'&&request.requests[0].image.content==='FRONT','Vision request invalid');
+  assert(!/api[_-]?key|key=/.test(calls[0].url+JSON.stringify(calls[0].options)),'API key exposed');
+  const manifest=JSON.parse(source('src/appsscript.json'));assert(manifest.oauthScopes.includes('https://www.googleapis.com/auth/cloud-vision')&&manifest.oauthScopes.includes('https://www.googleapis.com/auth/script.external_request'),'Minimum OAuth scopes missing');
+  const provider=source('src/garuda/GarudaCloudVisionOcr.js'),backend=source('src/garuda/GarudaBackend.js');assert(!/DriveApp|PropertiesService|console\.|Logger\./.test(provider),'OCR provider persists or logs PII');assert(!/appendRow|setValues|setValue|insertSheet/.test(provider+backend),'OCR path writes data');
+  let unavailable=null;context.UrlFetchApp.fetch=function(){throw new Error('secret provider detail');};try{ocr.extract({front:{base64:'X'}});}catch(error){unavailable=error;}assert(unavailable&&unavailable.code==='GARUDA_OCR_UNAVAILABLE'&&!/secret provider detail/.test(unavailable.message),'Vision error did not fail closed');
+}
+try{run();process.stdout.write(JSON.stringify({success:true,assertions,calls:'SYNTHETIC_ONLY'},null,2)+'\n');}catch(error){process.stdout.write(JSON.stringify({success:false,assertions,error:error.stack},null,2)+'\n');process.exitCode=1;}

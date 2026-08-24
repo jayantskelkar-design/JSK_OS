@@ -2,6 +2,10 @@
   "timeZone": "Asia/Kolkata",
   "dependencies": {
   },
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/cloud-vision",
+    "https://www.googleapis.com/auth/script.external_request"
+  ],
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "webapp": {
