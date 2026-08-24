@@ -16,7 +16,18 @@ function run(){
   const two=card.merge({primaryMobile:'9876543210',mobile:'9876543210'},{primaryMobile:'9123456780',mobile:'9123456780'});assert(two.fields.alternateMobile==='9123456780','Two mobile numbers failed');
   context.nextText=[front,back];calls=[];const extracted=ocr.extract({front:{base64:'FRONT'},back:{base64:'BACK'}});assert(calls.length===2&&extracted.front.email&&extracted.back.website,'Front/Back were not separate Vision calls');const request=JSON.parse(calls[0].options.payload);assert(calls[0].url==='https://vision.googleapis.com/v1/images:annotate'&&calls[0].options.headers.Authorization==='Bearer SYNTHETIC_TOKEN','Cloud Vision OAuth failed');assert(request.requests[0].features[0].type==='DOCUMENT_TEXT_DETECTION'&&request.requests[0].image.content==='FRONT','Vision request invalid');
   assert(!/api[_-]?key|key=/.test(calls[0].url+JSON.stringify(calls[0].options)),'API key exposed');
-  const manifest=JSON.parse(source('src/appsscript.json'));assert(manifest.oauthScopes.includes('https://www.googleapis.com/auth/cloud-vision')&&manifest.oauthScopes.includes('https://www.googleapis.com/auth/script.external_request'),'Minimum OAuth scopes missing');
+  const manifest=JSON.parse(source('src/appsscript.json'));
+  const requiredScopes=[
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive',
+    'https://www.googleapis.com/auth/script.send_mail',
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/script.scriptapp',
+    'https://www.googleapis.com/auth/cloud-vision',
+    'https://www.googleapis.com/auth/script.external_request'
+  ];
+  assert(requiredScopes.every(scope=>manifest.oauthScopes.includes(scope)),'Complete audited OAuth scope inventory missing');
   const provider=source('src/garuda/GarudaCloudVisionOcr.js'),backend=source('src/garuda/GarudaBackend.js');assert(!/DriveApp|PropertiesService|console\.|Logger\./.test(provider),'OCR provider persists or logs PII');assert(!/appendRow|setValues|setValue|insertSheet/.test(provider+backend),'OCR path writes data');
   let unavailable=null;context.UrlFetchApp.fetch=function(){throw new Error('secret provider detail');};try{ocr.extract({front:{base64:'X'}});}catch(error){unavailable=error;}assert(unavailable&&unavailable.code==='GARUDA_OCR_UNAVAILABLE'&&!/secret provider detail/.test(unavailable.message),'Vision error did not fail closed');
 }
