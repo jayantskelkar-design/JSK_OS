@@ -179,7 +179,25 @@ JSKOS.GarudaLeadIntelligence = (function () {
   function unique_(items) { var seen = {}; return items.filter(function (item) { var key = JSON.stringify(item); if (seen[key]) return false; seen[key] = true; return true; }); }
   function bounded_(value) { var n = Number(value); return isFinite(n) ? Math.max(0, Math.min(5, Math.round(n))) : 0; }
   function enum_(value, allowed, fallback) { value = String(value || '').trim().toLowerCase(); return allowed.indexOf(value) === -1 ? fallback : value; }
-  function safeUrl_(value) { var text = text_(value, 1000); if (!text) return ''; if (!/^https?:\/\//i.test(text)) throw validation_('Website/source URLs must use http or https.'); return text; }
+  function safeUrl_(value) {
+    var text = text_(value, 1000);
+    if (!text) return '';
+    if (!/^https?:\/\//i.test(text)) {
+      if (/^[a-z][a-z0-9+.-]*:/i.test(text)) throw validation_('Website/source URL scheme is not allowed.');
+      text = 'https://' + text;
+    }
+    var match = /^(https?):\/\/([^\/?#]+)([\/?#][^\s]*)?$/i.exec(text);
+    if (!match || /[\s@]/.test(match[2])) throw validation_('Website/source URL is invalid.');
+    var hostPort = match[2].split(':');
+    if (hostPort.length > 2 || (hostPort.length === 2 && (!/^\d+$/.test(hostPort[1]) || Number(hostPort[1]) < 1 || Number(hostPort[1]) > 65535))) {
+      throw validation_('Website/source URL is invalid.');
+    }
+    var host = hostPort[0].toLowerCase();
+    if (host.length > 253 || !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(host)) {
+      throw validation_('Website/source URL is invalid.');
+    }
+    return text;
+  }
   function text_(value, limit) { var text = String(value === null || value === undefined ? '' : value).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim(); if (text.length > limit) throw validation_('Input exceeds the permitted length.'); return text; }
   function validation_(message) { var error = new Error(message); error.code = 'GARUDA_VALIDATION_ERROR'; error.status = 400; return error; }
 
