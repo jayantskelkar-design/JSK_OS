@@ -34,7 +34,7 @@ function metaWebhookProbe(){
 function releaseScopeProbe(){
   const changed=require('child_process').execFileSync('git',['status','--porcelain'],{cwd:root,encoding:'utf8'}).split(/\r?\n/).filter(line=>line.trim()).map(line=>line.slice(3));
   const allowed=new Set(['src/core/AccessControl.js','src/core/Config.js','src/core/Router.js','src/people/PeopleRepository.js','src/communication/CommunicationRepository.js','src/communication/MetaWhatsAppProvider.js','src/garuda/','src/garuda/GarudaBackend.js','src/garuda/GarudaLeadIntelligence.js','src/garuda/GarudaVisitingCard.js','src/Ui/Garuda/','src/Ui/Garuda/GarudaUi.js','src/Ui/Garuda/Garuda.html','src/Ui/Garuda/GarudaStyles.html','src/Ui/Garuda/GarudaScripts.html','tests/run-build1025.js','tests/run-build1026.js','tests/run-build1027.js','tests/run-garuda-card.js']);
-  ['src/appsscript.json','src/garuda/GarudaCloudVisionOcr.js','tests/run-garuda-cloud-vision.js'].forEach(file=>allowed.add(file));
+  ['src/appsscript.json','src/garuda/GarudaCloudVisionOcr.js','src/garuda/GarudaCrmResolver.js','src/Ui/Garuda/GarudaCrmResolutionScripts.html','tests/run-garuda-cloud-vision.js','tests/run-garuda-crm-resolution.js'].forEach(file=>allowed.add(file));
   assert(changed.every(file=>allowed.has(file)),'Build 1026 changed path outside scope: '+changed.filter(file=>!allowed.has(file)).join(','));
   assert(!fs.existsSync(path.join(root,'src/core/Build1025PeopleMigration.js'))&&!fs.existsSync(path.join(root,'src/core/Build1025PeoplePreflight.js')),'Temporary Build 1025 helper entered release tree');
   assert(/VERSION:\s*'1\.5\.(?:15|16)'/.test(source('src/core/Config.js')),'Build 1026 runtime version mismatch');

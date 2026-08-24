@@ -22,6 +22,21 @@ function apiGarudaExtractVisitingCard(payload) {
   });
 }
 
+function apiGarudaResolveExistingEntities(payload) {
+  return garudaApiExecute_('resolve-existing-entities', function () {
+    JSKOS.AccessControl.requirePermission('companies.view');
+    JSKOS.AccessControl.requirePermission('people.view');
+    requireCompanySchema_(); requirePeopleSchema_();
+    return JSKOS.GarudaCrmResolver.resolve(payload || {}, garudaReadAll_(new PeopleRepository()), garudaReadAll_(new CompanyRepository()));
+  });
+}
+
+function garudaReadAll_(repository) {
+  var items = [], page = 1, result;
+  do { if (page > 100) { var error = new Error('CRM match resolution is unavailable because the complete record set could not be inspected safely.'); error.code = 'GARUDA_RESOLUTION_LIMIT'; error.status = 503; throw error; } result = repository.search({ page: page, pageSize: 100 }); items = items.concat(result && result.items || []); page += 1; } while (result && result.pagination && result.pagination.hasNext);
+  return items;
+}
+
 function garudaApiExecute_(operation, callback) {
   try {
     // GARUDA analysis is read-only; use the same explicit permission as the UI route.
